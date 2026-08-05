@@ -1,0 +1,45 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Firebase
+.firebase/
+firebase-debug.log*
+
+# Capacitor
+android/
+ios/
+
+# Electron
+electron-dist/
+
+# Assets de produção (grandes demais para Git)
+*.psd
+*.aseprite
+*.ase
+
+# Cache
+.cache/
+*.tsbuildinfo

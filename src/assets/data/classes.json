@@ -1,0 +1,136 @@
+{
+  "classes": {
+    "PALADIN": {
+      "name": "Paladino",
+      "archetype": "TANK",
+      "description": "O templário sagrado, campeão da Ordem. Canaliza a luz divina para proteger aliados e punir inimigos.",
+      "resource": "Fé Sagrada",
+      "baseStats": { "str": 12, "agi": 6, "int": 8, "vit": 14, "wis": 10, "lck": 5 },
+      "statGrowth": { "str": 3.5, "agi": 1.5, "int": 2.0, "vit": 4.0, "wis": 2.5, "lck": 1.5 },
+      "trees": ["Luz Sagrada", "Égide Divina", "Julgamento"],
+      "weaponTypes": ["sword", "mace", "shield"],
+      "armorType": "heavy"
+    },
+    "GUARDIAN": {
+      "name": "Guardião",
+      "archetype": "TANK",
+      "description": "Mestre do escudo e da defesa posicional. Absorve dano e redireciona ataques para si.",
+      "resource": "Determinação",
+      "baseStats": { "str": 10, "agi": 4, "int": 5, "vit": 16, "wis": 7, "lck": 3 },
+      "statGrowth": { "str": 2.5, "agi": 1.0, "int": 1.0, "vit": 5.0, "wis": 1.5, "lck": 1.0 },
+      "trees": ["Fortaleza", "Provocação", "Vanguarda"],
+      "weaponTypes": ["mace", "shield", "polearm"],
+      "armorType": "heavy"
+    },
+    "DARK_KNIGHT": {
+      "name": "Cavaleiro Negro",
+      "archetype": "TANK",
+      "description": "Ex-templário corrompido. Usa magia negra e força bruta. Alto dano corpo-a-corpo com sustain.",
+      "resource": "Sombra",
+      "baseStats": { "str": 14, "agi": 7, "int": 6, "vit": 12, "wis": 4, "lck": 6 },
+      "statGrowth": { "str": 4.0, "agi": 2.0, "int": 1.5, "vit": 3.0, "wis": 1.0, "lck": 1.5 },
+      "trees": ["Trevas", "Sangue", "Caos"],
+      "weaponTypes": ["greatsword", "axe", "scythe"],
+      "armorType": "heavy"
+    },
+    "WARRIOR": {
+      "name": "Guerreiro",
+      "archetype": "DPS",
+      "description": "Mercenário veterano. Quanto mais luta, mais forte fica.",
+      "resource": "Fúria",
+      "baseStats": { "str": 14, "agi": 10, "int": 3, "vit": 10, "wis": 3, "lck": 7 },
+      "statGrowth": { "str": 4.5, "agi": 3.0, "int": 0.5, "vit": 2.5, "wis": 0.5, "lck": 2.0 },
+      "trees": ["Armas", "Berserker", "Tática"],
+      "weaponTypes": ["sword", "greatsword", "axe"],
+      "armorType": "medium"
+    },
+    "ASSASSIN": {
+      "name": "Assassino",
+      "archetype": "DPS",
+      "description": "Agente das sombras. Invisibilidade, golpes críticos devastadores.",
+      "resource": "Sigilo",
+      "baseStats": { "str": 8, "agi": 16, "int": 4, "vit": 6, "wis": 3, "lck": 12 },
+      "statGrowth": { "str": 2.0, "agi": 5.0, "int": 1.0, "vit": 1.5, "wis": 0.5, "lck": 3.5 },
+      "trees": ["Assassinato", "Veneno", "Acrobacia"],
+      "weaponTypes": ["dagger", "claw", "shortbow"],
+      "armorType": "light"
+    },
+    "ARCHER": {
+      "name": "Arqueiro",
+      "archetype": "DPS",
+      "description": "Caçador de elite. Dispara à distância com precisão mortal.",
+      "resource": "Concentração",
+      "baseStats": { "str": 7, "agi": 14, "int": 5, "vit": 7, "wis": 5, "lck": 10 },
+      "statGrowth": { "str": 1.5, "agi": 4.5, "int": 1.5, "vit": 1.5, "wis": 1.0, "lck": 3.0 },
+      "trees": ["Tiro Preciso", "Armadilhas", "Caçada"],
+      "weaponTypes": ["bow", "crossbow", "shortbow"],
+      "armorType": "medium"
+    },
+    "MAGE": {
+      "name": "Mago",
+      "archetype": "MAGIC",
+      "description": "Estudioso arcano. Domina os elementos para devastar campos de batalha.",
+      "resource": "Mana",
+      "baseStats": { "str": 3, "agi": 5, "int": 18, "vit": 5, "wis": 12, "lck": 4 },
+      "statGrowth": { "str": 0.5, "agi": 1.0, "int": 5.5, "vit": 1.0, "wis": 3.5, "lck": 1.0 },
+      "trees": ["Fogo", "Gelo", "Arcano"],
+      "weaponTypes": ["staff", "wand", "orb"],
+      "armorType": "cloth"
+    },
+    "NECROMANCER": {
+      "name": "Necromante",
+      "archetype": "MAGIC",
+      "description": "Praticante das artes proibidas. Invoca mortos-vivos e drena vida.",
+      "resource": "Essência Vital",
+      "baseStats": { "str": 4, "agi": 5, "int": 16, "vit": 7, "wis": 10, "lck": 5 },
+      "statGrowth": { "str": 0.5, "agi": 1.0, "int": 5.0, "vit": 1.5, "wis": 3.0, "lck": 1.5 },
+      "trees": ["Invocação", "Maldição", "Sangue Negro"],
+      "weaponTypes": ["staff", "tome", "skull"],
+      "armorType": "cloth"
+    },
+    "ELEMENTALIST": {
+      "name": "Elementalista",
+      "archetype": "MAGIC",
+      "description": "Canaliza os quatro elementos em equilíbrio. Combos elementais devastadores.",
+      "resource": "Harmonia",
+      "baseStats": { "str": 4, "agi": 7, "int": 16, "vit": 6, "wis": 10, "lck": 6 },
+      "statGrowth": { "str": 0.5, "agi": 1.5, "int": 5.0, "vit": 1.0, "wis": 3.0, "lck": 1.5 },
+      "trees": ["Fogo & Gelo", "Raio & Terra", "Harmonia Primordial"],
+      "weaponTypes": ["staff", "wand", "elemental_focus"],
+      "armorType": "cloth"
+    },
+    "CLERIC": {
+      "name": "Clérigo",
+      "archetype": "SUPPORT",
+      "description": "Sacerdote da Ordem. Cura poderosa e purificação.",
+      "resource": "Preces",
+      "baseStats": { "str": 4, "agi": 4, "int": 10, "vit": 10, "wis": 16, "lck": 4 },
+      "statGrowth": { "str": 0.5, "agi": 0.5, "int": 2.5, "vit": 2.5, "wis": 5.5, "lck": 1.0 },
+      "trees": ["Cura Sagrada", "Proteção Divina", "Exorcismo"],
+      "weaponTypes": ["mace", "staff", "holy_symbol"],
+      "armorType": "medium"
+    },
+    "BARD": {
+      "name": "Bardo",
+      "archetype": "SUPPORT",
+      "description": "Artista itinerante. Suas canções inspiram aliados e debilitam inimigos.",
+      "resource": "Melodia",
+      "baseStats": { "str": 5, "agi": 8, "int": 8, "vit": 7, "wis": 12, "lck": 8 },
+      "statGrowth": { "str": 1.0, "agi": 2.0, "int": 2.0, "vit": 1.5, "wis": 4.0, "lck": 2.5 },
+      "trees": ["Canção de Guerra", "Melodia Curativa", "Balada Sombria"],
+      "weaponTypes": ["lute", "harp", "flute"],
+      "armorType": "light"
+    },
+    "DRUID": {
+      "name": "Druida",
+      "archetype": "SUPPORT",
+      "description": "Guardião das florestas. Transformação animal e cura natural.",
+      "resource": "Natureza",
+      "baseStats": { "str": 7, "agi": 7, "int": 8, "vit": 10, "wis": 14, "lck": 5 },
+      "statGrowth": { "str": 1.5, "agi": 1.5, "int": 2.0, "vit": 2.5, "wis": 4.5, "lck": 1.0 },
+      "trees": ["Cura Natural", "Forma Animal", "Invocação Elemental"],
+      "weaponTypes": ["staff", "totem", "claw"],
+      "armorType": "medium"
+    }
+  }
+}

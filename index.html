@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Taverna dos Templários — RPG Arcade Medieval com classes, dungeons, torres e despertar. Junte-se à Ordem e conquiste o Plano Astral!" />
+  <meta name="theme-color" content="#1a0a2e" />
+
+  <title>⚔️ Taverna dos Templários — RPG Arcade</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="ui-overlay" class="hidden"></div>
+  <div id="loading-screen">
+    <div class="loading-content">
+      <h1 class="loading-title">⚔️ Taverna dos Templários</h1>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <p class="loading-text" id="loading-text">Preparando a Taverna...</p>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

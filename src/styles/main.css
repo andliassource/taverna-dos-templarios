@@ -1,0 +1,372 @@
+/* ===================================================
+   Taverna dos Templários — Design System
+   =================================================== */
+
+:root {
+  /* Paleta Medieval */
+  --color-bg-darkest: #0a0612;
+  --color-bg-dark: #1a0a2e;
+  --color-bg-medium: #2d1b4e;
+  --color-bg-light: #4a2d6e;
+
+  /* Cores de Destaque */
+  --color-gold: #d4a843;
+  --color-gold-bright: #ffd700;
+  --color-gold-dark: #8b6914;
+  --color-crimson: #8b0000;
+  --color-crimson-bright: #dc143c;
+  --color-holy: #87ceeb;
+  --color-holy-bright: #e0f0ff;
+  --color-arcane: #9b59b6;
+  --color-arcane-bright: #c39bd3;
+  --color-nature: #27ae60;
+  --color-fire: #e74c3c;
+  --color-ice: #3498db;
+  --color-shadow: #2c3e50;
+
+  /* Raridade */
+  --color-common: #b0b0b0;
+  --color-uncommon: #2ecc71;
+  --color-rare: #3498db;
+  --color-epic: #9b59b6;
+  --color-legendary: #f39c12;
+  --color-mythic: #e67e22;
+  --color-divine: #e74c3c;
+  --color-primordial: #1a1a2e;
+
+  /* Tipografia */
+  --font-title: 'Cinzel', serif;
+  --font-medieval: 'MedievalSharp', cursive;
+  --font-body: 'Inter', sans-serif;
+
+  /* Espaçamento */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  /* Bordas */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 16px;
+  --border-gold: 2px solid var(--color-gold);
+  --border-gold-thick: 3px solid var(--color-gold);
+}
+
+/* Reset */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-bg-darkest);
+  font-family: var(--font-body);
+  color: #e0d5c0;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* Container do Jogo */
+#game-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#game-container canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* UI Overlay */
+#ui-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#ui-overlay > * {
+  pointer-events: auto;
+}
+
+#ui-overlay.hidden {
+  display: none;
+}
+
+/* Loading Screen */
+#loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-darkest) 0%,
+    var(--color-bg-dark) 30%,
+    var(--color-bg-medium) 60%,
+    var(--color-bg-dark) 100%
+  );
+  transition: opacity 0.8s ease-out;
+}
+
+#loading-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#loading-screen.hidden {
+  display: none;
+}
+
+.loading-content {
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+}
+
+.loading-title {
+  font-family: var(--font-title);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  font-weight: 900;
+  color: var(--color-gold-bright);
+  text-shadow:
+    0 0 20px rgba(212, 168, 67, 0.6),
+    0 0 40px rgba(212, 168, 67, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.8);
+  margin-bottom: var(--spacing-xl);
+  letter-spacing: 2px;
+  animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+  0% {
+    text-shadow:
+      0 0 20px rgba(212, 168, 67, 0.6),
+      0 0 40px rgba(212, 168, 67, 0.3),
+      0 4px 8px rgba(0, 0, 0, 0.8);
+  }
+  100% {
+    text-shadow:
+      0 0 30px rgba(255, 215, 0, 0.8),
+      0 0 60px rgba(255, 215, 0, 0.4),
+      0 0 90px rgba(212, 168, 67, 0.2),
+      0 4px 8px rgba(0, 0, 0, 0.8);
+  }
+}
+
+.loading-bar-container {
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  border: var(--border-gold);
+  overflow: hidden;
+  margin-bottom: var(--spacing-md);
+  position: relative;
+}
+
+.loading-bar-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  box-shadow: inset 0 0 8px rgba(212, 168, 67, 0.3);
+}
+
+.loading-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(
+    90deg,
+    var(--color-gold-dark),
+    var(--color-gold),
+    var(--color-gold-bright),
+    var(--color-gold)
+  );
+  background-size: 200% 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  animation: shimmer 2s linear infinite;
+  position: relative;
+}
+
+.loading-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4));
+  filter: blur(2px);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.loading-text {
+  font-family: var(--font-medieval);
+  font-size: 1.1rem;
+  color: var(--color-gold);
+  opacity: 0.8;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ===== Componentes de UI Comuns ===== */
+
+/* Botão Medieval */
+.btn-medieval {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--font-title);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-gold-bright);
+  background: linear-gradient(180deg, var(--color-bg-medium) 0%, var(--color-bg-dark) 100%);
+  border: var(--border-gold);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-medieval::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 67, 0.15), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-medieval:hover {
+  background: linear-gradient(180deg, var(--color-bg-light) 0%, var(--color-bg-medium) 100%);
+  border-color: var(--color-gold-bright);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 16px rgba(212, 168, 67, 0.3),
+    0 0 24px rgba(212, 168, 67, 0.15);
+}
+
+.btn-medieval:hover::before {
+  left: 100%;
+}
+
+.btn-medieval:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-medieval--primary {
+  background: linear-gradient(180deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);
+  color: var(--color-bg-darkest);
+  text-shadow: none;
+}
+
+.btn-medieval--primary:hover {
+  background: linear-gradient(180deg, var(--color-gold-bright) 0%, var(--color-gold) 100%);
+}
+
+.btn-medieval--danger {
+  border-color: var(--color-crimson);
+  color: var(--color-crimson-bright);
+}
+
+/* Painel Medieval */
+.panel-medieval {
+  background: linear-gradient(
+    135deg,
+    rgba(26, 10, 46, 0.95) 0%,
+    rgba(45, 27, 78, 0.9) 100%
+  );
+  border: var(--border-gold);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-lg);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(212, 168, 67, 0.2);
+}
+
+.panel-medieval__header {
+  font-family: var(--font-title);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-gold-bright);
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid rgba(212, 168, 67, 0.3);
+  text-shadow: 0 2px 8px rgba(212, 168, 67, 0.4);
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  background: rgba(10, 6, 18, 0.95);
+  border: var(--border-gold);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.85rem;
+  color: #e0d5c0;
+  max-width: 300px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+}
+
+/* Scrollbar Personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-darkest);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold-dark);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}

@@ -76,6 +76,13 @@ export class BattleScene extends Phaser.Scene {
     this.combatSystem.setGold(this.playerData.gold);
     this.combatSystem.setGems(this.playerData.gems);
 
+    if (this.playerData.inventory) {
+      this.combatSystem.setInventory(this.playerData.inventory);
+    }
+    if (this.playerData.equipped) {
+      this.combatSystem.setEquipped(this.playerData.equipped);
+    }
+
     // Constrói mapa da arena
     this.createArenaMap();
 
@@ -304,6 +311,8 @@ export class BattleScene extends Phaser.Scene {
           goldGained: 200,
           gemsGained: 5,
           hpPercent: this.combatSystem.getHP() / this.combatSystem.getMaxHP(),
+          inventory: this.combatSystem.getInventory(),
+          equipped: this.combatSystem.getEquipped(),
         });
       });
     });
@@ -345,6 +354,8 @@ export class BattleScene extends Phaser.Scene {
           goldGained: 0,
           gemsGained: 0,
           hpPercent: 0,
+          inventory: this.combatSystem.getInventory(),
+          equipped: this.combatSystem.getEquipped(),
         });
       });
     });

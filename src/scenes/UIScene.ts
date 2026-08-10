@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Item } from '../shared/types/item.types';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -15,6 +16,12 @@ export class UIScene extends Phaser.Scene {
   private classText!: Phaser.GameObjects.Text;
   private mapNameText!: Phaser.GameObjects.Text;
   private fpsText!: Phaser.GameObjects.Text;
+
+  private inventoryKey!: Phaser.Input.Keyboard.Key;
+  private inventoryContainer!: Phaser.GameObjects.Container;
+  private isInventoryOpen = false;
+  private tooltipText!: Phaser.GameObjects.Text;
+  private tooltipBg!: Phaser.GameObjects.Graphics;
 
   // Dados do jogador (placeholder — virá do servidor)
   private playerData = {
@@ -59,6 +66,18 @@ export class UIScene extends Phaser.Scene {
 
     // Escuta atualizações de combate vindas do WorldScene
     this.setupCombatListeners();
+
+    // Registra atalho de inventário (Tecla I)
+    if (this.input.keyboard) {
+      this.inventoryKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
+    }
+
+    // Escuta redesenho do inventário
+    this.events.on('update-inventory-ui', () => {
+      if (this.isInventoryOpen) {
+        this.createInventoryUI();
+      }
+    });
 
     console.log('[UIScene] Interface criada');
   }
@@ -419,5 +438,265 @@ export class UIScene extends Phaser.Scene {
     if (this.fpsText) {
       this.fpsText.setText(`FPS: ${Math.round(this.game.loop.actualFps)}`);
     }
+
+    // Atalho do inventário
+    if (this.inventoryKey && Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
+      this.toggleInventory();
+    }
+  }
+
+  private toggleInventory(): void {
+    this.isInventoryOpen = !this.isInventoryOpen;
+    
+    // Comunica para as cenas ativas pausarem/despausarem a movimentação do jogador
+    let activeSceneName = '';
+    if (this.scene.isActive('WorldScene')) activeSceneName = 'WorldScene';
+    else if (this.scene.isActive('BattleScene')) activeSceneName = 'BattleScene';
+
+    if (activeSceneName) {
+      const activeScene = this.scene.get(activeSceneName) as any;
+      if (activeScene && activeScene.player) {
+        if (this.isInventoryOpen) {
+          activeScene.physics.world.disable(activeScene.player);
+          activeScene.isMoving = false;
+          activeScene.player.play(`player-idle-${activeScene.currentDirection || 'down'}`, true);
+        } else {
+          activeScene.physics.world.enable(activeScene.player);
+        }
+      }
+    }
+
+    if (this.isInventoryOpen) {
+      this.createInventoryUI();
+    } else {
+      if (this.inventoryContainer) {
+        this.inventoryContainer.destroy();
+      }
+    }
+  }
+
+  private getActiveCombatSystem(): any {
+    if (this.scene.isActive('WorldScene')) {
+      return (this.scene.get('WorldScene') as any).combatSystem;
+    } else if (this.scene.isActive('BattleScene')) {
+      return (this.scene.get('BattleScene') as any).combatSystem;
+    }
+    return null;
+  }
+
+  private createInventoryUI(): void {
+    if (this.inventoryContainer) {
+      this.inventoryContainer.destroy();
+    }
+
+    const { width, height } = this.cameras.main;
+    this.inventoryContainer = this.add.container(0, 0).setDepth(200);
+
+    const cs = this.getActiveCombatSystem();
+    if (!cs) return;
+
+    const px = width / 2 - 240;
+    const py = height / 2 - 170;
+    const pw = 480;
+    const ph = 340;
+
+    // Fundo do painel principal
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a0618, 0.95);
+    bg.fillRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(2, 0xd4a843, 1);
+    bg.strokeRoundedRect(px, py, pw, ph, 10);
+    this.inventoryContainer.add(bg);
+
+    // Título medieval
+    const title = this.add.text(width / 2, py + 22, 'INVENTÁRIO E EQUIPAMENTOS', {
+      fontFamily: 'Cinzel',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+    }).setOrigin(0.5);
+    this.inventoryContainer.add(title);
+
+    // Botão Fechar [X] no topo direito do painel
+    const closeBtn = this.add.text(px + pw - 26, py + 12, '✖', {
+      fontSize: '18px',
+      color: '#ffd700',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleInventory());
+    this.inventoryContainer.add(closeBtn);
+
+    // === SEÇÃO ESQUERDA: SLOTS DE EQUIPAMENTO EQUIPADO ===
+    const eqX = px + 24;
+    const eqY = py + 54;
+    const eqSlotW = 180;
+    const eqSlotH = 48;
+
+    const slots = [
+      { key: 'HELMET', label: '🪖 ELMO', iconPlaceholder: '🪖' },
+      { key: 'ARMOR', label: '🧥 ARMADURA', iconPlaceholder: '🧥' },
+      { key: 'WEAPON', label: '🗡️ ARMA', iconPlaceholder: '🗡️' },
+      { key: 'SHIELD', label: '🛡️ ESCUDO', iconPlaceholder: '🛡️' },
+    ];
+
+    const equipped = cs.getEquipped();
+
+    slots.forEach((slot, index) => {
+      const sy = eqY + index * 58;
+
+      const slotBg = this.add.graphics();
+      slotBg.fillStyle(0x130a24, 0.85);
+      slotBg.fillRoundedRect(eqX, sy, eqSlotW, eqSlotH, 6);
+      slotBg.lineStyle(1, 0x5a3d8c, 0.6);
+      slotBg.strokeRoundedRect(eqX, sy, eqSlotW, eqSlotH, 6);
+      this.inventoryContainer.add(slotBg);
+
+      const item = equipped[slot.key];
+      if (item) {
+        const icon = this.add.text(eqX + 20, sy + 24, item.icon, { fontSize: '18px' }).setOrigin(0.5);
+        
+        let rarityColor = '#aaaaaa';
+        if (item.rarity === 'RARE') rarityColor = '#4488ff';
+        if (item.rarity === 'EPIC') rarityColor = '#8a2be2';
+        if (item.rarity === 'LEGENDARY') rarityColor = '#ffd700';
+
+        const name = this.add.text(eqX + 44, sy + 10, item.name, {
+          fontFamily: 'MedievalSharp',
+          fontSize: '10px',
+          color: rarityColor,
+          fontStyle: 'bold',
+        });
+
+        let statText = '';
+        if (item.stats.atk) statText += `+${item.stats.atk} ATK  `;
+        if (item.stats.def) statText += `+${item.stats.def} DEF  `;
+        if (item.stats.hp) statText += `+${item.stats.hp} HP  `;
+        if (item.stats.mp) statText += `+${item.stats.mp} MP  `;
+
+        const statLabel = this.add.text(eqX + 44, sy + 24, statText.trim(), {
+          fontFamily: 'Inter',
+          fontSize: '9px',
+          color: '#8b8b8b',
+        });
+
+        this.inventoryContainer.add([icon, name, statLabel]);
+
+        const zone = this.add.zone(eqX + eqSlotW / 2, sy + eqSlotH / 2, eqSlotW, eqSlotH).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', () => {
+          cs.unequipItem(slot.key);
+        });
+
+        this.addTooltipListeners(zone, item);
+        this.inventoryContainer.add(zone);
+
+      } else {
+        const placeholderIcon = this.add.text(eqX + 20, sy + 24, slot.iconPlaceholder, { fontSize: '16px' }).setOrigin(0.5).setAlpha(0.25);
+        const placeholderName = this.add.text(eqX + 44, sy + 18, `[ Vazio ]`, {
+          fontFamily: 'Cinzel',
+          fontSize: '10px',
+          color: '#555555',
+        });
+        this.inventoryContainer.add([placeholderIcon, placeholderName]);
+      }
+    });
+
+    // === SEÇÃO DIREITA: GRID DE ITENS (4X4) ===
+    const gridX = px + 236;
+    const gridY = py + 54;
+    const slotSize = 48;
+    const gridSpacing = 8;
+    const inventory = cs.getInventory();
+
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        const index = row * 4 + col;
+        const sx = gridX + col * (slotSize + gridSpacing);
+        const sy = gridY + row * (slotSize + gridSpacing);
+
+        const slotBg = this.add.graphics();
+        slotBg.fillStyle(0x130a24, 0.7);
+        slotBg.fillRoundedRect(sx, sy, slotSize, slotSize, 4);
+        slotBg.lineStyle(1, 0x4a2d6e, 0.5);
+        slotBg.strokeRoundedRect(sx, sy, slotSize, slotSize, 4);
+        this.inventoryContainer.add(slotBg);
+
+        if (index < inventory.length) {
+          const item = inventory[index];
+
+          const itemIcon = this.add.text(sx + slotSize / 2, sy + slotSize / 2, item.icon, {
+            fontSize: '20px',
+          }).setOrigin(0.5);
+          this.inventoryContainer.add(itemIcon);
+
+          const zone = this.add.zone(sx + slotSize / 2, sy + slotSize / 2, slotSize, slotSize).setInteractive({ useHandCursor: true });
+          zone.on('pointerdown', (pointer: any) => {
+            if (pointer.rightButtonDown()) {
+              cs.deleteItem(item.id);
+            } else {
+              cs.equipItem(item.id);
+            }
+          });
+
+          this.input.mouse?.disableContextMenu();
+          this.addTooltipListeners(zone, item);
+          this.inventoryContainer.add(zone);
+        }
+      }
+    }
+
+    // === FOOTER DO PAINEL: STATUS DO JOGADOR ===
+    const footerY = py + ph - 36;
+    const footerText = this.add.text(px + 24, footerY, `ATK: ${cs.getAttackPower()}  |  DEF: ${cs.getDefense()}  |  HP: ${cs.getHP()}/${cs.getMaxHP()}`, {
+      fontFamily: 'Cinzel',
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+    });
+    this.inventoryContainer.add(footerText);
+
+    const instructionsText = this.add.text(px + pw - 24, footerY + 2, '[Click Esquerdo: Equipar/Desequipar  |  Clique Direito: Lixo]', {
+      fontFamily: 'Inter',
+      fontSize: '8px',
+      color: '#8b8b8b',
+    }).setOrigin(1, 0);
+    this.inventoryContainer.add(instructionsText);
+
+    // Inicializa tooltip
+    this.tooltipText = this.add.text(0, 0, '', {
+      fontFamily: 'Inter',
+      fontSize: '9px',
+      color: '#ffffff',
+      backgroundColor: 'rgba(5, 2, 10, 0.95)',
+      padding: { x: 8, y: 6 },
+      wordWrap: { width: 160 },
+      stroke: '#ffd700',
+      strokeThickness: 1,
+    }).setDepth(211).setVisible(false);
+    this.inventoryContainer.add(this.tooltipText);
+  }
+
+  private addTooltipListeners(zone: Phaser.GameObjects.Zone, item: Item): void {
+    zone.on('pointerover', (pointer: any) => {
+      let statsText = '';
+      if (item.stats.atk) statsText += `\n+${item.stats.atk} Ataque`;
+      if (item.stats.def) statsText += `\n+${item.stats.def} Defesa`;
+      if (item.stats.hp) statsText += `\n+${item.stats.hp} HP Máximo`;
+      if (item.stats.mp) statsText += `\n+${item.stats.mp} MP Máximo`;
+
+      const rarityLabel = item.rarity === 'COMMON' ? 'Comum' :
+                          item.rarity === 'RARE' ? 'Raro' :
+                          item.rarity === 'EPIC' ? 'Épico' : 'Lendário';
+
+      this.tooltipText.setText(`[${rarityLabel.toUpperCase()}] ${item.name}\n${item.description}${statsText}`);
+      this.tooltipText.setPosition(pointer.x + 12, pointer.y - 12);
+      this.tooltipText.setVisible(true);
+    });
+
+    zone.on('pointermove', (pointer: any) => {
+      this.tooltipText.setPosition(pointer.x + 12, pointer.y - 12);
+    });
+
+    zone.on('pointerout', () => {
+      this.tooltipText.setVisible(false);
+    });
   }
 }

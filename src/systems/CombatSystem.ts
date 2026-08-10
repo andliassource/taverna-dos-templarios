@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Monster } from '../entities/Monster';
 import { PlayerClass } from '../../shared/types';
+import { Item } from '../../shared/types/item.types';
 
 export interface LootDrop {
   id: string;
@@ -10,6 +11,7 @@ export interface LootDrop {
   sprite: Phaser.GameObjects.Container;
   x: number;
   y: number;
+  item?: Item;
 }
 
 export class CombatSystem {
@@ -32,6 +34,43 @@ export class CombatSystem {
   private projectiles!: Phaser.Physics.Arcade.Group;
   private lastRegenTime = 0;
   private regenInterval = 1000; // 1s
+
+  private inventory: Item[] = [];
+  private equipped: Record<string, Item | null> = {
+    WEAPON: null,
+    ARMOR: null,
+    HELMET: null,
+    SHIELD: null,
+  };
+
+  private itemPool: Omit<Item, 'id'>[] = [
+    // Armas
+    { name: 'Espada de Ferro', type: 'WEAPON', stats: { atk: 12 }, icon: '🗡️', description: 'Uma espada comum de ferro batido.', rarity: 'COMMON' },
+    { name: 'Cajado de Iniciante', type: 'WEAPON', stats: { atk: 8, mp: 20 }, icon: '🔮', description: 'Cajado de madeira canalizador de magias.', rarity: 'COMMON' },
+    { name: 'Arco Curto', type: 'WEAPON', stats: { atk: 10 }, icon: '🏹', description: 'Arco simples de madeira flexível.', rarity: 'COMMON' },
+    { name: 'Adaga de Cobre', type: 'WEAPON', stats: { atk: 14 }, icon: '🔪', description: 'Lâmina curta e leve para cortes ágeis.', rarity: 'COMMON' },
+    
+    { name: 'Lâmina do Trovão', type: 'WEAPON', stats: { atk: 28 }, icon: '⚡', description: 'Uma espada lendária que brilha com raios.', rarity: 'LEGENDARY' },
+    { name: 'Cajado Arcano Primordial', type: 'WEAPON', stats: { atk: 20, mp: 60 }, icon: '🌟', description: 'Canalizador mágico com poder do infinito.', rarity: 'LEGENDARY' },
+    { name: 'Arco do Vento Silencioso', type: 'WEAPON', stats: { atk: 24 }, icon: '💨', description: 'Dispara projéteis silenciosos e letais.', rarity: 'LEGENDARY' },
+    { name: 'Presa das Sombras', type: 'WEAPON', stats: { atk: 32 }, icon: '💀', description: 'Adaga envenenada de um lorde assassino.', rarity: 'LEGENDARY' },
+
+    // Armaduras
+    { name: 'Túnica de Couro', type: 'ARMOR', stats: { def: 6, hp: 15 }, icon: '🧥', description: 'Proteção básica de couro batido.', rarity: 'COMMON' },
+    { name: 'Cota de Malha', type: 'ARMOR', stats: { def: 12, hp: 30 }, icon: '🛡️', description: 'Armadura reforçada com anéis de metal.', rarity: 'RARE' },
+    { name: 'Armadura da Ordem', type: 'ARMOR', stats: { def: 24, hp: 60 }, icon: '🥋', description: 'Peitoral sagrado dos cavaleiros templários.', rarity: 'EPIC' },
+    { name: 'Égide Real Templária', type: 'ARMOR', stats: { def: 38, hp: 100 }, icon: '👑', description: 'Armadura banhada a ouro usada pelo Grão-Mestre.', rarity: 'LEGENDARY' },
+
+    // Elmos
+    { name: 'Capuz de Pano', type: 'HELMET', stats: { def: 2, mp: 10 }, icon: '👒', description: 'Capuz simples para aventureiros.', rarity: 'COMMON' },
+    { name: 'Elmo de Ferro', type: 'HELMET', stats: { def: 5, hp: 15 }, icon: '🪖', description: 'Elmo militar padrão.', rarity: 'COMMON' },
+    { name: 'Elmo do Sentinela', type: 'HELMET', stats: { def: 10, hp: 30 }, icon: '🎯', description: 'Oferece ótima visibilidade e proteção.', rarity: 'RARE' },
+    { name: 'Elmo da Glória', type: 'HELMET', stats: { def: 20, hp: 50, mp: 25 }, icon: '🪐', description: 'Elmo sagrado com joias incrustadas.', rarity: 'LEGENDARY' },
+
+    // Escudos
+    { name: 'Escudo de Madeira', type: 'SHIELD', stats: { def: 4, hp: 10 }, icon: '🪵', description: 'Um pedaço redondo de carvalho reforçado.', rarity: 'COMMON' },
+    { name: 'Escudo do Paladino', type: 'SHIELD', stats: { def: 15, hp: 40 }, icon: '🛡️', description: 'Escudo sagrado imbuído de proteção divina.', rarity: 'EPIC' },
+  ];
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -127,8 +166,13 @@ export class CombatSystem {
       this.levelUp();
     }
 
-    // Drop de Loot no chão
+    // Drop de Loot no chão (Ouro)
     this.spawnLoot(monster.x, monster.y, monster.config.goldReward);
+
+    // 30% de chance de dropar um item de equipamento físico
+    if (Math.random() < 0.30) {
+      this.spawnItemLoot(monster.x, monster.y);
+    }
 
     // Atualiza o HUD
     this.emitStateUpdate();
@@ -184,16 +228,98 @@ export class CombatSystem {
     this.lootDrops.push(drop);
   }
 
+  private spawnItemLoot(x: number, y: number): void {
+    const randomConfig = this.itemPool[Math.floor(Math.random() * this.itemPool.length)];
+    const item: Item = {
+      ...randomConfig,
+      id: `item_${Date.now()}_${Math.random()}`,
+    };
+
+    const container = this.scene.add.container(x, y);
+    container.setDepth(y / 32 + 1);
+
+    // Cor do brilho da raridade
+    let rarityColorHex = 0x999999;
+    if (item.rarity === 'RARE') rarityColorHex = 0x0088ff;
+    if (item.rarity === 'EPIC') rarityColorHex = 0x9900ee;
+    if (item.rarity === 'LEGENDARY') rarityColorHex = 0xffd700;
+
+    const glow = this.scene.add.graphics();
+    glow.fillStyle(rarityColorHex, 0.45);
+    glow.fillCircle(0, 0, 12);
+
+    // Efeito extra de pulso para itens lendários
+    if (item.rarity === 'LEGENDARY') {
+      this.scene.tweens.add({
+        targets: glow,
+        scaleX: 1.4,
+        scaleY: 1.4,
+        alpha: 0.1,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+      });
+    }
+
+    const box = this.scene.add.text(0, 0, '🎁', { fontSize: '13px' }).setOrigin(0.5);
+    container.add([glow, box]);
+
+    // Animação flutuante
+    this.scene.tweens.add({
+      targets: container,
+      y: y - 6,
+      duration: 1000,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
+
+    const drop: LootDrop = {
+      id: `loot_${Date.now()}_${Math.random()}`,
+      name: item.name,
+      type: 'item',
+      amount: 0,
+      sprite: container,
+      x,
+      y,
+      item,
+    };
+
+    this.lootDrops.push(drop);
+  }
+
   public updateLootCollection(playerX: number, playerY: number): void {
     for (let i = this.lootDrops.length - 1; i >= 0; i--) {
       const drop = this.lootDrops[i];
       const dist = Phaser.Math.Distance.Between(playerX, playerY, drop.x, drop.y);
 
       if (dist < 24) {
-        // Coletou o item!
-        this.gold += drop.amount;
+        if (drop.type === 'item') {
+          // Verifica limite do inventário
+          if (this.inventory.length >= 16) {
+            // Mostra aviso de inventário cheio com cooldown para não spamar
+            if (this.scene.time.now % 1000 < 50) {
+              this.showFloatingText(drop.x, drop.y - 12, 'Inventário Cheio!', '#ff4444');
+            }
+            continue; // Não coleta o item
+          }
 
-        // Efeito de coleta (moeda voa em direção ao HUD)
+          if (drop.item) {
+            this.inventory.push(drop.item);
+            let rarityColor = '#aaaaaa';
+            if (drop.item.rarity === 'RARE') rarityColor = '#4488ff';
+            if (drop.item.rarity === 'EPIC') rarityColor = '#8a2be2';
+            if (drop.item.rarity === 'LEGENDARY') rarityColor = '#ffd700';
+
+            this.showFloatingText(drop.x, drop.y - 16, `+ ${drop.item.name}`, rarityColor);
+            this.scene.events.emit('update-inventory-ui');
+          }
+        } else {
+          // Coletou ouro ou gema
+          this.gold += drop.amount;
+        }
+
+        // Efeito de coleta (moeda/item voa e some)
         this.scene.tweens.add({
           targets: drop.sprite,
           y: drop.y - 20,
@@ -212,7 +338,12 @@ export class CombatSystem {
   }
 
   private takePlayerDamage(amount: number): void {
-    this.playerHp = Math.max(0, this.playerHp - amount);
+    const defense = this.getDefense();
+    // Reduz o dano em 1% por ponto de defesa, com teto de 75%
+    const reduction = Math.min(0.75, defense / 100);
+    const finalDamage = Math.max(1, Math.round(amount * (1 - reduction)));
+
+    this.playerHp = Math.max(0, this.playerHp - finalDamage);
     this.emitStateUpdate();
 
     // Se o HP zerou
@@ -271,6 +402,33 @@ export class CombatSystem {
         this.attackCooldown = 800; // Recarga alta por causa do dash
         break;
     }
+
+    // Inicializa inventário e limpa equipamentos equipados
+    this.equipped = { WEAPON: null, ARMOR: null, HELMET: null, SHIELD: null };
+    this.inventory = [];
+
+    // Adiciona arma inicial baseada na classe
+    let startingWeapon: Omit<Item, 'id'> | null = null;
+    switch (this.playerClass) {
+      case PlayerClass.PALADIN:
+        startingWeapon = { name: 'Espada de Ferro', type: 'WEAPON', stats: { atk: 12 }, icon: '🗡️', description: 'Uma espada comum de ferro batido.', rarity: 'COMMON' };
+        break;
+      case PlayerClass.MAGE:
+        startingWeapon = { name: 'Cajado de Iniciante', type: 'WEAPON', stats: { atk: 8, mp: 20 }, icon: '🔮', description: 'Cajado de madeira canalizador de magias.', rarity: 'COMMON' };
+        break;
+      case PlayerClass.ARCHER:
+        startingWeapon = { name: 'Arco Curto', type: 'WEAPON', stats: { atk: 10 }, icon: '🏹', description: 'Arco simples de madeira flexível.', rarity: 'COMMON' };
+        break;
+      case PlayerClass.ASSASSIN:
+        startingWeapon = { name: 'Adaga de Cobre', type: 'WEAPON', stats: { atk: 14 }, icon: '🔪', description: 'Lâmina curta e leve para cortes ágeis.', rarity: 'COMMON' };
+        break;
+    }
+
+    if (startingWeapon) {
+      const weapon: Item = { ...startingWeapon, id: `starting_weapon_${Date.now()}` };
+      this.equipped.WEAPON = weapon;
+    }
+
     this.emitStateUpdate();
   }
 
@@ -331,7 +489,7 @@ export class CombatSystem {
     const attackY = player.y + offsetY;
     this.createHolySlashEffect(attackX, attackY, angle);
 
-    const baseDamage = 25 + Math.floor(Math.random() * 10);
+    const baseDamage = this.getAttackPower() + Math.floor(Math.random() * 10);
     this.monsters.forEach((monster) => {
       if (monster.isDead) return;
       const dist = Phaser.Math.Distance.Between(attackX, attackY, monster.x, monster.y);
@@ -363,7 +521,7 @@ export class CombatSystem {
     proj.setDepth(40);
     proj.setVelocity(vx, vy);
     proj.setRotation(angle);
-    proj.setData('damage', 35 + Math.floor(Math.random() * 10));
+    proj.setData('damage', this.getAttackPower() + Math.floor(Math.random() * 10));
     proj.setData('type', 'mage');
     this.projectiles.add(proj);
 
@@ -394,7 +552,7 @@ export class CombatSystem {
     proj.setDepth(40);
     proj.setVelocity(vx, vy);
     proj.setRotation(angle);
-    proj.setData('damage', 20 + Math.floor(Math.random() * 6));
+    proj.setData('damage', this.getAttackPower() + Math.floor(Math.random() * 6));
     proj.setData('type', 'archer');
     this.projectiles.add(proj);
   }
@@ -451,7 +609,7 @@ export class CombatSystem {
       onComplete: () => slash.destroy(),
     });
 
-    const baseDamage = 40 + Math.floor(Math.random() * 15);
+    const baseDamage = this.getAttackPower() + Math.floor(Math.random() * 15);
     this.monsters.forEach((monster) => {
       if (monster.isDead) return;
       const dist = Phaser.Math.Distance.Between(targetX, targetY, monster.x, monster.y);
@@ -578,12 +736,32 @@ export class CombatSystem {
   // ==================== GETTERS & SETTERS ====================
   public getHP(): number { return this.playerHp; }
   public setHP(val: number): void { this.playerHp = val; this.emitStateUpdate(); }
-  public getMaxHP(): number { return this.maxPlayerHp; }
+  
+  public getMaxHP(): number {
+    let baseMaxHp = this.maxPlayerHp;
+    const armor = this.equipped.ARMOR;
+    const helmet = this.equipped.HELMET;
+    const shield = this.equipped.SHIELD;
+    const bonus = (armor ? (armor.stats.hp || 0) : 0) +
+                  (helmet ? (helmet.stats.hp || 0) : 0) +
+                  (shield ? (shield.stats.hp || 0) : 0);
+    return baseMaxHp + bonus;
+  }
   public setMaxHP(val: number): void { this.maxPlayerHp = val; this.emitStateUpdate(); }
+
   public getMP(): number { return this.playerMp; }
   public setMP(val: number): void { this.playerMp = val; this.emitStateUpdate(); }
-  public getMaxMP(): number { return this.maxPlayerMp; }
+  
+  public getMaxMP(): number {
+    let baseMaxMp = this.maxPlayerMp;
+    const weapon = this.equipped.WEAPON;
+    const helmet = this.equipped.HELMET;
+    const bonus = (weapon ? (weapon.stats.mp || 0) : 0) +
+                  (helmet ? (helmet.stats.mp || 0) : 0);
+    return baseMaxMp + bonus;
+  }
   public setMaxMP(val: number): void { this.maxPlayerMp = val; this.emitStateUpdate(); }
+
   public getLevel(): number { return this.playerLevel; }
   public setLevel(val: number): void { this.playerLevel = val; this.emitStateUpdate(); }
   public getXP(): number { return this.playerXp; }
@@ -594,4 +772,108 @@ export class CombatSystem {
   public setGold(val: number): void { this.gold = val; this.emitStateUpdate(); }
   public getGems(): number { return this.gems; }
   public setGems(val: number): void { this.gems = val; this.emitStateUpdate(); }
+
+  // ==================== INVENTÓRIO E EQUIPAMENTOS ====================
+  public getInventory(): Item[] {
+    return this.inventory;
+  }
+
+  public setInventory(inv: Item[]): void {
+    this.inventory = inv;
+    this.emitStateUpdate();
+  }
+
+  public getEquipped(): Record<string, Item | null> {
+    return this.equipped;
+  }
+
+  public setEquipped(eq: Record<string, Item | null>): void {
+    this.equipped = eq;
+    this.emitStateUpdate();
+  }
+
+  public getAttackPower(): number {
+    let baseAtk = 25;
+    switch (this.playerClass) {
+      case PlayerClass.PALADIN: baseAtk = 25; break;
+      case PlayerClass.MAGE: baseAtk = 30; break;
+      case PlayerClass.ARCHER: baseAtk = 20; break;
+      case PlayerClass.ASSASSIN: baseAtk = 35; break;
+    }
+    const weapon = this.equipped.WEAPON;
+    const bonus = weapon ? (weapon.stats.atk || 0) : 0;
+    return baseAtk + bonus;
+  }
+
+  public getDefense(): number {
+    let def = 5;
+    if (this.playerClass === PlayerClass.PALADIN) def = 15;
+    
+    const armor = this.equipped.ARMOR;
+    const helmet = this.equipped.HELMET;
+    const shield = this.equipped.SHIELD;
+
+    const bonus = (armor ? (armor.stats.def || 0) : 0) +
+                  (helmet ? (helmet.stats.def || 0) : 0) +
+                  (shield ? (shield.stats.def || 0) : 0);
+
+    return def + bonus;
+  }
+
+  public equipItem(itemId: string): void {
+    const itemIndex = this.inventory.findIndex(item => item.id === itemId);
+    if (itemIndex === -1) return;
+
+    const item = this.inventory[itemIndex];
+    const slotType = item.type; // 'WEAPON' | 'ARMOR' | 'HELMET' | 'SHIELD'
+
+    // Remove do inventário
+    this.inventory.splice(itemIndex, 1);
+
+    // Se já havia item equipado no slot, devolve pro inventário
+    const previouslyEquipped = this.equipped[slotType];
+    if (previouslyEquipped) {
+      this.inventory.push(previouslyEquipped);
+    }
+
+    // Equipa o item
+    this.equipped[slotType] = item;
+
+    // Garante que o HP/MP atual não ultrapassa o novo máximo
+    this.playerHp = Math.min(this.playerHp, this.getMaxHP());
+    this.playerMp = Math.min(this.playerMp, this.getMaxMP());
+
+    this.emitStateUpdate();
+    this.scene.events.emit('update-inventory-ui');
+  }
+
+  public unequipItem(slotType: string): void {
+    const item = this.equipped[slotType];
+    if (!item) return;
+
+    if (this.inventory.length >= 16) {
+      const scrollX = this.scene.cameras.main.scrollX;
+      const scrollY = this.scene.cameras.main.scrollY;
+      this.showFloatingText(scrollX + 240, scrollY + 160, 'Inventário Cheio!', '#ff4444');
+      return;
+    }
+
+    this.equipped[slotType] = null;
+    this.inventory.push(item);
+
+    this.playerHp = Math.min(this.playerHp, this.getMaxHP());
+    this.playerMp = Math.min(this.playerMp, this.getMaxMP());
+
+    this.emitStateUpdate();
+    this.scene.events.emit('update-inventory-ui');
+  }
+
+  public deleteItem(itemId: string): void {
+    const itemIndex = this.inventory.findIndex(item => item.id === itemId);
+    if (itemIndex !== -1) {
+      this.inventory.splice(itemIndex, 1);
+      this.emitStateUpdate();
+      this.scene.events.emit('update-inventory-ui');
+    }
+  }
 }

@@ -519,11 +519,20 @@ export class WorldScene extends Phaser.Scene {
         maxXp: this.combatSystem.getMaxXP(),
         gold: this.combatSystem.getGold(),
         gems: this.combatSystem.getGems(),
+        inventory: this.combatSystem.getInventory(),
+        equipped: this.combatSystem.getEquipped(),
       });
     });
   }
 
-  public resumeFromArena(data: { won: boolean; goldGained: number; gemsGained: number; hpPercent: number }): void {
+  public resumeFromArena(data: {
+    won: boolean;
+    goldGained: number;
+    gemsGained: number;
+    hpPercent: number;
+    inventory?: any[];
+    equipped?: any;
+  }): void {
     // Reativa a física do jogador
     this.physics.world.enable(this.player);
     
@@ -531,6 +540,13 @@ export class WorldScene extends Phaser.Scene {
     if (data.won) {
       this.combatSystem.setGold(this.combatSystem.getGold() + data.goldGained);
       this.combatSystem.setGems(this.combatSystem.getGems() + data.gemsGained);
+    }
+
+    if (data.inventory) {
+      this.combatSystem.setInventory(data.inventory);
+    }
+    if (data.equipped) {
+      this.combatSystem.setEquipped(data.equipped);
     }
     
     // Se perdeu, restaura a vida inteira e spawna na entrada da taverna

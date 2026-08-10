@@ -9,6 +9,38 @@ export class MainMenuScene extends Phaser.Scene {
   private selectedClass: PlayerClass = PlayerClass.PALADIN;
   private menuContainer!: Phaser.GameObjects.Container;
 
+  private classButtons: Phaser.GameObjects.Container[] = [];
+  private classDescText!: Phaser.GameObjects.Text;
+  private classStatsText!: Phaser.GameObjects.Text;
+  private classNameText!: Phaser.GameObjects.Text;
+
+  private classData = {
+    [PlayerClass.PALADIN]: {
+      name: 'Paladino',
+      icon: '🛡️',
+      desc: 'Guerreiro sagrado com alta defesa e HP. Ataca com golpes corpo a corpo imbuídos de Fé.',
+      stats: 'HP:  ██████████ (Alto)\nMP:  ████ (Baixo)\nATK: ██████ (Médio)\nDEF: ██████████ (Máximo)'
+    },
+    [PlayerClass.MAGE]: {
+      name: 'Mago',
+      icon: '🔮',
+      desc: 'Mestre das artes arcanas. Dispara projéteis mágicos de longo alcance que consomem Mana.',
+      stats: 'HP:  ████ (Baixo)\nMP:  ██████████ (Máximo)\nATK: ████████ (Alto)\nDEF: ████ (Baixo)'
+    },
+    [PlayerClass.ARCHER]: {
+      name: 'Arqueiro',
+      icon: '🏹',
+      desc: 'Atirador ágil da floresta. Dispara flechas rápidas e precisas de longa distância.',
+      stats: 'HP:  ██████ (Médio)\nMP:  ████ (Baixo)\nATK: ████████ (Alto)\nDEF: ██████ (Médio)'
+    },
+    [PlayerClass.ASSASSIN]: {
+      name: 'Assassino',
+      icon: '🗡️',
+      desc: 'Lutador furtivo e mortal. Avança rapidamente sobre os inimigos causando dano crítico massivo.',
+      stats: 'HP:  ██████ (Médio)\nMP:  ████ (Baixo)\nATK: ██████████ (Máximo)\nDEF: ████ (Baixo)'
+    }
+  };
+
   constructor() {
     super({ key: 'MainMenuScene' });
   }
@@ -77,6 +109,9 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Decoração: espadas cruzadas (em cima do título)
     this.createSwordDecoration(width, height);
+
+    // Painel de seleção de classes
+    this.createClassSelectionPanel(width, height);
 
     // Fade in
     this.cameras.main.fadeIn(800);
@@ -273,6 +308,135 @@ export class MainMenuScene extends Phaser.Scene {
 
   private onGoogleLogin(): void {
     console.log('[MainMenuScene] Google login — Firebase pendente');
+  }
+
+  private createClassSelectionPanel(width: number, height: number): void {
+    const startX = 60;
+    const startY = height * 0.38;
+    const panelWidth = 240;
+    const panelHeight = 280;
+
+    // Fundo do painel de seleção
+    const selectBg = this.add.graphics();
+    selectBg.fillStyle(0x0a0612, 0.75);
+    selectBg.fillRoundedRect(startX, startY, panelWidth, panelHeight, 8);
+    selectBg.lineStyle(1, 0xd4a843, 0.5);
+    selectBg.strokeRoundedRect(startX, startY, panelWidth, panelHeight, 8);
+
+    // Título do painel de seleção
+    this.add.text(startX + panelWidth / 2, startY + 16, 'CLASSES DISPONÍVEIS', {
+      fontFamily: 'Cinzel',
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+    }).setOrigin(0.5);
+
+    const classes = [PlayerClass.PALADIN, PlayerClass.MAGE, PlayerClass.ARCHER, PlayerClass.ASSASSIN];
+    const spacing = 52;
+
+    classes.forEach((pClass, index) => {
+      const cy = startY + 54 + index * spacing;
+      const btn = this.createClassButton(startX + panelWidth / 2, cy, pClass);
+      this.classButtons.push(btn);
+    });
+
+    // Fundo do painel de descrição (Lado Direito)
+    const descX = width - panelWidth - startX;
+    const descBg = this.add.graphics();
+    descBg.fillStyle(0x0a0612, 0.75);
+    descBg.fillRoundedRect(descX, startY, panelWidth, panelHeight, 8);
+    descBg.lineStyle(1, 0xd4a843, 0.5);
+    descBg.strokeRoundedRect(descX, startY, panelWidth, panelHeight, 8);
+
+    // Componentes de texto da descrição
+    this.classNameText = this.add.text(descX + panelWidth / 2, startY + 18, '', {
+      fontFamily: 'Cinzel',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5);
+
+    this.classDescText = this.add.text(descX + 16, startY + 46, '', {
+      fontFamily: 'Inter',
+      fontSize: '11px',
+      color: '#e0d5c0',
+      wordWrap: { width: panelWidth - 32 },
+      lineSpacing: 4,
+    });
+
+    this.classStatsText = this.add.text(descX + 16, startY + 160, '', {
+      fontFamily: 'Courier New',
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      lineSpacing: 6,
+    });
+
+    this.selectClass(PlayerClass.PALADIN);
+  }
+
+  private createClassButton(x: number, y: number, pClass: PlayerClass): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    const w = 200;
+    const h = 38;
+    const info = (this.classData as any)[pClass];
+
+    const bg = this.add.graphics();
+    const label = this.add.text(0, 0, `${info.icon}  ${info.name.toUpperCase()}`, {
+      fontFamily: 'Cinzel',
+      fontSize: '13px',
+      fontStyle: 'bold',
+      color: '#d4a843',
+    }).setOrigin(0.5);
+
+    container.add([bg, label]);
+
+    const hit = this.add.zone(0, 0, w, h).setInteractive({ useHandCursor: true });
+    container.add(hit);
+
+    const updateVisual = (isSelected: boolean) => {
+      bg.clear();
+      if (isSelected) {
+        bg.fillStyle(0x3a2010, 0.85);
+        bg.lineStyle(1.5, 0xffd700, 1);
+        label.setColor('#ffffff');
+      } else {
+        bg.fillStyle(0x1a0a2e, 0.6);
+        bg.lineStyle(1, 0x4a2d6e, 0.5);
+        label.setColor('#d4a843');
+      }
+      bg.fillRoundedRect(-w / 2, -h / 2, w, h, 4);
+      bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 4);
+    };
+
+    hit.on('pointerdown', () => {
+      this.selectClass(pClass);
+    });
+
+    container.setData('updateVisual', updateVisual);
+    container.setData('pClass', pClass);
+
+    return container;
+  }
+
+  private selectClass(pClass: PlayerClass): void {
+    this.selectedClass = pClass;
+    
+    // Atualiza botões
+    this.classButtons.forEach((btn) => {
+      const updateFn = btn.getData('updateVisual');
+      if (updateFn) {
+        updateFn(btn.getData('pClass') === pClass);
+      }
+    });
+
+    // Atualiza descrição
+    const info = (this.classData as any)[pClass];
+    if (this.classNameText) this.classNameText.setText(`${info.icon} ${info.name.toUpperCase()}`);
+    if (this.classDescText) this.classDescText.setText(info.desc);
+    if (this.classStatsText) this.classStatsText.setText(info.stats);
   }
 
   private onSettings(): void {

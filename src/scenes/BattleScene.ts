@@ -63,6 +63,7 @@ export class BattleScene extends Phaser.Scene {
 
     // Inicializa o sistema de combate
     this.combatSystem = new CombatSystem(this);
+    this.combatSystem.setPlayerClass(this.playerClass);
 
     // Carrega status importados do jogador
     this.combatSystem.setHP(this.playerData.hp);
@@ -80,6 +81,7 @@ export class BattleScene extends Phaser.Scene {
 
     // Instancia o jogador no centro
     this.createPlayerCharacter();
+    this.applyClassVisuals();
 
     // Configura os efeitos visuais e iluminação da arena
     this.createArenaAtmosphere();
@@ -359,8 +361,8 @@ export class BattleScene extends Phaser.Scene {
     // Coleta de moedas
     this.combatSystem.updateLootCollection(this.player.x, this.player.y);
 
-    // Atualiza IA dos monstros ativos
-    this.combatSystem.updateMonsters(time);
+    // Atualiza o sistema de combate (IA e regeneração)
+    this.combatSystem.update(time);
 
     // Verifica progressão de ondas
     if (this.activeMonsters.length > 0) {
@@ -426,6 +428,48 @@ export class BattleScene extends Phaser.Scene {
       } else {
         this.player.play(`player-idle-${this.currentDirection}`, true);
       }
+    }
+  }
+
+  private applyClassVisuals(): void {
+    if (!this.player) return;
+
+    switch (this.playerClass) {
+      case PlayerClass.PALADIN:
+        this.player.setTint(0xfff5cc);
+        break;
+      case PlayerClass.MAGE:
+        this.player.setTint(0xcce6ff);
+        this.add.particles(0, 0, 'particle-gold', {
+          speed: { min: 5, max: 15 },
+          scale: { start: 0.3, end: 0 },
+          lifespan: 600,
+          quantity: 1,
+          frequency: 150,
+          follow: this.player,
+          followOffset: { x: 0, y: 10 },
+          tint: 0x4488ff,
+          blendMode: 'ADD',
+        });
+        break;
+      case PlayerClass.ARCHER:
+        this.player.setTint(0xccffcc);
+        this.add.particles(0, 0, 'particle-gold', {
+          speedY: { min: 5, max: 15 },
+          speedX: { min: -5, max: 5 },
+          scale: { start: 0.3, end: 0 },
+          lifespan: 800,
+          quantity: 1,
+          frequency: 250,
+          follow: this.player,
+          followOffset: { x: 0, y: 10 },
+          tint: 0x228b22,
+          blendMode: 'ADD',
+        });
+        break;
+      case PlayerClass.ASSASSIN:
+        this.player.setTint(0x777777);
+        break;
     }
   }
 }

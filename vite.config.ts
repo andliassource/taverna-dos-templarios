@@ -26,9 +26,13 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          phaser: ['phaser'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+        manualChunks(id) {
+          if (id.includes('node_modules/phaser/')) {
+            return 'phaser';
+          }
+          if (id.includes('node_modules/firebase/')) {
+            return 'firebase';
+          }
         },
       },
     },

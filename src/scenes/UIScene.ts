@@ -57,7 +57,148 @@ export class UIScene extends Phaser.Scene {
     // FPS counter (dev only)
     this.createFPSCounter(width);
 
+    // Escuta atualizações de combate vindas do WorldScene
+    this.setupCombatListeners();
+
     console.log('[UIScene] Interface criada');
+  }
+
+  private arenaWaveText!: Phaser.GameObjects.Text;
+
+  private setupCombatListeners(): void {
+    const worldScene = this.scene.get('WorldScene');
+    if (worldScene) {
+      this.registerSceneListeners(worldScene);
+    }
+
+    const battleScene = this.scene.get('BattleScene');
+    if (battleScene) {
+      this.registerSceneListeners(battleScene);
+    }
+  }
+
+  private registerSceneListeners(targetScene: Phaser.Scene): void {
+    targetScene.events.on('update-hud-state', (data: {
+      hp: number; maxHp: number;
+      mp: number; maxMp: number;
+      xp: number; maxXp: number;
+      level: number;
+      gold: number;
+      gems: number;
+    }) => {
+      this.playerData.hp = data.hp;
+      this.playerData.maxHp = data.maxHp;
+      this.playerData.mp = data.mp;
+      this.playerData.maxMp = data.maxMp;
+      this.playerData.exp = data.xp;
+      this.playerData.expToNext = data.maxXp;
+      this.playerData.level = data.level;
+      this.playerData.gold = data.gold;
+      this.playerData.gems = data.gems;
+
+      this.updateHUDVisuals();
+    });
+
+    targetScene.events.on('player-level-up', (data: { level: number }) => {
+      this.showLevelUpBanner(data.level);
+    });
+
+    targetScene.events.on('scene-change', (mapName: string) => {
+      this.playerData.map = mapName;
+      if (this.mapNameText) this.mapNameText.setText(`📍 ${mapName}`);
+      
+      // Oculta o contador de ondas se saímos da Arena
+      if (mapName !== 'Arena de Combate' && this.arenaWaveText) {
+        this.arenaWaveText.setVisible(false);
+      }
+    });
+
+    targetScene.events.on('arena-wave-update', (data: { wave: number; maxWaves: number }) => {
+      this.showArenaWaveInfo(data.wave, data.maxWaves);
+    });
+  }
+
+  private showArenaWaveInfo(wave: number, maxWaves: number): void {
+    if (!this.arenaWaveText) {
+      const { width } = this.cameras.main;
+      this.arenaWaveText = this.add.text(width / 2, 45, '', {
+        fontFamily: 'Cinzel',
+        fontSize: '20px',
+        fontStyle: 'bold',
+        color: '#ff4444',
+        stroke: '#000000',
+        strokeThickness: 4,
+      }).setOrigin(0.5, 0).setDepth(200);
+    }
+
+    if (wave > 0) {
+      this.arenaWaveText.setText(`⚔️ ONDA ${wave}/${maxWaves} ⚔️`);
+      this.arenaWaveText.setVisible(true);
+
+      this.tweens.add({
+        targets: this.arenaWaveText,
+        scaleX: 1.2,
+        scaleY: 1.2,
+        yoyo: true,
+        duration: 200,
+        ease: 'Sine.easeOut',
+      });
+    } else {
+      this.arenaWaveText.setVisible(false);
+    }
+  }
+
+  private updateHUDVisuals(): void {
+    const barWidth = 180;
+    const barHeight = 14;
+    const x = 16;
+    const hpY = 40;
+    const mpY = 58;
+    const expY = 76;
+
+    // Atualiza Level
+    if (this.levelText) this.levelText.setText(`Lv.${this.playerData.level}`);
+
+    // Redesenha barra de HP
+    this.hpBar.clear();
+    this.drawBar(this.hpBar, x + 24, hpY, barWidth, barHeight,
+      this.playerData.hp / this.playerData.maxHp, 0x8b0000, 0xdc143c);
+
+    // Redesenha barra de MP
+    this.mpBar.clear();
+    this.drawBar(this.mpBar, x + 24, mpY, barWidth, barHeight,
+      this.playerData.mp / this.playerData.maxMp, 0x00008b, 0x3498db);
+
+    // Redesenha barra de EXP
+    this.expBar.clear();
+    this.drawBar(this.expBar, x + 24, expY, barWidth, barHeight - 4,
+      this.playerData.exp / this.playerData.expToNext, 0x006400, 0x27ae60);
+
+    // Atualiza textos de Moedas
+    if (this.goldText) this.goldText.setText(`🪙 ${this.playerData.gold.toLocaleString()}`);
+    if (this.gemsText) this.gemsText.setText(`💎 ${this.playerData.gems.toLocaleString()}`);
+  }
+
+  private showLevelUpBanner(level: number): void {
+    const { width, height } = this.cameras.main;
+
+    const banner = this.add.text(width / 2, height * 0.35, `🌟 LEVEL UP! Lv.${level} 🌟`, {
+      fontFamily: 'Cinzel',
+      fontSize: '28px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(200);
+
+    this.tweens.add({
+      targets: banner,
+      y: banner.y - 40,
+      alpha: 0,
+      duration: 2000,
+      ease: 'Power2',
+      onComplete: () => banner.destroy(),
+    });
   }
 
   private createHUD(_width: number, _height: number): void {

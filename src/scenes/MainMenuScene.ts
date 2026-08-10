@@ -2,20 +2,12 @@ import Phaser from 'phaser';
 import { PlayerClass } from '../../shared/types';
 
 /**
- * MainMenuScene — Menu principal do jogo.
- * Exibe:
- * - Título animado
- * - Botão Jogar / Continuar
- * - Seleção de Classe (na primeira vez)
- * - Login via Google
- * - Configurações
+ * MainMenuScene — Menu principal com visual premium.
+ * Background atmosférico da taverna, partículas e animações.
  */
 export class MainMenuScene extends Phaser.Scene {
   private selectedClass: PlayerClass = PlayerClass.PALADIN;
   private menuContainer!: Phaser.GameObjects.Container;
-  private classSelectContainer!: Phaser.GameObjects.Container;
-  private isShowingClassSelect = false;
-  private particles!: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor() {
     super({ key: 'MainMenuScene' });
@@ -24,16 +16,50 @@ export class MainMenuScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.cameras.main;
 
-    // Background com gradiente
-    this.createBackground(width, height);
+    // Background da taverna (imagem gerada por IA)
+    const bg = this.add.image(width / 2, height / 2, 'menu-bg');
+    bg.setDisplaySize(width, height);
 
-    // Partículas ambientais (poeira mágica dourada)
-    this.createParticles(width, height);
+    // Overlay escuro para legibilidade
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x0a0612, 0.45);
+    overlay.fillRect(0, 0, width, height);
+
+    // Vinheta
+    const vignette = this.add.image(width / 2, height / 2, 'vignette');
+    vignette.setDisplaySize(width, height);
+    vignette.setAlpha(0.6);
+
+    // Partículas douradas flutuantes (poeira no ar)
+    this.add.particles(0, 0, 'particle-gold', {
+      x: { min: 0, max: width },
+      y: { min: 0, max: height },
+      lifespan: 5000,
+      speed: { min: 5, max: 20 },
+      angle: { min: 250, max: 290 },
+      scale: { start: 1, end: 0 },
+      alpha: { start: 0.7, end: 0 },
+      frequency: 150,
+      blendMode: 'ADD',
+    });
+
+    // Fireflies (vaga-lumes)
+    this.add.particles(0, 0, 'particle-firefly', {
+      x: { min: 0, max: width },
+      y: { min: height * 0.3, max: height },
+      lifespan: 3000,
+      speed: { min: 10, max: 40 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 0.5, end: 1.5, ease: 'Sine.easeInOut' },
+      alpha: { start: 0, end: 0.8, ease: 'Sine.easeInOut' },
+      frequency: 800,
+      blendMode: 'ADD',
+    });
 
     // Container do menu
     this.menuContainer = this.add.container(width / 2, 0);
 
-    // Título
+    // Título com efeito glow
     this.createTitle(height);
 
     // Subtítulo
@@ -46,110 +72,47 @@ export class MainMenuScene extends Phaser.Scene {
     this.add.text(width - 10, height - 10, 'v0.1.0-alpha', {
       fontFamily: 'Inter',
       fontSize: '12px',
-      color: '#666',
+      color: 'rgba(212, 168, 67, 0.5)',
     }).setOrigin(1, 1);
 
-    // Container de seleção de classe (inicialmente oculto)
-    this.classSelectContainer = this.add.container(width / 2, height / 2);
-    this.classSelectContainer.setVisible(false);
+    // Decoração: espadas cruzadas (em cima do título)
+    this.createSwordDecoration(width, height);
 
     // Fade in
-    this.cameras.main.fadeIn(500);
+    this.cameras.main.fadeIn(800);
 
-    console.log('[MainMenuScene] Menu principal criado');
-  }
-
-  private createBackground(width: number, height: number): void {
-    // Gradiente de fundo
-    const bg = this.add.graphics();
-
-    // Fundo escuro base
-    bg.fillStyle(0x0a0612, 1);
-    bg.fillRect(0, 0, width, height);
-
-    // Vinheta
-    bg.fillStyle(0x1a0a2e, 0.5);
-    bg.fillRect(0, 0, width, height);
-
-    // Efeito de pedra/textura (linhas sutis)
-    bg.lineStyle(1, 0x2d1b4e, 0.3);
-    for (let y = 0; y < height; y += 20) {
-      bg.lineBetween(0, y, width, y);
-    }
-    for (let x = 0; x < width; x += 20) {
-      bg.lineBetween(x, 0, x, height);
-    }
-
-    // Decoração: escudo templário central (gráfico simples)
-    this.drawTemplarShield(width / 2, height / 2 - 30, 120);
-  }
-
-  private drawTemplarShield(x: number, y: number, size: number): void {
-    const g = this.add.graphics();
-    g.setAlpha(0.08);
-
-    // Escudo (forma de escudo heráldico)
-    g.fillStyle(0xd4a843);
-    g.beginPath();
-    g.moveTo(x, y - size);
-    g.lineTo(x + size * 0.8, y - size * 0.4);
-    g.lineTo(x + size * 0.8, y + size * 0.2);
-    g.lineTo(x, y + size);
-    g.lineTo(x - size * 0.8, y + size * 0.2);
-    g.lineTo(x - size * 0.8, y - size * 0.4);
-    g.closePath();
-    g.fillPath();
-
-    // Cruz templária
-    g.fillStyle(0x8b0000);
-    const crossW = size * 0.15;
-    const crossH = size * 1.2;
-    g.fillRect(x - crossW / 2, y - crossH / 2, crossW, crossH);
-    g.fillRect(x - crossH * 0.35, y - crossW / 2, crossH * 0.7, crossW);
-  }
-
-  private createParticles(width: number, height: number): void {
-    // Cria textura de partícula
-    const particleGraphics = this.add.graphics();
-    particleGraphics.fillStyle(0xd4a843, 1);
-    particleGraphics.fillCircle(2, 2, 2);
-    particleGraphics.generateTexture('particle-gold', 4, 4);
-    particleGraphics.destroy();
-
-    this.particles = this.add.particles(0, 0, 'particle-gold', {
-      x: { min: 0, max: width },
-      y: { min: 0, max: height },
-      lifespan: 4000,
-      speed: { min: 10, max: 30 },
-      angle: { min: 260, max: 280 },
-      scale: { start: 0.8, end: 0 },
-      alpha: { start: 0.6, end: 0 },
-      frequency: 200,
-      blendMode: 'ADD',
-    });
+    console.log('[MainMenuScene] Menu principal premium criado');
   }
 
   private createTitle(height: number): void {
-    const title = this.add.text(0, height * 0.15, '⚔️ Taverna dos Templários', {
+    // Sombra do título
+    const titleShadow = this.add.text(0, height * 0.16 + 3, 'Taverna dos Templários', {
       fontFamily: 'Cinzel',
-      fontSize: '42px',
+      fontSize: '44px',
+      fontStyle: 'bold',
+      color: '#000000',
+    }).setOrigin(0.5).setAlpha(0.5);
+    this.menuContainer.add(titleShadow);
+
+    // Título principal
+    const title = this.add.text(0, height * 0.15, 'Taverna dos Templários', {
+      fontFamily: 'Cinzel',
+      fontSize: '44px',
       fontStyle: 'bold',
       color: '#ffd700',
-      stroke: '#000000',
-      strokeThickness: 6,
+      stroke: '#8b6914',
+      strokeThickness: 4,
       shadow: {
         offsetX: 0,
-        offsetY: 4,
-        color: '#d4a843',
-        blur: 20,
+        offsetY: 0,
+        color: '#ffd700',
+        blur: 30,
         fill: true,
-        stroke: true,
       },
     }).setOrigin(0.5);
-
     this.menuContainer.add(title);
 
-    // Animação pulsante sutil
+    // Animação pulsante
     this.tweens.add({
       targets: title,
       scaleX: 1.02,
@@ -159,111 +122,141 @@ export class MainMenuScene extends Phaser.Scene {
       yoyo: true,
       repeat: -1,
     });
+
+    // Linha decorativa abaixo do título
+    const lineY = height * 0.22;
+    const lineGraphics = this.add.graphics();
+    lineGraphics.lineStyle(2, 0xd4a843, 0.6);
+    lineGraphics.lineBetween(-120, 0, 120, 0);
+    lineGraphics.fillStyle(0xd4a843, 0.8);
+    lineGraphics.fillCircle(0, 0, 3);
+    lineGraphics.fillCircle(-120, 0, 2);
+    lineGraphics.fillCircle(120, 0, 2);
+    lineGraphics.setPosition(0, lineY);
+    this.menuContainer.add(lineGraphics);
   }
 
   private createSubtitle(height: number): void {
-    const subtitle = this.add.text(0, height * 0.24, 'A Ordem Aguarda Seu Retorno', {
+    const subtitle = this.add.text(0, height * 0.26, 'A Ordem Aguarda Seu Retorno', {
       fontFamily: 'MedievalSharp',
       fontSize: '18px',
-      color: '#b8860b',
+      color: '#d4a843',
       stroke: '#000000',
-      strokeThickness: 2,
+      strokeThickness: 3,
     }).setOrigin(0.5);
-
     this.menuContainer.add(subtitle);
 
-    // Fade in/out sutil
     this.tweens.add({
       targets: subtitle,
-      alpha: 0.5,
-      duration: 2000,
+      alpha: 0.4,
+      duration: 2500,
       ease: 'Sine.easeInOut',
       yoyo: true,
       repeat: -1,
     });
   }
 
+  private createSwordDecoration(_width: number, height: number): void {
+    const decor = this.add.graphics();
+    const dy = height * 0.10;
+
+    // Espada esquerda
+    decor.fillStyle(0xb0b8c8, 1);
+    decor.fillRect(-65, dy, 2, 25);
+    decor.fillStyle(0xd4a843, 1);
+    decor.fillRect(-69, dy + 20, 10, 3);
+    decor.fillStyle(0x5a3a1e, 1);
+    decor.fillRect(-65, dy + 23, 2, 8);
+
+    // Espada direita (espelhada)
+    decor.fillStyle(0xb0b8c8, 1);
+    decor.fillRect(63, dy, 2, 25);
+    decor.fillStyle(0xd4a843, 1);
+    decor.fillRect(59, dy + 20, 10, 3);
+    decor.fillStyle(0x5a3a1e, 1);
+    decor.fillRect(63, dy + 23, 2, 8);
+
+    this.menuContainer.add(decor);
+  }
+
   private createMenuButtons(height: number): void {
     const buttonConfigs = [
-      { text: '⚔️  NOVA AVENTURA', callback: () => this.onNewGame() },
-      { text: '🔑  ENTRAR COM GOOGLE', callback: () => this.onGoogleLogin() },
-      { text: '⚙️  CONFIGURAÇÕES', callback: () => this.onSettings() },
+      { text: '⚔️  NOVA AVENTURA', callback: () => this.onNewGame(), primary: true },
+      { text: '🔑  ENTRAR COM GOOGLE', callback: () => this.onGoogleLogin(), primary: false },
+      { text: '⚙️  CONFIGURAÇÕES', callback: () => this.onSettings(), primary: false },
     ];
 
-    const startY = height * 0.45;
-    const spacing = 65;
+    const startY = height * 0.42;
+    const spacing = 60;
 
     buttonConfigs.forEach((config, index) => {
       const btn = this.createMenuButton(
         0,
         startY + index * spacing,
         config.text,
-        config.callback
+        config.callback,
+        config.primary
       );
       this.menuContainer.add(btn);
     });
   }
 
   private createMenuButton(
-    x: number,
-    y: number,
-    text: string,
-    callback: () => void
+    x: number, y: number, text: string,
+    callback: () => void, primary: boolean
   ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
-    const btnWidth = 320;
-    const btnHeight = 50;
+    const btnWidth = 300;
+    const btnHeight = 46;
 
-    // Fundo do botão
     const bg = this.add.graphics();
-    bg.fillStyle(0x1a0a2e, 0.9);
-    bg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
-    bg.lineStyle(2, 0xd4a843, 1);
-    bg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+    const drawNormal = () => {
+      bg.clear();
+      if (primary) {
+        bg.fillGradientStyle(0x3a2010, 0x3a2010, 0x1a0a05, 0x1a0a05, 0.9);
+      } else {
+        bg.fillGradientStyle(0x1a0a2e, 0x1a0a2e, 0x0d0518, 0x0d0518, 0.85);
+      }
+      bg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 6);
+      bg.lineStyle(primary ? 2 : 1, primary ? 0xffd700 : 0xd4a843, primary ? 1 : 0.6);
+      bg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 6);
+    };
 
-    // Texto
+    drawNormal();
+
     const label = this.add.text(0, 0, text, {
       fontFamily: 'Cinzel',
-      fontSize: '16px',
+      fontSize: primary ? '17px' : '15px',
       fontStyle: 'bold',
-      color: '#ffd700',
+      color: primary ? '#ffd700' : '#d4a843',
       stroke: '#000000',
       strokeThickness: 2,
     }).setOrigin(0.5);
 
     container.add([bg, label]);
 
-    // Zona interativa
     const hitZone = this.add.zone(0, 0, btnWidth, btnHeight).setInteractive({ useHandCursor: true });
     container.add(hitZone);
 
-    // Hover effects
     hitZone.on('pointerover', () => {
       bg.clear();
-      bg.fillStyle(0x2d1b4e, 0.95);
-      bg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      bg.fillGradientStyle(0x4a3020, 0x4a3020, 0x2a1510, 0x2a1510, 0.95);
+      bg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 6);
       bg.lineStyle(2, 0xffd700, 1);
-      bg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      bg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 6);
       label.setColor('#ffffff');
-      container.setScale(1.05);
+      container.setScale(1.04);
     });
 
     hitZone.on('pointerout', () => {
-      bg.clear();
-      bg.fillStyle(0x1a0a2e, 0.9);
-      bg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
-      bg.lineStyle(2, 0xd4a843, 1);
-      bg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
-      label.setColor('#ffd700');
+      drawNormal();
+      label.setColor(primary ? '#ffd700' : '#d4a843');
       container.setScale(1);
     });
 
-    hitZone.on('pointerdown', () => {
-      container.setScale(0.95);
-    });
-
+    hitZone.on('pointerdown', () => container.setScale(0.96));
     hitZone.on('pointerup', () => {
-      container.setScale(1.05);
+      container.setScale(1.04);
       callback();
     });
 
@@ -271,9 +264,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private onNewGame(): void {
-    console.log('[MainMenuScene] Nova aventura iniciada');
-    // Transição com fade
-    this.cameras.main.fadeOut(500, 0, 0, 0);
+    this.cameras.main.fadeOut(800, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('WorldScene', { isNewGame: true, playerClass: this.selectedClass });
       this.scene.launch('UIScene');
@@ -281,33 +272,10 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private onGoogleLogin(): void {
-    console.log('[MainMenuScene] Google login solicitado');
-    // TODO: Integrar Firebase Auth
-    // Por enquanto, simula login
-    const loginBtn = document.createElement('div');
-    loginBtn.style.cssText = `
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(26, 10, 46, 0.95); border: 2px solid #d4a843;
-      border-radius: 16px; padding: 32px; z-index: 200; text-align: center;
-      font-family: 'Cinzel', serif; color: #ffd700;
-    `;
-    loginBtn.innerHTML = `
-      <h2 style="margin-bottom: 16px;">🔑 Login com Google</h2>
-      <p style="color: #b8860b; margin-bottom: 24px; font-family: Inter, sans-serif; font-size: 14px;">
-        Firebase Auth será integrado na próxima fase
-      </p>
-      <button onclick="this.parentElement.remove()" style="
-        padding: 10px 24px; font-family: Cinzel; font-weight: bold;
-        background: linear-gradient(180deg, #d4a843 0%, #8b6914 100%);
-        border: none; border-radius: 8px; color: #1a0a2e; cursor: pointer;
-        font-size: 16px;
-      ">Fechar</button>
-    `;
-    document.body.appendChild(loginBtn);
+    console.log('[MainMenuScene] Google login — Firebase pendente');
   }
 
   private onSettings(): void {
     console.log('[MainMenuScene] Configurações');
-    // TODO: Implementar tela de configurações
   }
 }

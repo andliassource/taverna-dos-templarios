@@ -78,7 +78,7 @@ export class Monster extends Phaser.GameObjects.Container {
   public config: MonsterConfig;
   public hp: number;
   public isDead = false;
-  private sprite!: Phaser.GameObjects.Graphics;
+  private sprite!: Phaser.GameObjects.Sprite;
   private hpBarGraphics!: Phaser.GameObjects.Graphics;
   private nameText!: Phaser.GameObjects.Text;
   private target: Phaser.GameObjects.Sprite | null = null;
@@ -108,10 +108,11 @@ export class Monster extends Phaser.GameObjects.Container {
     // Sombra sob o monstro
     const shadow = this.scene.add.ellipse(0, 10, 20, 8, 0x000000, 0.35);
 
-    // Corpo estilizado do monstro
-    this.sprite = this.scene.add.graphics();
+    // Sprite Pixel Art
+    this.sprite = this.scene.add.sprite(0, 0, `monster-${this.config.id}`);
+    this.sprite.setScale(2.0);
+    this.sprite.setOrigin(0.5, 0.75);
     this.sprite.setPipeline('Light2D');
-    this.drawMonsterBody();
 
     // Nome e Nível acima do monstro
     this.nameText = this.scene.add.text(0, -26, `Lv.${this.config.level} ${this.config.name}`, {
@@ -129,27 +130,7 @@ export class Monster extends Phaser.GameObjects.Container {
     this.add([shadow, this.sprite, this.nameText, this.hpBarGraphics]);
   }
 
-  private drawMonsterBody(): void {
-    this.sprite.clear();
-    const c = this.config.color;
-
-    // Corpo principal
-    this.sprite.fillStyle(c, 1);
-    this.sprite.fillCircle(0, -2, 12);
-
-    // Olhos vermelhos ameaçadores
-    this.sprite.fillStyle(0xff0000, 1);
-    this.sprite.fillCircle(-4, -4, 2);
-    this.sprite.fillCircle(4, -4, 2);
-    this.sprite.fillStyle(0xffffff, 1);
-    this.sprite.fillCircle(-4, -4, 1);
-    this.sprite.fillCircle(4, -4, 1);
-
-    // Chifres/Orelhas de monstro
-    this.sprite.fillStyle(Phaser.Display.Color.IntegerToColor(c).darken(20).color, 1);
-    this.sprite.fillTriangle(-8, -10, -12, -18, -4, -12);
-    this.sprite.fillTriangle(8, -10, 12, -18, 4, -12);
-  }
+  // Removido drawMonsterBody corporizado via Sprite procedimental
 
   public updateHpBar(): void {
     this.hpBarGraphics.clear();
@@ -181,14 +162,30 @@ export class Monster extends Phaser.GameObjects.Container {
     this.hp -= amount;
     this.updateHpBar();
 
-    // Efeito de flash vermelho ao levar dano
+    // Feedback visual (Hit Flash vermelho e escala elástica)
+    this.sprite.setTint(0xff3333);
     this.scene.tweens.add({
       targets: this.sprite,
-      alpha: 0.2,
+      scaleX: 2.3,
+      scaleY: 2.3,
       duration: 80,
       yoyo: true,
-      repeat: 1,
+      onComplete: () => {
+        if (this.sprite) this.sprite.clearTint();
+      }
     });
+
+    // Knockback físico
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body && this.target) {
+      const angle = Phaser.Math.Angle.Between(this.target.x, this.target.y, this.x, this.y);
+      body.setVelocity(Math.cos(angle) * 160, Math.sin(angle) * 160);
+      this.scene.time.delayedCall(120, () => {
+        if (!this.isDead && body) {
+          body.setVelocity(0, 0);
+        }
+      });
+    }
 
     // Texto de Dano Flutuante
     this.showFloatingDamage(amount);

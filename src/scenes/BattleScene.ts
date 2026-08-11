@@ -98,7 +98,7 @@ export class BattleScene extends Phaser.Scene {
     // Câmera do jogo
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setRoundPixels(true);
-    this.cameras.main.setZoom(1.8);
+    this.cameras.main.setZoom(2.4);
     this.cameras.main.setBackgroundColor('#14051a');
 
     // Controles WASD / Setas / Espaço
@@ -161,7 +161,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.player = this.add.sprite(startX, startY, 'player-sheet', 0);
     this.player.setDepth(25);
-    this.player.setScale(0.45);
+    this.player.setScale(0.26); // Escala consistente com o grid retrô de 32px
     this.player.setOrigin(0.5, 0.85);
 
     this.physics.add.existing(this.player);
@@ -388,57 +388,34 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
-    // Movimentação do jogador em grid
-    if (!this.isMoving) {
-      let moveX = 0;
-      let moveY = 0;
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      let vx = 0;
+      let vy = 0;
 
       if (this.cursors.left.isDown || this.wasd.a?.isDown) {
-        moveX = -1;
+        vx = -1;
         this.currentDirection = 'left';
       } else if (this.cursors.right.isDown || this.wasd.d?.isDown) {
-        moveX = 1;
+        vx = 1;
         this.currentDirection = 'right';
-      } else if (this.cursors.up.isDown || this.wasd.w?.isDown) {
-        moveY = -1;
+      }
+
+      if (this.cursors.up.isDown || this.wasd.w?.isDown) {
+        vy = -1;
         this.currentDirection = 'up';
       } else if (this.cursors.down.isDown || this.wasd.s?.isDown) {
-        moveY = 1;
+        vy = 1;
         this.currentDirection = 'down';
       }
 
-      if (moveX !== 0 || moveY !== 0) {
-        this.targetX = this.player.x + moveX * TILE_SIZE;
-        this.targetY = this.player.y + moveY * TILE_SIZE;
-
-        const tileX = Math.floor(this.targetX / TILE_SIZE);
-        const tileY = Math.floor(this.targetY / TILE_SIZE);
-        const wallTile = this.wallLayer.getTileAt(tileX, tileY);
-
-        if (!wallTile) {
-          this.isMoving = true;
-          this.player.play(`player-walk-${this.currentDirection}`, true);
-
-          this.tweens.add({
-            targets: this.player,
-            x: this.targetX,
-            y: this.targetY,
-            duration: 180,
-            ease: 'Linear',
-            onComplete: () => {
-              this.isMoving = false;
-              if (!this.cursors.left.isDown && !this.cursors.right.isDown &&
-                  !this.cursors.up.isDown && !this.cursors.down.isDown &&
-                  !this.wasd.a?.isDown && !this.wasd.d?.isDown &&
-                  !this.wasd.w?.isDown && !this.wasd.s?.isDown) {
-                this.player.play(`player-idle-${this.currentDirection}`, true);
-              }
-            },
-          });
-        } else {
-          this.player.play(`player-idle-${this.currentDirection}`, true);
-        }
+      if (vx !== 0 || vy !== 0) {
+        const length = Math.hypot(vx, vy);
+        const speed = 130;
+        body.setVelocity((vx / length) * speed, (vy / length) * speed);
+        this.player.play(`player-walk-${this.currentDirection}`, true);
       } else {
+        body.setVelocity(0, 0);
         this.player.play(`player-idle-${this.currentDirection}`, true);
       }
     }

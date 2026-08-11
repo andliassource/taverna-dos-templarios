@@ -48,6 +48,7 @@ export class PreloadScene extends Phaser.Scene {
     // Cria texturas de partículas e iluminação
     this.createParticleTextures();
     this.createAtmosphericTextures();
+    this.createMonsterTextures();
 
     // Cria animações do jogador
     this.createAnimations();
@@ -259,6 +260,124 @@ export class PreloadScene extends Phaser.Scene {
         frameRate: 7,
         repeat: -1,
       });
+    });
+  }
+
+  private createMonsterTextures(): void {
+    const makeTexture = (key: string, matrix: string[], colors: Record<string, string>) => {
+      if (this.textures.exists(key)) return;
+      const canvas = this.textures.createCanvas(key, 16, 16);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = false;
+      for (let y = 0; y < 16; y++) {
+        for (let x = 0; x < 16; x++) {
+          const char = matrix[y][x];
+          if (char && char !== '.') {
+            ctx.fillStyle = colors[char];
+            ctx.fillRect(x, y, 1, 1);
+          }
+        }
+      }
+      canvas!.refresh();
+    };
+
+    // 1. GOBLIN
+    makeTexture('monster-goblin', [
+      "....GGGGGG......",
+      "...GGGGGGGG.....",
+      "..GGGGGGGGGG....",
+      "..GGDGGGDGGG....",
+      "..GDYGDYGDGG....",
+      "..GGGGGGGGGG....",
+      "...GGGGGGGG.....",
+      "....BBBBBB......",
+      "...BBBBBBBB.....",
+      "..BBBBBBBBBB....",
+      "..BBBBBBBBBB....",
+      "..BBBBBBBBBB....",
+      "...B......B.....",
+      "...GG....GG.....",
+      "...GG....GG.....",
+      "................"
+    ], {
+      'G': '#44aa44',
+      'D': '#225522',
+      'Y': '#ffff44',
+      'B': '#8b5a2b'
+    });
+
+    // 2. SKELETON
+    makeTexture('monster-skeleton', [
+      ".....WWWWWW.....",
+      "....WWWWWWWW....",
+      "...WWWWWWWWWW...",
+      "...WWBRWWRBWW...",
+      "...WWWWWWWWWW...",
+      "....WWWWWWWW....",
+      ".....W.WW.W.....",
+      "....SSSSSSSS....",
+      "...SSSSSSSSSS...",
+      "..SSSSSSSSSSSS..",
+      "..SSSWWWWWWSSS..",
+      "..SSSWWWWWWSSS..",
+      "....WW....WW....",
+      "....WW....WW....",
+      "....WW....WW....",
+      "................"
+    ], {
+      'W': '#eeeeee',
+      'S': '#888888',
+      'B': '#222222',
+      'R': '#ff0000'
+    });
+
+    // 3. SHADOW WOLF
+    makeTexture('monster-wolf', [
+      "................",
+      "......AA........",
+      ".....AAAA.......",
+      "....AAAAAA......",
+      "....AARAAW......",
+      "...AAAAAAWW.....",
+      "...AAAAAA.......",
+      "..AAAAAAAA......",
+      ".AAAAAAAAAA.....",
+      "AAAAAAAAAAAA....",
+      "AAAAAAAAAAAA....",
+      "AAAAAAAAAAAA....",
+      ".AA.AA..AA.AA...",
+      ".AA.AA..AA.AA...",
+      ".AA.AA..AA.AA...",
+      "................"
+    ], {
+      'A': '#444455',
+      'W': '#ffffff',
+      'R': '#ff4444'
+    });
+
+    // 4. DEMON IMP
+    makeTexture('monster-imp', [
+      "....B......B....",
+      "....BB....BB....",
+      ".....RRRRRR.....",
+      "....RRRRRRRR....",
+      "...RRRRRRRRRR...",
+      "...RRDYYDYYDR...",
+      "...RRRRRRRRRR...",
+      "....RRRRRRRR....",
+      ".....RRRRRR.....",
+      "....RRRRRRRR....",
+      "...RRRRRRRRRR...",
+      "..RRRRRRRRRRRR..",
+      "..R.R.R..R.R.R..",
+      "..R.R......R.R..",
+      "..R.R......R.R..",
+      "................"
+    ], {
+      'B': '#221111',
+      'R': '#cc3333',
+      'D': '#771111',
+      'Y': '#ffdd00'
     });
   }
 }

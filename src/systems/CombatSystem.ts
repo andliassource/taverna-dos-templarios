@@ -876,4 +876,144 @@ export class CombatSystem {
       this.scene.events.emit('update-inventory-ui');
     }
   }
+
+  // ==================== LOJA, UPGRADES E CONSUMÍVEIS ====================
+  public usePotion(itemId: string): boolean {
+    const itemIndex = this.inventory.findIndex(item => item.id === itemId);
+    if (itemIndex === -1) return false;
+
+    const item = this.inventory[itemIndex];
+    if (item.type !== 'POTION') return false;
+
+    const isHp = item.name.includes('Vida') || item.name.includes('HP');
+    const isMp = item.name.includes('Mana') || item.name.includes('MP');
+
+    const maxHp = this.getMaxHP();
+    const maxMp = this.getMaxMP();
+
+    if (isHp && this.playerHp >= maxHp) {
+      const scrollX = this.scene.cameras.main.scrollX;
+      const scrollY = this.scene.cameras.main.scrollY;
+      this.showFloatingText(scrollX + 240, scrollY + 160, 'Vida já está cheia!', '#ff4444');
+      return false;
+    }
+    if (isMp && this.playerMp >= maxMp) {
+      const scrollX = this.scene.cameras.main.scrollX;
+      const scrollY = this.scene.cameras.main.scrollY;
+      this.showFloatingText(scrollX + 240, scrollY + 160, 'Mana já está cheia!', '#ff4444');
+      return false;
+    }
+
+    // Remove do inventário
+    this.inventory.splice(itemIndex, 1);
+
+    if (isHp) {
+      this.playerHp = Math.min(maxHp, this.playerHp + 50);
+      const scrollX = this.scene.cameras.main.scrollX;
+      const scrollY = this.scene.cameras.main.scrollY;
+      this.showFloatingText(scrollX + 240, scrollY + 160, '🧪 HP Recobrado +50!', '#00ff00');
+    } else if (isMp) {
+      this.playerMp = Math.min(maxMp, this.playerMp + 30);
+      const scrollX = this.scene.cameras.main.scrollX;
+      const scrollY = this.scene.cameras.main.scrollY;
+      this.showFloatingText(scrollX + 240, scrollY + 160, '💧 MP Recobrado +30!', '#4488ff');
+    }
+
+    this.emitStateUpdate();
+    this.scene.events.emit('update-inventory-ui');
+    return true;
+  }
+
+  public buyItem(itemConfig: Omit<Item, 'id'>, cost: number): boolean {
+    if (this.gold < cost) {
+      const scrollX = this.scene.cameras.main.scrollX;
+      const scrollY = this.scene.cameras.main.scrollY;
+      this.showFloatingText(scrollX + 240, scrollY + 160, 'Ouro Insuficiente!', '#ff4444');
+      return false;
+    }
+    if (this.inventory.length >= 16) {
+      const scrollX = this.scene.cameras.main.scrollX;
+      const scrollY = this.scene.cameras.main.scrollY;
+      this.showFloatingText(scrollX + 240, scrollY + 160, 'Inventário Cheio!', '#ff4444');
+      return false;
+    }
+
+    this.gold -= cost;
+    const item: Item = {
+      ...itemConfig,
+      id: `item_${Date.now()}_${Math.random()}`,
+    };
+    this.inventory.push(item);
+    
+    this.emitStateUpdate();
+    this.scene.events.emit('update-inventory-ui');
+    return true;
+  }
+
+  public sellItem(itemId: string, value: number): void {
+    const itemIndex = this.inventory.findIndex(item => item.id === itemId);
+    if (itemIndex === -1) return;
+
+    this.inventory.splice(itemIndex, 1);
+    this.gold += value;
+
+    this.emitStateUpdate();
+    this.scene.events.emit('update-inventory-ui');
+  }
+
+  public upgradeItem(itemId: string): boolean {
+    let item = this.inventory.find(item => item.id === itemId);
+    let isEquipped = false;
+    let equippedSlot = '';
+
+    if (!item) {
+      for (const slot in this.equipped) {
+        if (this.equipped[slot]?.id === itemId) {
+          item = this.equipped[slot]!;
+          isEquipped = true;
+          equippedSlot = slot;
+          break;
+        }
+      }
+    }
+
+    if (!item) return false;
+    if (item.type === 'POTION') return false;
+
+    if (this.gold < 100 || this.gems < 1) {
+      const scrollX = this.scene.cameras.main.scrollX;
+      const scrollY = this.scene.cameras.main.scrollY;
+      this.showFloatingText(scrollX + 240, scrollY + 160, 'Ouro ou Gemas Insuficientes!', '#ff4444');
+      return false;
+    }
+
+    this.gold -= 100;
+    this.gems -= 1;
+
+    const currentLevel = item.upgradeLevel || 0;
+    const nextLevel = currentLevel + 1;
+    item.upgradeLevel = nextLevel;
+
+    item.name = item.name.replace(/\s\+\d+$/, '');
+    item.name = `${item.name} +${nextLevel}`;
+
+    if (item.stats.atk) item.stats.atk += 3;
+    if (item.stats.def) item.stats.def += 3;
+    if (item.stats.hp) item.stats.hp += 12;
+    if (item.stats.mp) item.stats.mp += 8;
+
+    if (isEquipped) {
+      this.playerHp = Math.min(this.playerHp, this.getMaxHP());
+      this.playerMp = Math.min(this.playerMp, this.getMaxMP());
+    }
+
+    this.emitStateUpdate();
+    this.scene.events.emit('update-inventory-ui');
+
+    const scrollX = this.scene.cameras.main.scrollX;
+    const scrollY = this.scene.cameras.main.scrollY;
+    this.showFloatingText(scrollX + 240, scrollY + 160, '🔨 Aprimorado com Sucesso!', '#ffd700');
+
+    return true;
+  }
 }

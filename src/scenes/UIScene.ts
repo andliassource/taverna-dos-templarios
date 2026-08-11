@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Item } from '../shared/types/item.types';
+import { Item } from '../../shared/types/item.types';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -20,6 +20,14 @@ export class UIScene extends Phaser.Scene {
   private inventoryKey!: Phaser.Input.Keyboard.Key;
   private inventoryContainer!: Phaser.GameObjects.Container;
   private isInventoryOpen = false;
+  
+  private shopContainer!: Phaser.GameObjects.Container;
+  private isShopOpen = false;
+
+  private forgeContainer!: Phaser.GameObjects.Container;
+  private isForgeOpen = false;
+  private selectedForgeItemId: string | null = null;
+
   private tooltipText!: Phaser.GameObjects.Text;
   private tooltipBg!: Phaser.GameObjects.Graphics;
 
@@ -76,6 +84,12 @@ export class UIScene extends Phaser.Scene {
     this.events.on('update-inventory-ui', () => {
       if (this.isInventoryOpen) {
         this.createInventoryUI();
+      }
+      if (this.isShopOpen) {
+        this.createMerchantShopUI();
+      }
+      if (this.isForgeOpen) {
+        this.createBlacksmithForgeUI();
       }
     });
 
@@ -632,7 +646,11 @@ export class UIScene extends Phaser.Scene {
             if (pointer.rightButtonDown()) {
               cs.deleteItem(item.id);
             } else {
-              cs.equipItem(item.id);
+              if (item.type === 'POTION') {
+                cs.usePotion(item.id);
+              } else {
+                cs.equipItem(item.id);
+              }
             }
           });
 
@@ -698,5 +716,437 @@ export class UIScene extends Phaser.Scene {
     zone.on('pointerout', () => {
       this.tooltipText.setVisible(false);
     });
+  }
+
+  // ==================== NPC INTERACTION SYSTEMS ====================
+  public toggleMerchantShop(open: boolean): void {
+    this.isShopOpen = open;
+    
+    if (!open) {
+      if (this.shopContainer) {
+        this.shopContainer.destroy();
+      }
+      const activeScene = this.scene.isActive('WorldScene') ? 'WorldScene' : 'BattleScene';
+      const targetScene = this.scene.get(activeScene) as any;
+      if (targetScene && targetScene.player) {
+        targetScene.physics.world.enable(targetScene.player);
+      }
+    } else {
+      if (this.isInventoryOpen) this.toggleInventory();
+      if (this.isForgeOpen) this.toggleBlacksmithForge(false);
+      this.createMerchantShopUI();
+    }
+  }
+
+  public toggleBlacksmithForge(open: boolean): void {
+    this.isForgeOpen = open;
+    
+    if (!open) {
+      if (this.forgeContainer) {
+        this.forgeContainer.destroy();
+      }
+      this.selectedForgeItemId = null;
+      const activeScene = this.scene.isActive('WorldScene') ? 'WorldScene' : 'BattleScene';
+      const targetScene = this.scene.get(activeScene) as any;
+      if (targetScene && targetScene.player) {
+        targetScene.physics.world.enable(targetScene.player);
+      }
+    } else {
+      if (this.isInventoryOpen) this.toggleInventory();
+      if (this.isShopOpen) this.toggleMerchantShop(false);
+      this.createBlacksmithForgeUI();
+    }
+  }
+
+  private createMerchantShopUI(): void {
+    if (this.shopContainer) {
+      this.shopContainer.destroy();
+    }
+
+    const { width, height } = this.cameras.main;
+    this.shopContainer = this.add.container(0, 0).setDepth(200);
+
+    const cs = this.getActiveCombatSystem();
+    if (!cs) return;
+
+    const px = width / 2 - 260;
+    const py = height / 2 - 170;
+    const pw = 520;
+    const ph = 340;
+
+    // Fundo do painel
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0e091a, 0.95);
+    bg.fillRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(2, 0xd4a843, 1);
+    bg.strokeRoundedRect(px, py, pw, ph, 10);
+    this.shopContainer.add(bg);
+
+    // Título Loja
+    const title = this.add.text(width / 2, py + 22, '🛒 ARMAZÉM DE ELISE', {
+      fontFamily: 'Cinzel',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+    }).setOrigin(0.5);
+    this.shopContainer.add(title);
+
+    // Fechar
+    const closeBtn = this.add.text(px + pw - 26, py + 12, '✖', {
+      fontSize: '18px',
+      color: '#ffd700',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleMerchantShop(false));
+    this.shopContainer.add(closeBtn);
+
+    // === SEÇÃO ESQUERDA: COMPRA (ITENS À VENDA) ===
+    const shopX = px + 24;
+    const shopY = py + 54;
+    const itemCardW = 210;
+    const itemCardH = 54;
+
+    const itemsForSale: { cost: number; config: Omit<Item, 'id'> }[] = [
+      {
+        cost: 50,
+        config: { name: 'Poção de Vida', type: 'POTION', stats: { hp: 50 }, icon: '🧪', description: 'Restaura 50 de HP.', rarity: 'COMMON' }
+      },
+      {
+        cost: 50,
+        config: { name: 'Poção de Mana', type: 'POTION', stats: { mp: 30 }, icon: '💧', description: 'Restaura 30 de MP.', rarity: 'COMMON' }
+      },
+      {
+        cost: 120,
+        config: { name: 'Elmo de Ferro', type: 'HELMET', stats: { def: 5 }, icon: '🪖', description: 'Proteção metálica básica.', rarity: 'COMMON' }
+      },
+      {
+        cost: 100,
+        config: { name: 'Escudo de Madeira', type: 'SHIELD', stats: { def: 4 }, icon: '🪵', description: 'Feito de carvalho reforçado.', rarity: 'COMMON' }
+      }
+    ];
+
+    itemsForSale.forEach((shopItem, index) => {
+      const sy = shopY + index * 60;
+
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(0x19102b, 0.8);
+      cardBg.fillRoundedRect(shopX, sy, itemCardW, itemCardH, 4);
+      cardBg.lineStyle(1, 0x4e2e8a, 0.5);
+      cardBg.strokeRoundedRect(shopX, sy, itemCardW, itemCardH, 4);
+      this.shopContainer.add(cardBg);
+
+      const icon = this.add.text(shopX + 18, sy + 27, shopItem.config.icon, { fontSize: '18px' }).setOrigin(0.5);
+      const name = this.add.text(shopX + 38, sy + 10, shopItem.config.name, {
+        fontFamily: 'MedievalSharp', fontSize: '10px', color: '#ffd700', fontStyle: 'bold'
+      });
+      const desc = this.add.text(shopX + 38, sy + 22, shopItem.config.description, {
+        fontFamily: 'Inter', fontSize: '8px', color: '#9c9c9c'
+      });
+      const priceText = this.add.text(shopX + 38, sy + 34, `🪙 ${shopItem.cost}`, {
+        fontFamily: 'Inter', fontSize: '9px', color: '#ffd700', fontStyle: 'bold'
+      });
+
+      this.shopContainer.add([icon, name, desc, priceText]);
+
+      // Botão comprar
+      const buyBtnBg = this.add.graphics();
+      buyBtnBg.fillStyle(0x3a220a, 0.9);
+      buyBtnBg.lineStyle(1, 0xd4a843, 0.6);
+      buyBtnBg.fillRoundedRect(shopX + itemCardW - 54, sy + 15, 48, 24, 2);
+      buyBtnBg.strokeRoundedRect(shopX + itemCardW - 54, sy + 15, 48, 24, 2);
+      this.shopContainer.add(buyBtnBg);
+
+      const buyLabel = this.add.text(shopX + itemCardW - 30, sy + 27, 'COMPRA', {
+        fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold', color: '#ffffff'
+      }).setOrigin(0.5);
+      this.shopContainer.add(buyLabel);
+
+      const hit = this.add.zone(shopX + itemCardW - 30, sy + 27, 48, 24).setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', () => {
+        cs.buyItem(shopItem.config, shopItem.cost);
+      });
+      this.shopContainer.add(hit);
+    });
+
+    // === SEÇÃO DIREITA: VENDA (GRID DE ITENS) ===
+    const gridX = px + 266;
+    const gridY = py + 54;
+    const slotSize = 48;
+    const gridSpacing = 8;
+    const inventory = cs.getInventory();
+
+    // Título venda
+    const sellTitle = this.add.text(gridX, py + 42, 'SEUS ITENS (CLIQUE PARA VENDER)', {
+      fontFamily: 'Cinzel', fontSize: '10px', color: '#aaaaaa'
+    });
+    this.shopContainer.add(sellTitle);
+
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        const index = row * 4 + col;
+        const sx = gridX + col * (slotSize + gridSpacing);
+        const sy = gridY + 20 + row * (slotSize + gridSpacing);
+
+        const slotBg = this.add.graphics();
+        slotBg.fillStyle(0x130a24, 0.7);
+        slotBg.fillRoundedRect(sx, sy, slotSize, slotSize, 4);
+        slotBg.lineStyle(1, 0x4a2d6e, 0.5);
+        slotBg.strokeRoundedRect(sx, sy, slotSize, slotSize, 4);
+        this.shopContainer.add(slotBg);
+
+        if (index < inventory.length) {
+          const item = inventory[index];
+
+          const itemIcon = this.add.text(sx + slotSize / 2, sy + slotSize / 2, item.icon, {
+            fontSize: '20px',
+          }).setOrigin(0.5);
+          this.shopContainer.add(itemIcon);
+
+          // Determina preço de venda (50% do valor do item)
+          let sellPrice = 25;
+          if (item.type !== 'POTION') {
+            sellPrice = item.rarity === 'COMMON' ? 50 :
+                        item.rarity === 'RARE' ? 80 :
+                        item.rarity === 'EPIC' ? 150 : 350;
+          }
+
+          // Preço na base do slot
+          const priceLabel = this.add.text(sx + slotSize / 2, sy + slotSize - 6, `🪙${sellPrice}`, {
+            fontFamily: 'Inter', fontSize: '8px', color: '#ffb300', fontStyle: 'bold'
+          }).setOrigin(0.5);
+          this.shopContainer.add(priceLabel);
+
+          const zone = this.add.zone(sx + slotSize / 2, sy + slotSize / 2, slotSize, slotSize).setInteractive({ useHandCursor: true });
+          zone.on('pointerdown', () => {
+            cs.sellItem(item.id, sellPrice);
+          });
+
+          this.addTooltipListeners(zone, item);
+          this.shopContainer.add(zone);
+        }
+      }
+    }
+
+    // Moedas do jogador no rodapé
+    const footerY = py + ph - 30;
+    const goldDisplay = this.add.text(px + 24, footerY, `SEU SALDO:  🪙 ${cs.getGold().toLocaleString()}`, {
+      fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ffd700'
+    });
+    this.shopContainer.add(goldDisplay);
+
+    // Inicializa tooltip
+    this.tooltipText = this.add.text(0, 0, '', {
+      fontFamily: 'Inter', fontSize: '9px', color: '#ffffff',
+      backgroundColor: 'rgba(5, 2, 10, 0.95)', padding: { x: 8, y: 6 },
+      wordWrap: { width: 160 }, stroke: '#ffd700', strokeThickness: 1
+    }).setDepth(211).setVisible(false);
+    this.shopContainer.add(this.tooltipText);
+  }
+
+  private createBlacksmithForgeUI(): void {
+    if (this.forgeContainer) {
+      this.forgeContainer.destroy();
+    }
+
+    const { width, height } = this.cameras.main;
+    this.forgeContainer = this.add.container(0, 0).setDepth(200);
+
+    const cs = this.getActiveCombatSystem();
+    if (!cs) return;
+
+    const px = width / 2 - 240;
+    const py = height / 2 - 170;
+    const pw = 480;
+    const ph = 340;
+
+    // Fundo
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a0614, 0.95);
+    bg.fillRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(2, 0xd4a843, 1);
+    bg.strokeRoundedRect(px, py, pw, ph, 10);
+    this.forgeContainer.add(bg);
+
+    // Título
+    const title = this.add.text(width / 2, py + 22, '🔨 FORJA DE BJORN', {
+      fontFamily: 'Cinzel', fontSize: '15px', fontStyle: 'bold', color: '#ffd700'
+    }).setOrigin(0.5);
+    this.forgeContainer.add(title);
+
+    // Fechar
+    const closeBtn = this.add.text(px + pw - 26, py + 12, '✖', {
+      fontSize: '18px', color: '#ffd700'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleBlacksmithForge(false));
+    this.forgeContainer.add(closeBtn);
+
+    // === SEÇÃO SUPERIOR CENTRAL: SLOT DE APERFEIÇOAMENTO ===
+    let selectedItem: Item | null = null;
+    if (this.selectedForgeItemId) {
+      // Procura no inventário
+      selectedItem = cs.getInventory().find((it: any) => it.id === this.selectedForgeItemId) || null;
+      if (!selectedItem) {
+        // Procura nos equipados
+        const equipped = cs.getEquipped();
+        for (const slot in equipped) {
+          if (equipped[slot]?.id === this.selectedForgeItemId) {
+            selectedItem = equipped[slot]!;
+            break;
+          }
+        }
+      }
+    }
+
+    const forgeSlotX = width / 2;
+    const forgeSlotY = py + 84;
+
+    const forgeSlotBg = this.add.graphics();
+    forgeSlotBg.fillStyle(0x1a0f30, 0.9);
+    forgeSlotBg.fillCircle(forgeSlotX, forgeSlotY, 28);
+    forgeSlotBg.lineStyle(1.5, 0xd4a843, 0.8);
+    forgeSlotBg.strokeCircle(forgeSlotX, forgeSlotY, 28);
+    this.forgeContainer.add(forgeSlotBg);
+
+    if (selectedItem) {
+      // Desenha o item na forja
+      const itemIcon = this.add.text(forgeSlotX, forgeSlotY, selectedItem.icon, { fontSize: '26px' }).setOrigin(0.5);
+      const itemName = this.add.text(forgeSlotX, forgeSlotY + 38, selectedItem.name, {
+        fontFamily: 'MedievalSharp', fontSize: '11px', color: '#ffffff', fontStyle: 'bold'
+      }).setOrigin(0.5);
+
+      this.forgeContainer.add([itemIcon, itemName]);
+
+      // Mostra a transformação de status
+      let currentVal = 0; let futureVal = 0; let statName = 'ATK';
+      if (selectedItem.stats.atk) {
+        currentVal = selectedItem.stats.atk;
+        futureVal = currentVal + 3;
+        statName = 'Ataque';
+      } else if (selectedItem.stats.def) {
+        currentVal = selectedItem.stats.def;
+        futureVal = currentVal + 3;
+        statName = 'Defesa';
+      } else if (selectedItem.stats.hp) {
+        currentVal = selectedItem.stats.hp;
+        futureVal = currentVal + 12;
+        statName = 'HP Bônus';
+      }
+
+      const statChangeText = this.add.text(forgeSlotX, forgeSlotY + 54, `${statName}: ${currentVal} ➔ ${futureVal}`, {
+        fontFamily: 'Inter', fontSize: '10px', color: '#00ff00', fontStyle: 'bold'
+      }).setOrigin(0.5);
+      this.forgeContainer.add(statChangeText);
+
+      // Custo e botão
+      const costText = this.add.text(forgeSlotX, forgeSlotY + 70, `REQUISITOS: 🪙 100  |  💎 1`, {
+        fontFamily: 'Inter', fontSize: '9px', color: '#ffb300', fontStyle: 'bold'
+      }).setOrigin(0.5);
+      this.forgeContainer.add(costText);
+
+      const upgradeBtnBg = this.add.graphics();
+      upgradeBtnBg.fillStyle(0x3a110a, 0.95);
+      upgradeBtnBg.lineStyle(1.5, 0xff4400, 0.8);
+      upgradeBtnBg.fillRoundedRect(forgeSlotX - 80, forgeSlotY + 84, 160, 26, 4);
+      upgradeBtnBg.strokeRoundedRect(forgeSlotX - 80, forgeSlotY + 84, 160, 26, 4);
+      this.forgeContainer.add(upgradeBtnBg);
+
+      const upgradeLabel = this.add.text(forgeSlotX, forgeSlotY + 97, 'APRIMORAR EQUIPAMENTO', {
+        fontFamily: 'Cinzel', fontSize: '10px', fontStyle: 'bold', color: '#ffffff'
+      }).setOrigin(0.5);
+      this.forgeContainer.add(upgradeLabel);
+
+      const hit = this.add.zone(forgeSlotX, forgeSlotY + 97, 160, 26).setInteractive({ useHandCursor: true });
+      hit.on('pointerdown', () => {
+        if (selectedItem) cs.upgradeItem(selectedItem.id);
+      });
+      this.forgeContainer.add(hit);
+
+    } else {
+      const forgeIcon = this.add.text(forgeSlotX, forgeSlotY, '🔨', { fontSize: '24px' }).setOrigin(0.5).setAlpha(0.3);
+      const forgeLabel = this.add.text(forgeSlotX, forgeSlotY + 38, 'SELECIONE UM ITEM ABAIXO', {
+        fontFamily: 'Cinzel', fontSize: '9px', color: '#6b6b6b'
+      }).setOrigin(0.5);
+      this.forgeContainer.add([forgeIcon, forgeLabel]);
+    }
+
+    // === SEÇÃO INFERIOR: SELEÇÃO DE EQUIPAMENTOS DO INVENTÁRIO/EQUIPADO ===
+    const listY = py + 224;
+    const slotSize = 42;
+    const spacing = 8;
+    const listX = px + 24;
+
+    const listLabel = this.add.text(listX, listY - 14, 'EQUIPAMENTOS DISPONÍVEIS PARA FORJA:', {
+      fontFamily: 'Cinzel', fontSize: '9px', color: '#aaaaaa'
+    });
+    this.forgeContainer.add(listLabel);
+
+    // Coleta todos os itens aprimoráveis do jogador (exclui POTIONS)
+    const forgeableItems: { item: Item; isEquipped: boolean }[] = [];
+    
+    // Equipados
+    const equipped = cs.getEquipped();
+    for (const slot in equipped) {
+      const it = equipped[slot];
+      if (it && it.type !== 'POTION') {
+        forgeableItems.push({ item: it, isEquipped: true });
+      }
+    }
+    // Inventário
+    cs.getInventory().forEach((it: any) => {
+      if (it.type !== 'POTION') {
+        forgeableItems.push({ item: it, isEquipped: false });
+      }
+    });
+
+    for (let i = 0; i < 8; i++) {
+      const sx = listX + i * (slotSize + spacing);
+
+      const slotBg = this.add.graphics();
+      slotBg.fillStyle(0x130a24, 0.7);
+      slotBg.fillRoundedRect(sx, listY, slotSize, slotSize, 4);
+      slotBg.lineStyle(1, 0x4a2d6e, 0.5);
+      slotBg.strokeRoundedRect(sx, listY, slotSize, slotSize, 4);
+      this.forgeContainer.add(slotBg);
+
+      if (i < forgeableItems.length) {
+        const entry = forgeableItems[i];
+
+        const itemIcon = this.add.text(sx + slotSize / 2, listY + slotSize / 2, entry.item.icon, {
+          fontSize: '18px',
+        }).setOrigin(0.5);
+        this.forgeContainer.add(itemIcon);
+
+        // Se equipado, põe bordinha verde ou marcador
+        if (entry.isEquipped) {
+          const eqMarker = this.add.text(sx + 4, listY + 4, 'E', {
+            fontFamily: 'Inter', fontSize: '8px', fontStyle: 'bold', color: '#00ff00'
+          });
+          this.forgeContainer.add(eqMarker);
+        }
+
+        const zone = this.add.zone(sx + slotSize / 2, listY + slotSize / 2, slotSize, slotSize).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', () => {
+          this.selectedForgeItemId = entry.item.id;
+          this.createBlacksmithForgeUI();
+        });
+
+        this.addTooltipListeners(zone, entry.item);
+        this.forgeContainer.add(zone);
+      }
+    }
+
+    // Saldo no rodapé
+    const footerY = py + ph - 24;
+    const balanceText = this.add.text(px + 24, footerY, `RECURSOS:  🪙 ${cs.getGold().toLocaleString()}  |  💎 ${cs.getGems()}`, {
+      fontFamily: 'Cinzel', fontSize: '10px', fontStyle: 'bold', color: '#ffd700'
+    });
+    this.forgeContainer.add(balanceText);
+
+    // Inicializa tooltip
+    this.tooltipText = this.add.text(0, 0, '', {
+      fontFamily: 'Inter', fontSize: '9px', color: '#ffffff',
+      backgroundColor: 'rgba(5, 2, 10, 0.95)', padding: { x: 8, y: 6 },
+      wordWrap: { width: 160 }, stroke: '#ffd700', strokeThickness: 1
+    }).setDepth(211).setVisible(false);
+    this.forgeContainer.add(this.tooltipText);
   }
 }

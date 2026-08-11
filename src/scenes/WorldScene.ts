@@ -23,8 +23,12 @@ export class WorldScene extends Phaser.Scene {
   private playerClass: PlayerClass = PlayerClass.PALADIN;
   private combatSystem!: CombatSystem;
   private masterAldric!: Phaser.GameObjects.Container;
+  private blacksmithBjorn!: Phaser.GameObjects.Container;
+  private merchantElise!: Phaser.GameObjects.Container;
   private interactionText!: Phaser.GameObjects.Text;
   private isNearAldric = false;
+  private isNearMerchant = false;
+  private isNearBlacksmith = false;
   private enterKey!: Phaser.Input.Keyboard.Key;
 
   constructor() {
@@ -185,13 +189,13 @@ export class WorldScene extends Phaser.Scene {
 
   private createWorldNPCs(): void {
     // Ferreiro Bjorn (à direita da Taverna)
-    this.createNPC(
+    this.blacksmithBjorn = this.createNPC(
       31 * TILE_SIZE, 16 * TILE_SIZE,
       'blacksmith', 'Ferreiro Bjorn', '🔨', 'Mestre Armeiro da Ordem'
     );
 
     // Mercadora Elise (à esquerda da Taverna)
-    this.createNPC(
+    this.merchantElise = this.createNPC(
       19 * TILE_SIZE, 16 * TILE_SIZE,
       'merchant', 'Mercadora Elise', '🛒', 'Suprimentos Templários'
     );
@@ -428,6 +432,50 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
+    // Proximidade com Mercadora Elise
+    if (this.merchantElise) {
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.merchantElise.x, this.merchantElise.y);
+      if (dist < 48) {
+        if (!this.isNearMerchant) {
+          this.isNearMerchant = true;
+          this.interactionText.setText('Mercadora Elise: "Deseja ver meus suprimentos?"\n[Pressione ENTER para negociar]');
+          this.interactionText.setVisible(true);
+        }
+
+        if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+          this.openMerchantShop();
+          return;
+        }
+      } else {
+        if (this.isNearMerchant) {
+          this.isNearMerchant = false;
+          this.interactionText.setVisible(false);
+        }
+      }
+    }
+
+    // Proximidade com Ferreiro Bjorn
+    if (this.blacksmithBjorn) {
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.blacksmithBjorn.x, this.blacksmithBjorn.y);
+      if (dist < 48) {
+        if (!this.isNearBlacksmith) {
+          this.isNearBlacksmith = true;
+          this.interactionText.setText('Ferreiro Bjorn: "Deseja aprimorar seus equipamentos?"\n[Pressione ENTER para forjar]');
+          this.interactionText.setVisible(true);
+        }
+
+        if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+          this.openBlacksmithForge();
+          return;
+        }
+      } else {
+        if (this.isNearBlacksmith) {
+          this.isNearBlacksmith = false;
+          this.interactionText.setVisible(false);
+        }
+      }
+    }
+
     // Ataque com a barra de Espaço
     if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
       this.combatSystem.performMeleeAttack(this.player, this.currentDirection, time);
@@ -602,6 +650,36 @@ export class WorldScene extends Phaser.Scene {
       case PlayerClass.ASSASSIN:
         this.player.setTint(0x777777);
         break;
+    }
+  }
+
+  private openMerchantShop(): void {
+    if (this.isNearMerchant) {
+      this.isNearMerchant = false;
+      this.interactionText.setVisible(false);
+    }
+    this.physics.world.disable(this.player);
+    this.isMoving = false;
+    this.player.play(`player-idle-${this.currentDirection}`, true);
+
+    const uiScene = this.scene.get('UIScene') as any;
+    if (uiScene) {
+      uiScene.toggleMerchantShop(true);
+    }
+  }
+
+  private openBlacksmithForge(): void {
+    if (this.isNearBlacksmith) {
+      this.isNearBlacksmith = false;
+      this.interactionText.setVisible(false);
+    }
+    this.physics.world.disable(this.player);
+    this.isMoving = false;
+    this.player.play(`player-idle-${this.currentDirection}`, true);
+
+    const uiScene = this.scene.get('UIScene') as any;
+    if (uiScene) {
+      uiScene.toggleBlacksmithForge(true);
     }
   }
 }

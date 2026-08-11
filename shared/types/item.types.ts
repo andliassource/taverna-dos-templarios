@@ -1,7 +1,7 @@
 export interface Item {
   id: string;
   name: string;
-  type: 'WEAPON' | 'ARMOR' | 'HELMET' | 'SHIELD';
+  type: 'WEAPON' | 'ARMOR' | 'HELMET' | 'SHIELD' | 'POTION';
   stats: {
     atk?: number;
     def?: number;
@@ -11,4 +11,5 @@ export interface Item {
   icon: string;
   description: string;
   rarity: 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
+  upgradeLevel?: number; // Ex: +1, +2, +3...
 }

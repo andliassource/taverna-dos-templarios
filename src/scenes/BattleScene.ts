@@ -3,6 +3,7 @@ import { PlayerClass } from '../../shared/types';
 import { TILE_SIZE } from '../config/game.config';
 import { Monster } from '../entities/Monster';
 import { CombatSystem } from '../systems/CombatSystem';
+import { SoundSynth } from '../utils/SoundSynth';
 
 /**
  * BattleScene — Arena de combate instanciada (Desafio dos Templários).
@@ -58,6 +59,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
+    SoundSynth.playBGM('arena');
     // Comunica alteração de mapa para a UIScene
     this.events.emit('scene-change', 'Arena de Combate');
 

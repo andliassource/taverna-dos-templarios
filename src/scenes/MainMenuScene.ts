@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { PlayerClass } from '../../shared/types';
+import { SoundSynth } from '../utils/SoundSynth';
 
 /**
  * MainMenuScene — Menu principal com visual premium.
@@ -46,6 +47,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    SoundSynth.playBGM('menu');
     const { width, height } = this.cameras.main;
 
     // Background da taverna (imagem gerada por IA)

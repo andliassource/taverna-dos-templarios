@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { Monster } from '../entities/Monster';
 import { PlayerClass } from '../../shared/types';
 import { Item } from '../../shared/types/item.types';
+import { SoundSynth } from '../utils/SoundSynth';
 
 export interface LootDrop {
   id: string;
@@ -320,6 +321,7 @@ export class CombatSystem {
         }
 
         // Efeito de coleta (moeda/item voa e some)
+        SoundSynth.playLoot();
         this.scene.tweens.add({
           targets: drop.sprite,
           y: drop.y - 20,
@@ -345,6 +347,7 @@ export class CombatSystem {
 
     this.playerHp = Math.max(0, this.playerHp - finalDamage);
     this.emitStateUpdate();
+    SoundSynth.playHurt();
 
     // Se o HP zerou
     if (this.playerHp <= 0) {
@@ -478,6 +481,7 @@ export class CombatSystem {
 
   private executePaladinAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
     this.lastPlayerAttackTime = time;
+    SoundSynth.playSlash();
     let offsetX = 0; let offsetY = 0; let angle = 0;
     switch (direction) {
       case 'left': offsetX = -24; angle = Math.PI; break;
@@ -508,6 +512,7 @@ export class CombatSystem {
     this.playerMp -= 10;
     this.emitStateUpdate();
     this.lastPlayerAttackTime = time;
+    SoundSynth.playFireball();
 
     let vx = 0; let vy = 0; let angle = 0;
     switch (direction) {
@@ -539,6 +544,7 @@ export class CombatSystem {
 
   private executeArcherAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
     this.lastPlayerAttackTime = time;
+    SoundSynth.playArrow();
 
     let vx = 0; let vy = 0; let angle = 0;
     switch (direction) {
@@ -559,6 +565,7 @@ export class CombatSystem {
 
   private executeAssassinAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
     this.lastPlayerAttackTime = time;
+    SoundSynth.playDash();
 
     let dx = 0; let dy = 0;
     switch (direction) {
@@ -939,6 +946,7 @@ export class CombatSystem {
     }
 
     this.gold -= cost;
+    SoundSynth.playBuy();
     const item: Item = {
       ...itemConfig,
       id: `item_${Date.now()}_${Math.random()}`,
@@ -956,6 +964,7 @@ export class CombatSystem {
 
     this.inventory.splice(itemIndex, 1);
     this.gold += value;
+    SoundSynth.playBuy();
 
     this.emitStateUpdate();
     this.scene.events.emit('update-inventory-ui');
@@ -1010,6 +1019,7 @@ export class CombatSystem {
     this.emitStateUpdate();
     this.scene.events.emit('update-inventory-ui');
 
+    SoundSynth.playUpgrade();
     const scrollX = this.scene.cameras.main.scrollX;
     const scrollY = this.scene.cameras.main.scrollY;
     this.showFloatingText(scrollX + 240, scrollY + 160, '🔨 Aprimorado com Sucesso!', '#ffd700');

@@ -3,6 +3,7 @@ import { PlayerClass } from '../../shared/types';
 import { TILE_SIZE } from '../config/game.config';
 import { Monster } from '../entities/Monster';
 import { CombatSystem } from '../systems/CombatSystem';
+import { SoundSynth } from '../utils/SoundSynth';
 
 /**
  * WorldScene — Mundo principal com sistema de combate em tempo real,
@@ -45,6 +46,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create(): void {
+    SoundSynth.playBGM('village');
     // Inicializa o sistema de combate
     this.combatSystem = new CombatSystem(this);
 
@@ -653,6 +655,7 @@ export class WorldScene extends Phaser.Scene {
 
     this.events.emit('scene-change', 'Taverna dos Templários');
     this.cameras.main.fadeIn(800);
+    SoundSynth.playBGM('village');
   }
 
   private applyClassVisuals(): void {

@@ -14,6 +14,7 @@ export class MainMenuScene extends Phaser.Scene {
   private classDescText!: Phaser.GameObjects.Text;
   private classStatsText!: Phaser.GameObjects.Text;
   private classNameText!: Phaser.GameObjects.Text;
+  private previewSprite!: Phaser.GameObjects.Sprite;
 
   private classData = {
     [PlayerClass.PALADIN]: {
@@ -368,13 +369,18 @@ export class MainMenuScene extends Phaser.Scene {
       lineSpacing: 4,
     });
 
-    this.classStatsText = this.add.text(descX + 16, startY + 160, '', {
+    this.classStatsText = this.add.text(descX + 16, startY + 180, '', {
       fontFamily: 'Courier New',
       fontSize: '11px',
       fontStyle: 'bold',
       color: '#ffd700',
       lineSpacing: 6,
     });
+
+    // Preview do sprite 16-bit animado no centro
+    this.previewSprite = this.add.sprite(descX + panelWidth / 2, startY + 130, `${PlayerClass.PALADIN}-sheet`, 0);
+    this.previewSprite.setScale(4.5);
+    this.previewSprite.setDepth(20);
 
     this.selectClass(PlayerClass.PALADIN);
   }
@@ -439,6 +445,11 @@ export class MainMenuScene extends Phaser.Scene {
     if (this.classNameText) this.classNameText.setText(`${info.icon} ${info.name.toUpperCase()}`);
     if (this.classDescText) this.classDescText.setText(info.desc);
     if (this.classStatsText) this.classStatsText.setText(info.stats);
+
+    if (this.previewSprite) {
+      this.previewSprite.setTexture(`${pClass}-sheet`, 0);
+      this.previewSprite.play(`${pClass}-idle-down`, true);
+    }
   }
 
   private onSettings(): void {

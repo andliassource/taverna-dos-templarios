@@ -61,6 +61,9 @@ export class WorldScene extends Phaser.Scene {
 
     // Cria o Paladino (Jogador)
     this.createPlayerCharacter();
+
+    // Cria decorações florestais (árvores sólidas, arbustos, flores)
+    this.createDecorations(50, 40);
     
     // Configura a classe no sistema de combate e aplica efeitos visuais
     this.combatSystem.setPlayerClass(this.playerClass);
@@ -224,8 +227,8 @@ export class WorldScene extends Phaser.Scene {
     container.setDepth(y / TILE_SIZE + 2);
 
     // Sprite do NPC
-    const npcSprite = this.add.sprite(0, 0, 'npcs-clean', frameKey);
-    npcSprite.setScale(0.22);
+    const npcSprite = this.add.sprite(0, 0, `npc-${frameKey}`, 0);
+    npcSprite.setScale(2.0);
     npcSprite.setOrigin(0.5, 0.85);
     npcSprite.setPipeline('Light2D');
 
@@ -266,7 +269,7 @@ export class WorldScene extends Phaser.Scene {
     // Animação respiratória do NPC
     this.tweens.add({
       targets: npcSprite,
-      scaleY: 0.23,
+      scaleY: 2.05,
       duration: 180,
       ease: 'Sine.easeInOut',
       yoyo: true,
@@ -281,9 +284,9 @@ export class WorldScene extends Phaser.Scene {
     const startY = 24 * TILE_SIZE;
 
     // Sprite do Paladino com o spritesheet formatado
-    this.player = this.add.sprite(startX, startY, 'player-sheet', 0);
+    this.player = this.add.sprite(startX, startY, `${this.playerClass}-sheet`, 0);
     this.player.setDepth(25);
-    this.player.setScale(0.26); // Ajuste fino de tamanho do Paladino HD para o grid de 32px
+    this.player.setScale(2.0); // Ajuste fino de tamanho do Paladino retrô (16x20 pixels a 2.0x scale)
     this.player.setOrigin(0.5, 0.85);
     this.player.setPipeline('Light2D');
 
@@ -558,14 +561,52 @@ export class WorldScene extends Phaser.Scene {
         const length = Math.hypot(vx, vy);
         const speed = 130;
         body.setVelocity((vx / length) * speed, (vy / length) * speed);
-        this.player.play(`player-walk-${this.currentDirection}`, true);
+        this.player.play(`${this.playerClass}-walk-${this.currentDirection}`, true);
       } else {
         body.setVelocity(0, 0);
-        this.player.play(`player-idle-${this.currentDirection}`, true);
+        this.player.play(`${this.playerClass}-idle-${this.currentDirection}`, true);
       }
 
       // Atualiza profundidade dinâmica (sorting Y)
       this.player.setDepth(this.player.y / 32 + 2);
+    }
+  }
+
+  private createDecorations(mapWidth: number, mapHeight: number): void {
+    for (let y = 2; y < mapHeight - 2; y++) {
+      for (let x = 2; x < mapWidth - 2; x++) {
+        // Ignora estradas centrais e rio/lago
+        if (x >= 21 && x <= 29) continue;
+        if (y >= 19 && y <= 25) continue;
+        if (x >= 35 && x <= 45 && y >= 25 && y <= 36) continue;
+
+        // Distribui florestas e vegetação na grama
+        const rand = Phaser.Math.Between(0, 100);
+        if (rand < 7) {
+          // 7% de chance de Árvore Física Colidível
+          const tree = this.physics.add.staticSprite(x * TILE_SIZE + 16, y * TILE_SIZE + 16, 'deco-tree');
+          tree.setScale(2.0);
+          tree.setOrigin(0.5, 0.8);
+          tree.setDepth(y + 2);
+          tree.setPipeline('Light2D');
+          (tree.body as Phaser.Physics.Arcade.StaticBody).setSize(14, 10);
+          (tree.body as Phaser.Physics.Arcade.StaticBody).setOffset(1, 14);
+
+          this.physics.add.collider(this.player, tree);
+        } else if (rand >= 7 && rand < 14) {
+          // 7% de chance de Arbusto decorativo
+          const bush = this.add.sprite(x * TILE_SIZE + 16, y * TILE_SIZE + 16, 'deco-bush');
+          bush.setScale(2.0);
+          bush.setDepth(y + 1);
+          bush.setPipeline('Light2D');
+        } else if (rand >= 14 && rand < 22) {
+          // 8% de chance de Flor
+          const flower = this.add.sprite(x * TILE_SIZE + 16, y * TILE_SIZE + 16, 'deco-flower');
+          flower.setScale(1.5);
+          flower.setDepth(y);
+          flower.setPipeline('Light2D');
+        }
+      }
     }
   }
 

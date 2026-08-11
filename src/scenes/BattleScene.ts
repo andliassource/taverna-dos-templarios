@@ -159,9 +159,9 @@ export class BattleScene extends Phaser.Scene {
     const startX = 12 * TILE_SIZE;
     const startY = 9 * TILE_SIZE;
 
-    this.player = this.add.sprite(startX, startY, 'player-sheet', 0);
+    this.player = this.add.sprite(startX, startY, `${this.playerClass}-sheet`, 0);
     this.player.setDepth(25);
-    this.player.setScale(0.26); // Escala consistente com o grid retrô de 32px
+    this.player.setScale(2.0); // Escala consistente de 2x com o grid retrô de 32px
     this.player.setOrigin(0.5, 0.85);
 
     this.physics.add.existing(this.player);
@@ -413,10 +413,10 @@ export class BattleScene extends Phaser.Scene {
         const length = Math.hypot(vx, vy);
         const speed = 130;
         body.setVelocity((vx / length) * speed, (vy / length) * speed);
-        this.player.play(`player-walk-${this.currentDirection}`, true);
+        this.player.play(`${this.playerClass}-walk-${this.currentDirection}`, true);
       } else {
         body.setVelocity(0, 0);
-        this.player.play(`player-idle-${this.currentDirection}`, true);
+        this.player.play(`${this.playerClass}-idle-${this.currentDirection}`, true);
       }
     }
   }

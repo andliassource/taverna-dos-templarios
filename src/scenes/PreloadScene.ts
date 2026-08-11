@@ -1,14 +1,12 @@
 import Phaser from 'phaser';
 
 import tilesetImg from '../assets/tilesets/tileset.png';
-import paladinImg from '../assets/sprites/paladin.png';
 import tavernImg from '../assets/sprites/tavern.png';
-import npcsImg from '../assets/sprites/npcs.png';
 import menuBgImg from '../assets/sprites/menu_bg.png';
 
 /**
  * PreloadScene — Carrega e processa assets de alta qualidade para o jogo.
- * Aplica chroma key para transparência e remove bordas de grade do tileset.
+ * Gera procedimentalmente todos os sprites de personagens, NPCs e decorações retrô.
  */
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -31,27 +29,27 @@ export class PreloadScene extends Phaser.Scene {
       if (loadingText) loadingText.textContent = 'A Taverna aguarda...';
     });
 
-    // Assets de imagem gerados por IA
     this.load.image('menu-bg', menuBgImg);
     this.load.image('tavern-building', tavernImg);
-    this.load.image('npcs-raw', npcsImg);
     this.load.image('tileset-raw', tilesetImg);
-    this.load.image('paladin-raw', paladinImg);
   }
 
   create(): void {
-    // Processa os spritesheets e remove os fundos sólidos (Chroma Key)
-    this.processPlayerSprite();
-    this.processNPCSprites();
     this.processTilesetClean();
+
+    // Cria as spritesheets procedimentais retrô 16-bit de cada classe e NPCs
+    this.createClassSpritesheets();
+
+    // Cria texturas decorativas do mapa
+    this.createDecorationTextures();
 
     // Cria texturas de partículas e iluminação
     this.createParticleTextures();
     this.createAtmosphericTextures();
     this.createMonsterTextures();
 
-    // Cria animações do jogador
-    this.createAnimations();
+    // Cria animações das classes
+    this.createClassAnimations();
 
     // Fade out do loading screen
     const loadingScreen = document.getElementById('loading-screen');
@@ -60,108 +58,10 @@ export class PreloadScene extends Phaser.Scene {
       setTimeout(() => loadingScreen.classList.add('hidden'), 800);
     }
 
-    console.log('[PreloadScene] ✅ Assets HD e animações carregadas com sucesso');
+    console.log('[PreloadScene] ✅ Sprites e texturas 16-bit procedimentais criados');
     this.scene.start('MainMenuScene');
   }
 
-  /**
-   * Processa o sprite do Paladino tirando a cor de fundo (Cyan / Blue key).
-   */
-  private processPlayerSprite(): void {
-    const rawImg = this.textures.get('paladin-raw').getSourceImage() as HTMLImageElement;
-    if (!rawImg) return;
-
-    const w = rawImg.width;
-    const h = rawImg.height;
-
-    const canvas = this.textures.createCanvas('player-sheet', w, h);
-    const ctx = canvas!.getContext();
-    ctx.drawImage(rawImg, 0, 0);
-
-    const imgData = ctx.getImageData(0, 0, w, h);
-    const data = imgData.data;
-
-    // Amostra a cor do fundo no pixel (0,0)
-    const bgR = data[0];
-    const bgG = data[1];
-    const bgB = data[2];
-
-    // Remove a cor de fundo com tolerância
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      const dist = Math.hypot(r - bgR, g - bgG, b - bgB);
-      if (dist < 60) {
-        data[i + 3] = 0; // Transparente
-      }
-    }
-
-    ctx.putImageData(imgData, 0, 0);
-    canvas!.refresh();
-
-    // Registra como spritesheet de 4 colunas x 4 linhas no Phaser
-    const frameW = w / 4;
-    const frameH = h / 4;
-
-    const playerTex = this.textures.get('player-sheet');
-    for (let row = 0; row < 4; row++) {
-      for (let col = 0; col < 4; col++) {
-        const frameIdx = row * 4 + col;
-        playerTex.add(frameIdx, 0, col * frameW, row * frameH, frameW, frameH);
-      }
-    }
-  }
-
-  /**
-   * Processa a imagem dos NPCs e divide em 3 personagens com fundo transparente.
-   */
-  private processNPCSprites(): void {
-    const rawImg = this.textures.get('npcs-raw').getSourceImage() as HTMLImageElement;
-    if (!rawImg) return;
-
-    const w = rawImg.width;
-    const h = rawImg.height;
-
-    const canvas = this.textures.createCanvas('npcs-clean', w, h);
-    const ctx = canvas!.getContext();
-    ctx.drawImage(rawImg, 0, 0);
-
-    const imgData = ctx.getImageData(0, 0, w, h);
-    const data = imgData.data;
-
-    const bgR = data[0];
-    const bgG = data[1];
-    const bgB = data[2];
-
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-
-      const dist = Math.hypot(r - bgR, g - bgG, b - bgB);
-      if (dist < 45) {
-        data[i + 3] = 0;
-      }
-    }
-
-    ctx.putImageData(imgData, 0, 0);
-    canvas!.refresh();
-
-    // Define recortes para cada NPC (3 colunas, usa a primeira fileira)
-    const npcW = w / 3;
-    const npcH = h / 2;
-
-    const npcsTex = this.textures.get('npcs-clean');
-    npcsTex.add('blacksmith', 0, 0, 0, npcW, npcH);
-    npcsTex.add('merchant', 0, npcW, 0, npcW, npcH);
-    npcsTex.add('master', 0, npcW * 2, 0, npcW, npcH);
-  }
-
-  /**
-   * Processa o tileset seamless em pixel art HD sem linhas de grade (1024x1024, 32x32 tiles de 32px).
-   */
   private processTilesetClean(): void {
     const rawImg = this.textures.get('tileset-raw').getSourceImage() as HTMLImageElement;
     if (!rawImg) return;
@@ -178,6 +78,243 @@ export class PreloadScene extends Phaser.Scene {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(rawImg, 0, 0, rawImg.width, rawImg.height, 0, 0, targetW, targetH);
     canvas!.refresh();
+  }
+
+  private createClassSpritesheets(): void {
+    // 1. PALADIN (Azul real / Aço / Escudo Dourado)
+    this.generateClassSpritesheet('PALADIN-sheet', '#2b4ca3', '#7b9cb8', '#d4af37', '#ffd1a9', false, false);
+    // 2. MAGE (Roxo / Detalhes Rosa / Cajado de Cristal Azul)
+    this.generateClassSpritesheet('MAGE-sheet', '#58137b', '#e066ff', '#4488ff', '#ffd1a9', false, true);
+    // 3. ARCHER (Verde / Couro / Cabelo Laranja)
+    this.generateClassSpritesheet('ARCHER-sheet', '#135c13', '#7a4f2b', '#ff8c00', '#ffd1a9', false, false);
+    // 4. ASSASSIN (Cinzento-Escuro / Máscara / Adagas)
+    this.generateClassSpritesheet('ASSASSIN-sheet', '#1f2421', '#333333', '#708090', '#ffd1a9', true, false);
+
+    // 5. NPCs (Ferreiro, Mercadora, Mestre)
+    this.generateClassSpritesheet('npc-blacksmith', '#5c3317', '#444444', '#cc3333', '#e0b080', false, false);
+    this.generateClassSpritesheet('npc-merchant', '#a020f0', '#ffb6c1', '#32cd32', '#ffd1a9', false, false);
+    this.generateClassSpritesheet('npc-master', '#d4af37', '#4b0082', '#ffffff', '#e0b080', false, false);
+  }
+
+  private generateClassSpritesheet(
+    key: string,
+    primaryColor: string,
+    secondaryColor: string,
+    accessoryColor: string,
+    headColor: string,
+    hasHood: boolean,
+    hasHat: boolean
+  ): void {
+    if (this.textures.exists(key)) return;
+
+    const frameW = 16;
+    const frameH = 20;
+    const canvas = this.textures.createCanvas(key, frameW * 4, frameH * 4);
+    const ctx = canvas!.getContext();
+    ctx.imageSmoothingEnabled = false;
+
+    // Direções: 0 = Down, 1 = Left, 2 = Right, 3 = Up
+    // Frames: 0 = Idle, 1 = Passo A, 2 = Idle, 3 = Passo B
+    for (let dir = 0; dir < 4; dir++) {
+      for (let frame = 0; frame < 4; frame++) {
+        const offsetX = frame * frameW;
+        const offsetY = dir * frameH;
+
+        // Sombra nos pés
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillRect(offsetX + 3, offsetY + 18, 10, 2);
+
+        const legOffset = (frame === 1) ? 1 : (frame === 3) ? -1 : 0;
+        const armOffset = (frame === 1) ? -1 : (frame === 3) ? 1 : 0;
+
+        // 1. Pernas (Y=14 a 17)
+        ctx.fillStyle = secondaryColor;
+        if (dir === 0 || dir === 3) {
+          ctx.fillRect(offsetX + 4, offsetY + 14 + legOffset, 3, 3);
+          ctx.fillRect(offsetX + 9, offsetY + 14 - legOffset, 3, 3);
+        } else if (dir === 1) {
+          ctx.fillRect(offsetX + 5 + legOffset, offsetY + 14, 3, 3);
+          ctx.fillRect(offsetX + 8 - legOffset, offsetY + 14, 3, 3);
+        } else {
+          ctx.fillRect(offsetX + 5 - legOffset, offsetY + 14, 3, 3);
+          ctx.fillRect(offsetX + 8 + legOffset, offsetY + 14, 3, 3);
+        }
+
+        // 2. Corpo/Capa/Armadura (Y=8 a 13)
+        ctx.fillStyle = primaryColor;
+        ctx.fillRect(offsetX + 5, offsetY + 8, 6, 6);
+
+        // Braços
+        ctx.fillStyle = secondaryColor;
+        if (dir === 0) {
+          ctx.fillRect(offsetX + 3, offsetY + 9 + armOffset, 2, 4);
+          ctx.fillRect(offsetX + 11, offsetY + 9 - armOffset, 2, 4);
+        } else if (dir === 3) {
+          ctx.fillRect(offsetX + 3, offsetY + 9 - armOffset, 2, 4);
+          ctx.fillRect(offsetX + 11, offsetY + 9 + armOffset, 2, 4);
+        } else if (dir === 1) {
+          ctx.fillRect(offsetX + 4 - armOffset, offsetY + 9, 2, 4);
+        } else {
+          ctx.fillRect(offsetX + 10 + armOffset, offsetY + 9, 2, 4);
+        }
+
+        // 3. Cabeça/Rosto (Y=3 a 7)
+        ctx.fillStyle = headColor;
+        ctx.fillRect(offsetX + 5, offsetY + 3, 6, 5);
+
+        // Cabelo / Capuz / Chapéu
+        if (hasHood) {
+          ctx.fillStyle = primaryColor;
+          ctx.fillRect(offsetX + 4, offsetY + 2, 8, 2);
+          ctx.fillRect(offsetX + 4, offsetY + 4, 1, 4);
+          ctx.fillRect(offsetX + 11, offsetY + 4, 1, 4);
+        } else if (hasHat) {
+          ctx.fillStyle = primaryColor;
+          ctx.fillRect(offsetX + 3, offsetY + 2, 10, 2);
+          ctx.fillStyle = '#ff8800';
+          ctx.fillRect(offsetX + 6, offsetY + 0, 4, 2);
+        } else {
+          ctx.fillStyle = accessoryColor; // Cabelo/Elmo
+          ctx.fillRect(offsetX + 5, offsetY + 2, 6, 2);
+        }
+
+        // Olhos
+        ctx.fillStyle = '#111111';
+        if (dir === 0) {
+          ctx.fillRect(offsetX + 6, offsetY + 5, 1, 1);
+          ctx.fillRect(offsetX + 9, offsetY + 5, 1, 1);
+        } else if (dir === 1) {
+          ctx.fillRect(offsetX + 6, offsetY + 5, 1, 1);
+        } else if (dir === 2) {
+          ctx.fillRect(offsetX + 9, offsetY + 5, 1, 1);
+        }
+
+        // Arma / Acessórios nas mãos
+        ctx.fillStyle = accessoryColor;
+        if (key.includes('PALADIN') || key.includes('blacksmith')) {
+          if (dir === 0 || dir === 2) {
+            ctx.fillRect(offsetX + 12, offsetY + 8, 2, 6); // Espada/Martelo
+          } else if (dir === 1) {
+            ctx.fillRect(offsetX + 2, offsetY + 8, 2, 5);  // Escudo/Ferramenta
+          }
+        } else if (key.includes('MAGE')) {
+          ctx.fillStyle = '#d4af37';
+          if (dir === 0 || dir === 2) {
+            ctx.fillRect(offsetX + 12, offsetY + 5, 1, 10); // Cajado
+            ctx.fillStyle = '#4488ff';
+            ctx.fillRect(offsetX + 12, offsetY + 4, 1, 1); // Cristal
+          }
+        } else if (key.includes('merchant')) {
+          ctx.fillStyle = '#ff4444';
+          ctx.fillRect(offsetX + 11, offsetY + 11, 2, 2); // Poção
+        }
+      }
+    }
+
+    canvas!.refresh();
+
+    const tex = this.textures.get(key);
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        const idx = row * 4 + col;
+        tex.add(idx, 0, col * frameW, row * frameH, frameW, frameH);
+      }
+    }
+  }
+
+  private createDecorationTextures(): void {
+    // 1. Árvores (deco-tree, 16x24 pixels)
+    if (!this.textures.exists('deco-tree')) {
+      const treeCanvas = this.textures.createCanvas('deco-tree', 16, 24);
+      const ctx = treeCanvas!.getContext();
+      ctx.imageSmoothingEnabled = false;
+
+      const matrix = [
+        "......GG......",
+        "....GGGGGG....",
+        "...GGGGGGGG...",
+        "..GGGGGGGGGG..",
+        "..GGGGGGGGGG..",
+        "..GGGGGGGGGG..",
+        "...GGGGGGGG...",
+        "....GGGGGG....",
+        ".....WWWW.....",
+        ".....WWWW.....",
+        ".....WWWW.....",
+        ".....WWWW....."
+      ];
+      for (let y = 0; y < 12; y++) {
+        for (let x = 0; x < 14; x++) {
+          const char = matrix[y][x];
+          if (char === 'G') {
+            ctx.fillStyle = '#225511';
+            ctx.fillRect(x + 1, y, 1, 1);
+          } else if (char === 'W') {
+            ctx.fillStyle = '#5c3a21';
+            ctx.fillRect(x + 1, y + 12, 1, 1);
+          }
+        }
+      }
+      treeCanvas!.refresh();
+    }
+
+    // 2. Arbustos (deco-bush, 16x16 pixels)
+    if (!this.textures.exists('deco-bush')) {
+      const bushCanvas = this.textures.createCanvas('deco-bush', 16, 16);
+      const ctx = bushCanvas!.getContext();
+      ctx.imageSmoothingEnabled = false;
+
+      const matrix = [
+        "......GGGG......",
+        "....GGGGGGGG....",
+        "...GGGGGGGGGG...",
+        "..GGGGGGGGGGGG..",
+        ".GGGGGGGGGGGGGG.",
+        "GGGGGGGGGGGGGGGG",
+        "GGGGGGGGGGGGGGGG",
+        ".GGGGGGGGGGGGGG.",
+        "..GGGGGGGGGGGG.."
+      ];
+      for (let y = 0; y < 9; y++) {
+        for (let x = 0; x < 16; x++) {
+          const char = matrix[y][x];
+          if (char === 'G') {
+            ctx.fillStyle = '#2d6a1e';
+            ctx.fillRect(x, y + 4, 1, 1);
+          }
+        }
+      }
+      bushCanvas!.refresh();
+    }
+
+    // 3. Flores (deco-flower, 8x8 pixels)
+    if (!this.textures.exists('deco-flower')) {
+      const flowerCanvas = this.textures.createCanvas('deco-flower', 8, 8);
+      const ctx = flowerCanvas!.getContext();
+      ctx.imageSmoothingEnabled = false;
+
+      const matrix = [
+        "...YY...",
+        "..YRRY..",
+        ".YRRRRY.",
+        ".YRRRRY.",
+        "..YRRY..",
+        "...YY..."
+      ];
+      for (let y = 0; y < 6; y++) {
+        for (let x = 0; x < 8; x++) {
+          const char = matrix[y][x];
+          if (char === 'Y') {
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(x, y + 1, 1, 1);
+          } else if (char === 'R') {
+            ctx.fillStyle = '#ff3333';
+            ctx.fillRect(x, y + 1, 1, 1);
+          }
+        }
+      }
+      flowerCanvas!.refresh();
+    }
   }
 
   private createParticleTextures(): void {
@@ -236,31 +373,6 @@ export class PreloadScene extends Phaser.Scene {
     liCtx.fillStyle = liGrad;
     liCtx.fillRect(0, 0, 256, 256);
     light!.refresh();
-  }
-
-  private createAnimations(): void {
-    const directions = ['down', 'left', 'right', 'up'];
-    directions.forEach((dir, index) => {
-      this.anims.create({
-        key: `player-idle-${dir}`,
-        frames: this.anims.generateFrameNumbers('player-sheet', {
-          start: index * 4,
-          end: index * 4,
-        }),
-        frameRate: 1,
-        repeat: -1,
-      });
-
-      this.anims.create({
-        key: `player-walk-${dir}`,
-        frames: this.anims.generateFrameNumbers('player-sheet', {
-          start: index * 4,
-          end: index * 4 + 3,
-        }),
-        frameRate: 7,
-        repeat: -1,
-      });
-    });
   }
 
   private createMonsterTextures(): void {
@@ -378,6 +490,34 @@ export class PreloadScene extends Phaser.Scene {
       'R': '#cc3333',
       'D': '#771111',
       'Y': '#ffdd00'
+    });
+  }
+
+  private createClassAnimations(): void {
+    const classes = ['PALADIN', 'MAGE', 'ARCHER', 'ASSASSIN'];
+    const directions = ['down', 'left', 'right', 'up'];
+    classes.forEach((cls) => {
+      directions.forEach((dir, index) => {
+        this.anims.create({
+          key: `${cls}-idle-${dir}`,
+          frames: this.anims.generateFrameNumbers(`${cls}-sheet`, {
+            start: index * 4,
+            end: index * 4,
+          }),
+          frameRate: 1,
+          repeat: -1,
+        });
+
+        this.anims.create({
+          key: `${cls}-walk-${dir}`,
+          frames: this.anims.generateFrameNumbers(`${cls}-sheet`, {
+            start: index * 4,
+            end: index * 4 + 3,
+          }),
+          frameRate: 7,
+          repeat: -1,
+        });
+      });
     });
   }
 }

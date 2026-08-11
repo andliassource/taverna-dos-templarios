@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "gcn-projeto"
+  },
+  "targets": {
+    "gcn-projeto": {
+      "hosting": {
+        "taverna-dos-templarios": [
+          "taverna-dos-templarios"
+        ]
+      }
+    }
+  }
+}

@@ -102,6 +102,10 @@ export class UIScene extends Phaser.Scene {
     const worldScene = this.scene.get('WorldScene');
     if (worldScene) {
       this.registerSceneListeners(worldScene);
+      // Registra a atualização do ciclo de tempo no HUD
+      worldScene.events.on('update-game-time', (data: { hour: number }) => {
+        this.updateTimeHUD(data.hour);
+      });
     }
 
     const battleScene = this.scene.get('BattleScene');
@@ -1148,5 +1152,22 @@ export class UIScene extends Phaser.Scene {
       wordWrap: { width: 160 }, stroke: '#ffd700', strokeThickness: 1
     }).setDepth(211).setVisible(false);
     this.forgeContainer.add(this.tooltipText);
+  }
+
+  private updateTimeHUD(hour: number): void {
+    if (!this.mapNameText) return;
+    if (this.playerData.map === 'Arena de Combate') return;
+
+    const h = Math.floor(hour);
+    const m = Math.floor((hour - h) * 60);
+    const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+    let icon = '☀️';
+    if (hour >= 6 && hour < 11) icon = '🌅';
+    else if (hour >= 11 && hour < 17) icon = '☀️';
+    else if (hour >= 17 && hour < 20) icon = '🌇';
+    else icon = '🌙';
+
+    this.mapNameText.setText(`📍 ${this.playerData.map}  |  ${icon} ${timeStr}`);
   }
 }

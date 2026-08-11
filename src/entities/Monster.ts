@@ -110,6 +110,7 @@ export class Monster extends Phaser.GameObjects.Container {
 
     // Corpo estilizado do monstro
     this.sprite = this.scene.add.graphics();
+    this.sprite.setPipeline('Light2D');
     this.drawMonsterBody();
 
     // Nome e Nível acima do monstro

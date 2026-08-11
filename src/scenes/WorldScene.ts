@@ -31,6 +31,11 @@ export class WorldScene extends Phaser.Scene {
   private isNearBlacksmith = false;
   private enterKey!: Phaser.Input.Keyboard.Key;
 
+  // Sistema de Tempo e Iluminação
+  private gameHour = 12.0; // Hora atual do jogo (0.0 a 24.0)
+  private playerLight!: Phaser.GameObjects.Light;
+  private streetLamps: Phaser.GameObjects.Light[] = [];
+
   constructor() {
     super({ key: 'WorldScene' });
   }
@@ -160,17 +165,19 @@ export class WorldScene extends Phaser.Scene {
     this.wallLayer.setCollisionByExclusion([-1]);
     this.groundLayer.setDepth(0);
     this.wallLayer.setDepth(1);
+
+    this.groundLayer.setPipeline('Light2D');
+    this.wallLayer.setPipeline('Light2D');
   }
 
   private createTavernBuilding(): void {
-    // Posição central da Taverna (topo do caminho de pedra)
     const tavernX = 25 * TILE_SIZE;
     const tavernY = 12 * TILE_SIZE;
 
-    // Imagem Pixel Art HD da Taverna
     const tavern = this.add.image(tavernX, tavernY, 'tavern-building');
-    tavern.setScale(0.45); // Ajusta o tamanho no mundo do jogo
+    tavern.setScale(0.45);
     tavern.setDepth(12 * TILE_SIZE / TILE_SIZE + 5);
+    tavern.setPipeline('Light2D');
 
     // Paredes de colisão invisíveis para a Taverna
     const buildingWidth = 8;
@@ -218,6 +225,7 @@ export class WorldScene extends Phaser.Scene {
     const npcSprite = this.add.sprite(0, 0, 'npcs-clean', frameKey);
     npcSprite.setScale(0.35);
     npcSprite.setOrigin(0.5, 0.85);
+    npcSprite.setPipeline('Light2D');
 
     // Sombra suave sob o NPC
     const shadow = this.add.ellipse(0, 6, 20, 8, 0x000000, 0.35);
@@ -275,6 +283,7 @@ export class WorldScene extends Phaser.Scene {
     this.player.setDepth(25);
     this.player.setScale(0.45); // Ajuste fino de tamanho do Paladino HD
     this.player.setOrigin(0.5, 0.85);
+    this.player.setPipeline('Light2D');
 
     this.physics.add.existing(this.player);
     const body = this.player.body as Phaser.Physics.Arcade.Body;
@@ -313,6 +322,33 @@ export class WorldScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     const mapW = 50 * TILE_SIZE;
     const mapH = 40 * TILE_SIZE;
+
+    // Habilita as luzes
+    this.lights.enable();
+    this.lights.setAmbientColor(0xffffff);
+
+    // Luz da tocha do jogador
+    this.playerLight = this.lights.addLight(this.player.x, this.player.y, 90, 0xffd700, 1.2);
+
+    // Postes de iluminação pela vila
+    const lampPositions = [
+      { x: 18 * TILE_SIZE, y: 16 * TILE_SIZE },
+      { x: 32 * TILE_SIZE, y: 16 * TILE_SIZE },
+      { x: 25 * TILE_SIZE, y: 26 * TILE_SIZE },
+      { x: 26 * TILE_SIZE, y: 18 * TILE_SIZE },
+    ];
+    lampPositions.forEach((pos) => {
+      const lamp = this.lights.addLight(pos.x, pos.y, 80, 0xffbb55, 1.4);
+      this.streetLamps.push(lamp);
+
+      // Ponto de luz brilhante visível
+      const glow = this.add.graphics();
+      glow.fillStyle(0xffe6a3, 0.7);
+      glow.fillCircle(pos.x, pos.y, 3);
+      glow.fillStyle(0xffa500, 0.3);
+      glow.fillCircle(pos.x, pos.y, 8);
+      glow.setDepth(pos.y / TILE_SIZE + 3);
+    });
 
     // Efeito de iluminação quente vindo das janelas e portas da Taverna
     const tavernLight = this.add.image(25 * TILE_SIZE, 14 * TILE_SIZE, 'light-warm');
@@ -486,6 +522,14 @@ export class WorldScene extends Phaser.Scene {
 
     // Atualiza o sistema de combate (IA e regeneração)
     this.combatSystem.update(time);
+
+    // Atualiza o Ciclo de Iluminação e Tempo
+    const dt = this.game.loop.delta / 1000;
+    this.updateEnvironmentLighting(dt);
+
+    if (this.playerLight && this.player) {
+      this.playerLight.setPosition(this.player.x, this.player.y - 12);
+    }
 
     if (!this.isMoving) {
       let moveX = 0;
@@ -681,5 +725,58 @@ export class WorldScene extends Phaser.Scene {
     if (uiScene) {
       uiScene.toggleBlacksmithForge(true);
     }
+  }
+
+  private updateEnvironmentLighting(dt: number): void {
+    this.gameHour = (this.gameHour + dt * 0.2) % 24;
+
+    this.events.emit('update-game-time', { hour: this.gameHour });
+
+    let ambientR = 255;
+    let ambientG = 255;
+    let ambientB = 255;
+    let lightIntensity = 0.0;
+
+    const h = this.gameHour;
+
+    if (h >= 6 && h < 11) {
+      const t = (h - 6) / 5;
+      ambientR = Math.round(Phaser.Math.Linear(0x3b, 0xff, t));
+      ambientG = Math.round(Phaser.Math.Linear(0x2d, 0xfa, t));
+      ambientB = Math.round(Phaser.Math.Linear(0x54, 0xf0, t));
+      lightIntensity = Phaser.Math.Linear(1.0, 0.0, t);
+    } else if (h >= 11 && h < 17) {
+      ambientR = 255;
+      ambientG = 255;
+      ambientB = 255;
+      lightIntensity = 0.0;
+    } else if (h >= 17 && h < 20) {
+      const t = (h - 17) / 3;
+      ambientR = Math.round(Phaser.Math.Linear(0xff, 0xfd, t));
+      ambientG = Math.round(Phaser.Math.Linear(0xff, 0x5e, t));
+      ambientB = Math.round(Phaser.Math.Linear(0xff, 0x53, t));
+      lightIntensity = Phaser.Math.Linear(0.0, 1.0, t);
+    } else if (h >= 20 || h < 4) {
+      ambientR = 0x12;
+      ambientG = 0x12;
+      ambientB = 0x2b;
+      lightIntensity = 1.0;
+    } else {
+      const t = (h - 4) / 2;
+      ambientR = Math.round(Phaser.Math.Linear(0x12, 0x3b, t));
+      ambientG = Math.round(Phaser.Math.Linear(0x12, 0x2d, t));
+      ambientB = Math.round(Phaser.Math.Linear(0x2b, 0x54, t));
+      lightIntensity = 1.0;
+    }
+
+    const colorInt = Phaser.Display.Color.GetColor(ambientR, ambientG, ambientB);
+    this.lights.setAmbientColor(colorInt);
+
+    if (this.playerLight) {
+      this.playerLight.setIntensity(lightIntensity * 1.2);
+    }
+    this.streetLamps.forEach((lamp) => {
+      lamp.setIntensity(lightIntensity * 1.4);
+    });
   }
 }

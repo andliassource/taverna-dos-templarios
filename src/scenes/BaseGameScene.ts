@@ -98,9 +98,18 @@ export abstract class BaseGameScene extends Phaser.Scene {
       };
     }
 
-    this.input.on('pointerdown', () => {
-      if (this.combatSystem.getHP() > 0) {
-        this.combatSystem.performMeleeAttack(this.player, this.currentDirection, this.time.now);
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.combatSystem.getHP() > 0 && this.player) {
+        const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.worldX, pointer.worldY);
+        const deg = Phaser.Math.RadToDeg(angle);
+        let dir = 'down';
+        if (deg >= -45 && deg <= 45) dir = 'right';
+        else if (deg > 45 && deg < 135) dir = 'down';
+        else if (deg <= -45 && deg > -135) dir = 'up';
+        else dir = 'left';
+
+        this.currentDirection = dir;
+        this.combatSystem.performMeleeAttack(this.player, dir, this.time.now);
       }
     });
   }

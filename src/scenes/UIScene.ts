@@ -107,6 +107,9 @@ export class UIScene extends Phaser.Scene {
     // Moedas — Abaixo do HUD
     this.createCurrencyDisplay();
 
+    // Barra de Atalhos Rápidos no Rodapé
+    this.createShortcutBar(width, height);
+
     // Info do mapa — Topo central
     this.createMapInfo(width);
 
@@ -2443,5 +2446,34 @@ export class UIScene extends Phaser.Scene {
       },
       () => {}
     );
+  }
+
+  private createShortcutBar(width: number, height: number): void {
+    const shortcuts = [
+      { key: 'I', label: '🎒 [I] Inventário', action: () => this.toggleInventory() },
+      { key: 'C', label: '📜 [C] Perfil', action: () => this.toggleProfileUI() },
+      { key: 'T', label: '🌟 [T] Talentos', action: () => this.toggleTalentTree() },
+      { key: 'M', label: '🐾 [M] Mascotes', action: () => this.togglePetMountUI() },
+      { key: 'L', label: '🏆 [L] Ranking', action: () => this.toggleLeaderboardUI() },
+    ];
+
+    const barW = 460;
+    const startX = width / 2 - barW / 2;
+    const barY = height - 16;
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a0614, 0.85);
+    bg.fillRoundedRect(startX, barY - 10, barW, 22, 6);
+    bg.lineStyle(1, 0xd4a843, 0.6);
+    bg.strokeRoundedRect(startX, barY - 10, barW, 22, 6);
+
+    shortcuts.forEach((sc, idx) => {
+      const btnX = startX + 12 + idx * 90;
+      const txt = this.add.text(btnX, barY + 1, sc.label, {
+        fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold', color: '#ffd700'
+      }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+
+      txt.on('pointerdown', sc.action);
+    });
   }
 }

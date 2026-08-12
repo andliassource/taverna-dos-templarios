@@ -159,9 +159,30 @@ export abstract class BaseGameScene extends Phaser.Scene {
       const speed = this.PLAYER_SPEED * PetSystem.getInstance().getSpeedMultiplier();
       body.setVelocity((vx / length) * speed, (vy / length) * speed);
       this.player.play(`${this.playerClass}-walk-${this.currentDirection}`, true);
+      this.spawnFootstepDust();
     } else {
       body.setVelocity(0, 0);
       this.player.play(`${this.playerClass}-idle-${this.currentDirection}`, true);
+    }
+  }
+
+  protected spawnFootstepDust(): void {
+    if (Math.random() < 0.15 && this.player) {
+      const dust = this.add.circle(
+        this.player.x + (Math.random() * 8 - 4),
+        this.player.y + 12,
+        Phaser.Math.Between(2, 4),
+        0xc2b280, 0.4
+      );
+      dust.setDepth(this.player.depth - 1);
+      this.tweens.add({
+        targets: dust,
+        scale: 1.6,
+        alpha: 0,
+        y: dust.y - 4,
+        duration: 350,
+        onComplete: () => dust.destroy(),
+      });
     }
   }
 

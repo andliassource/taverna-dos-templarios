@@ -1,41 +1,19 @@
 import Phaser from 'phaser';
 import { PlayerClass } from '../../shared/types';
+import { PlayerSceneData, ArenaResult } from '../../shared/types/scene.types';
 import { TILE_SIZE } from '../config/game.config';
 import { Monster } from '../entities/Monster';
 import { CombatSystem } from '../systems/CombatSystem';
 import { SoundSynth } from '../utils/SoundSynth';
+import { BaseGameScene } from './BaseGameScene';
 
-/**
- * BattleScene — Arena de combate instanciada (Desafio dos Templários).
- * Apresenta 3 ondas progressivas de monstros com recompensas reais de fim de desafio.
- */
-export class BattleScene extends Phaser.Scene {
-  private player!: Phaser.GameObjects.Sprite;
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasd!: Record<string, Phaser.Input.Keyboard.Key>;
-  private spaceKey!: Phaser.Input.Keyboard.Key;
-  private isMoving = false;
-  private targetX = 0;
-  private targetY = 0;
-  private currentDirection = 'down';
-  private map!: Phaser.Tilemaps.Tilemap;
+export class BattleScene extends BaseGameScene {
   private groundLayer!: Phaser.Tilemaps.TilemapLayer;
-  private wallLayer!: Phaser.Tilemaps.TilemapLayer;
-  private playerClass: PlayerClass = PlayerClass.PALADIN;
-  private combatSystem!: CombatSystem;
-  private key1!: Phaser.Input.Keyboard.Key;
-  private key2!: Phaser.Input.Keyboard.Key;
-  private key3!: Phaser.Input.Keyboard.Key;
-  private shiftKey!: Phaser.Input.Keyboard.Key;
-  private isDashing = false;
-  private lastDashTime = 0;
-
-  private playerData: any;
+  private playerData!: PlayerSceneData;
   private currentWaveIndex = 0;
   private activeMonsters: Monster[] = [];
 
-  // Configurações de ondas de spawn
-  private waves = [
+  private readonly waves = [
     [
       { x: 6 * TILE_SIZE, y: 5 * TILE_SIZE, type: 'GOBLIN' },
       { x: 18 * TILE_SIZE, y: 5 * TILE_SIZE, type: 'GOBLIN' },
@@ -47,33 +25,29 @@ export class BattleScene extends Phaser.Scene {
       { x: 12 * TILE_SIZE, y: 4 * TILE_SIZE, type: 'SHADOW_WOLF' },
     ],
     [
-      { x: 12 * TILE_SIZE, y: 4 * TILE_SIZE, type: 'DEMON_IMP' }, // Boss
+      { x: 12 * TILE_SIZE, y: 4 * TILE_SIZE, type: 'DEMON_IMP' },
       { x: 6 * TILE_SIZE, y: 12 * TILE_SIZE, type: 'GOBLIN' },
       { x: 18 * TILE_SIZE, y: 12 * TILE_SIZE, type: 'GOBLIN' },
-    ]
+    ],
   ];
 
   constructor() {
     super({ key: 'BattleScene' });
   }
 
-  init(data: any): void {
+  init(data: PlayerSceneData): void {
     this.playerData = data;
-    this.playerClass = data.playerClass || PlayerClass.PALADIN;
+    this.playerClass = data.playerClass ?? PlayerClass.PALADIN;
     this.currentWaveIndex = 0;
     this.activeMonsters = [];
   }
 
   create(): void {
     SoundSynth.playBGM('arena');
-    // Comunica alteração de mapa para a UIScene
     this.events.emit('scene-change', 'Arena de Combate');
 
-    // Inicializa o sistema de combate
     this.combatSystem = new CombatSystem(this);
     this.combatSystem.setPlayerClass(this.playerClass);
-
-    // Carrega status importados do jogador
     this.combatSystem.setHP(this.playerData.hp);
     this.combatSystem.setMaxHP(this.playerData.maxHp);
     this.combatSystem.setMP(this.playerData.mp);
@@ -84,75 +58,46 @@ export class BattleScene extends Phaser.Scene {
     this.combatSystem.setGold(this.playerData.gold);
     this.combatSystem.setGems(this.playerData.gems);
 
-    if (this.playerData.inventory) {
-      this.combatSystem.setInventory(this.playerData.inventory);
-    }
-    if (this.playerData.equipped) {
-      this.combatSystem.setEquipped(this.playerData.equipped);
-    }
+    if (this.playerData.inventory) this.combatSystem.setInventory(this.playerData.inventory);
+    if (this.playerData.equipped) this.combatSystem.setEquipped(this.playerData.equipped);
 
-    // Constrói mapa da arena
     this.createArenaMap();
-
-    // Instancia o jogador no centro
-    this.createPlayerCharacter();
+    this.createPlayerCharacter(12 * TILE_SIZE, 9 * TILE_SIZE);
     this.applyClassVisuals();
-
-    // Configura os efeitos visuais e iluminação da arena
     this.createArenaAtmosphere();
 
-    // Câmera do jogo
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setRoundPixels(true);
     this.cameras.main.setZoom(2.4);
     this.cameras.main.setBackgroundColor('#14051a');
 
-    // Controles WASD / Setas / Espaço
     this.setupControls();
 
-    // Escuta evento de morte do jogador
-    this.events.on('player-died', () => {
-      this.handleDefeat();
-    });
+    this.events.on('player-died', () => this.handleDefeat());
 
-    // Inicia a transição de entrada e spawna a primeira onda
     this.cameras.main.fadeIn(800);
-    this.time.delayedCall(1000, () => {
-      this.startWave(0);
-    });
-
-    console.log('[BattleScene] Arena de combate carregada com sucesso');
+    this.time.delayedCall(1000, () => this.startWave(0));
   }
 
   private createArenaMap(): void {
     const mapWidth = 24;
     const mapHeight = 18;
 
-    this.map = this.make.tilemap({
-      tileWidth: TILE_SIZE,
-      tileHeight: TILE_SIZE,
-      width: mapWidth,
-      height: mapHeight,
-    });
-
-    const tileset = this.map.addTilesetImage('tileset', 'tileset');
+    const map = this.make.tilemap({ tileWidth: TILE_SIZE, tileHeight: TILE_SIZE, width: mapWidth, height: mapHeight });
+    const tileset = map.addTilesetImage('tileset', 'tileset');
     if (!tileset) return;
 
-    this.groundLayer = this.map.createBlankLayer('ground', tileset, 0, 0)!;
-    this.wallLayer = this.map.createBlankLayer('walls', tileset, 0, 0)!;
+    this.groundLayer = map.createBlankLayer('ground', tileset, 0, 0)!;
+    this.wallLayer = map.createBlankLayer('walls', tileset, 0, 0)!;
 
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
-        // Limites externos da arena (paredes impenetráveis)
         if (x === 0 || x === mapWidth - 1 || y === 0 || y === mapHeight - 1) {
           this.groundLayer.putTileAt(754, x, y);
-          this.wallLayer.putTileAt(115, x, y); // Parede de pedra
-          continue;
+          this.wallLayer.putTileAt(115, x, y);
+        } else {
+          this.groundLayer.putTileAt(114 + ((x + y) % 3), x, y);
         }
-
-        // Chão de pedra decorado da arena
-        const stoneTile = 114 + ((x + y) % 3);
-        this.groundLayer.putTileAt(stoneTile, x, y);
       }
     }
 
@@ -161,60 +106,12 @@ export class BattleScene extends Phaser.Scene {
     this.wallLayer.setDepth(1);
   }
 
-  private createPlayerCharacter(): void {
-    const startX = 12 * TILE_SIZE;
-    const startY = 9 * TILE_SIZE;
-
-    this.player = this.add.sprite(startX, startY, `${this.playerClass}-sheet`, 0);
-    this.player.setDepth(25);
-    this.player.setScale(2.0); // Escala consistente de 2x com o grid retrô de 32px
-    this.player.setOrigin(0.5, 0.85);
-
-    this.physics.add.existing(this.player);
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    body.setSize(TILE_SIZE * 0.6, TILE_SIZE * 0.4);
-    body.setOffset(TILE_SIZE * 0.2, TILE_SIZE * 0.6);
-    body.setCollideWorldBounds(true);
-
-    this.physics.add.collider(this.player, this.wallLayer);
-
-    this.targetX = startX;
-    this.targetY = startY;
-
-    // Sombra do jogador
-    const shadow = this.add.ellipse(0, 8, 22, 9, 0x000000, 0.4);
-    shadow.setDepth(24);
-
-    // Tag com nome flutuante
-    const nameTag = this.add.text(0, -32, 'Templário', {
-      fontFamily: 'MedievalSharp',
-      fontSize: '11px',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3,
-    }).setOrigin(0.5);
-
-    // Sincroniza sombra e tag com a posição do jogador
-    this.events.on('postupdate', () => {
-      shadow.setPosition(this.player.x, this.player.y + 4);
-      nameTag.setPosition(this.player.x, this.player.y - 34);
-      nameTag.setDepth(this.player.depth + 1);
-      this.player.setDepth(this.player.y / TILE_SIZE + 2);
-    });
-  }
-
   private createArenaAtmosphere(): void {
     const { width, height } = this.scale;
 
-    // Vinheta vermelha de combate nas bordas
     const vignette = this.add.image(width / 2, height / 2, 'vignette');
-    vignette.setScrollFactor(0);
-    vignette.setDisplaySize(width, height);
-    vignette.setAlpha(0.65);
-    vignette.setTint(0x8b0000); // Vermelho escuro sangrento
-    vignette.setDepth(100);
+    vignette.setScrollFactor(0).setDisplaySize(width, height).setAlpha(0.65).setTint(0x8b0000).setDepth(100);
 
-    // Efeito de fogo fraco vindo de tochas nos quatro cantos da arena
     const corners = [
       { x: 2 * TILE_SIZE, y: 2 * TILE_SIZE },
       { x: 21 * TILE_SIZE, y: 2 * TILE_SIZE },
@@ -224,43 +121,8 @@ export class BattleScene extends Phaser.Scene {
 
     corners.forEach((corner) => {
       const torch = this.add.image(corner.x, corner.y, 'light-warm');
-      torch.setScale(1.5);
-      torch.setAlpha(0.5);
-      torch.setBlendMode('ADD');
-      torch.setDepth(15);
-
-      this.tweens.add({
-        targets: torch,
-        alpha: 0.25,
-        scale: 1.3,
-        duration: 1200 + Math.random() * 400,
-        yoyo: true,
-        repeat: -1,
-      });
-    });
-  }
-
-  private setupControls(): void {
-    if (this.input.keyboard) {
-      this.cursors = this.input.keyboard.createCursorKeys();
-      this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-      this.key1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
-      this.key2 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
-      this.key3 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
-      this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-      this.wasd = {
-        w: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-        a: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-        s: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-        d: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-      };
-    }
-
-    // Clique do mouse dispara ataque
-    this.input.on('pointerdown', () => {
-      if (this.combatSystem.getHP() > 0) {
-        this.combatSystem.performMeleeAttack(this.player, this.currentDirection, this.time.now);
-      }
+      torch.setScale(1.5).setAlpha(0.5).setBlendMode('ADD').setDepth(15);
+      this.tweens.add({ targets: torch, alpha: 0.25, scale: 1.3, duration: 1200 + Math.random() * 400, yoyo: true, repeat: -1 });
     });
   }
 
@@ -273,291 +135,62 @@ export class BattleScene extends Phaser.Scene {
     }
 
     this.currentWaveIndex = index;
-    // Emite atualização para o HUD mostrar a onda
     this.events.emit('arena-wave-update', { wave: index + 1, maxWaves: this.waves.length });
 
-    const spawns = this.waves[index];
-    spawns.forEach((spawn) => {
+    this.waves[index].forEach((spawn) => {
       const monster = new Monster(this, spawn.x, spawn.y, spawn.type);
       monster.setTarget(this.player);
       this.activeMonsters.push(monster);
       this.combatSystem.registerMonster(monster);
     });
+  }
 
-    console.log(`[BattleScene] Spawned Wave ${index + 1}`);
+  private buildArenaResult(won: boolean): ArenaResult {
+    return {
+      won,
+      goldGained: won ? 200 : 0,
+      gemsGained: won ? 5 : 0,
+      hpPercent: won ? this.combatSystem.getHP() / this.combatSystem.getMaxHP() : 0,
+      inventory: this.combatSystem.getInventory(),
+      equipped: this.combatSystem.getEquipped(),
+    };
+  }
+
+  private exitToWorld(result: ArenaResult): void {
+    this.scene.stop('BattleScene');
+    const worldScene = this.scene.get('WorldScene') as any;
+    this.scene.resume('WorldScene');
+    worldScene.resumeFromArena(result);
   }
 
   private handleVictory(): void {
     this.physics.world.disable(this.player);
-    this.isMoving = false;
-    this.player.play(`player-idle-${this.currentDirection}`, true);
-
-    const { width, height } = this.scale;
-    const banner = this.add.text(width / 2, height / 2, 'DESAFIO CONCLUÍDO!\n\nVitória Absoluta!\n+200 Ouro, +5 Gemas', {
-      fontFamily: 'Cinzel',
-      fontSize: '24px',
-      fontStyle: 'bold',
-      color: '#ffd700',
-      stroke: '#000000',
-      strokeThickness: 5,
-      align: 'center',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(300);
-
-    this.tweens.add({
-      targets: banner,
-      scaleX: 1.1,
-      scaleY: 1.1,
-      duration: 1000,
-      yoyo: true,
-      repeat: 1,
-    });
-
-    this.time.delayedCall(3500, () => {
-      this.cameras.main.fadeOut(800, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.stop('BattleScene');
-        const worldScene = this.scene.get('WorldScene') as any;
-        this.scene.resume('WorldScene');
-        worldScene.resumeFromArena({
-          won: true,
-          goldGained: 200,
-          gemsGained: 5,
-          hpPercent: this.combatSystem.getHP() / this.combatSystem.getMaxHP(),
-          inventory: this.combatSystem.getInventory(),
-          equipped: this.combatSystem.getEquipped(),
-        });
-      });
-    });
+    this.showResultBanner(
+      'DESAFIO CONCLUÍDO!\n\nVitória Absoluta!\n+200 Ouro, +5 Gemas',
+      '#ffd700',
+      () => this.exitToWorld(this.buildArenaResult(true)),
+      3500,
+    );
   }
 
   private handleDefeat(): void {
     this.physics.world.disable(this.player);
-    this.isMoving = false;
-    this.player.play(`player-idle-${this.currentDirection}`, true);
-
-    const { width, height } = this.scale;
-    const banner = this.add.text(width / 2, height / 2, 'DERROTA!\n\nVocê caiu no desafio...', {
-      fontFamily: 'Cinzel',
-      fontSize: '24px',
-      fontStyle: 'bold',
-      color: '#ff4444',
-      stroke: '#000000',
-      strokeThickness: 5,
-      align: 'center',
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(300);
-
-    this.tweens.add({
-      targets: banner,
-      scaleX: 1.1,
-      scaleY: 1.1,
-      duration: 1000,
-      yoyo: true,
-      repeat: 1,
-    });
-
-    this.time.delayedCall(3000, () => {
-      this.cameras.main.fadeOut(800, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.stop('BattleScene');
-        const worldScene = this.scene.get('WorldScene') as any;
-        this.scene.resume('WorldScene');
-        worldScene.resumeFromArena({
-          won: false,
-          goldGained: 0,
-          gemsGained: 0,
-          hpPercent: 0,
-          inventory: this.combatSystem.getInventory(),
-          equipped: this.combatSystem.getEquipped(),
-        });
-      });
-    });
+    this.showResultBanner(
+      'DERROTA!\n\nVocê caiu no desafio...',
+      '#ff4444',
+      () => this.exitToWorld(this.buildArenaResult(false)),
+      3000,
+    );
   }
 
   update(time: number): void {
-    if (!this.cursors || !this.player || this.combatSystem.getHP() <= 0) return;
-
-    // Ataque com a barra de Espaço
-    if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
-      this.combatSystem.performMeleeAttack(this.player, this.currentDirection, time);
-    }
-
-    // Habilidades com as teclas 1, 2, 3
-    if (this.key1 && Phaser.Input.Keyboard.JustDown(this.key1)) {
-      this.combatSystem.useSkill(this.player, 0, this.currentDirection, time);
-    }
-    if (this.key2 && Phaser.Input.Keyboard.JustDown(this.key2)) {
-      this.combatSystem.useSkill(this.player, 1, this.currentDirection, time);
-    }
-    if (this.key3 && Phaser.Input.Keyboard.JustDown(this.key3)) {
-      this.combatSystem.useSkill(this.player, 2, this.currentDirection, time);
-    }
-
-    // Esquiva/Dash com Shift
-    if (this.shiftKey && Phaser.Input.Keyboard.JustDown(this.shiftKey)) {
-      this.triggerDash(time);
-    }
-
-    // Coleta de moedas
+    this.handleMovementInput(time);
     this.combatSystem.updateLootCollection(this.player.x, this.player.y);
-
-    // Atualiza o sistema de combate (IA e regeneração)
     this.combatSystem.update(time);
 
-    // Verifica progressão de ondas
-    if (this.activeMonsters.length > 0) {
-      const allDead = this.activeMonsters.every((m) => m.isDead);
-      if (allDead) {
-        this.activeMonsters = [];
-        this.time.delayedCall(3000, () => {
-          this.startWave(this.currentWaveIndex + 1);
-        });
-      }
-    }
-
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    if (body) {
-      if (this.isDashing) return; // Mantém velocidade e direção do Dash
-      let vx = 0;
-      let vy = 0;
-
-      if (this.cursors.left.isDown || this.wasd.a?.isDown) {
-        vx = -1;
-        this.currentDirection = 'left';
-      } else if (this.cursors.right.isDown || this.wasd.d?.isDown) {
-        vx = 1;
-        this.currentDirection = 'right';
-      }
-
-      if (this.cursors.up.isDown || this.wasd.w?.isDown) {
-        vy = -1;
-        this.currentDirection = 'up';
-      } else if (this.cursors.down.isDown || this.wasd.s?.isDown) {
-        vy = 1;
-        this.currentDirection = 'down';
-      }
-
-      // Adiciona suporte a movimentação pelo joystick virtual mobile
-      const uiScene = this.scene.get('UIScene') as any;
-      if (uiScene && uiScene.joystickVector && (uiScene.joystickVector.x !== 0 || uiScene.joystickVector.y !== 0)) {
-        vx = uiScene.joystickVector.x;
-        vy = uiScene.joystickVector.y;
-        if (Math.abs(vx) > Math.abs(vy)) {
-          this.currentDirection = vx > 0 ? 'right' : 'left';
-        } else {
-          this.currentDirection = vy > 0 ? 'down' : 'up';
-        }
-      }
-
-      if (vx !== 0 || vy !== 0) {
-        const length = Math.hypot(vx, vy);
-        const speed = 130;
-        body.setVelocity((vx / length) * speed, (vy / length) * speed);
-        this.player.play(`${this.playerClass}-walk-${this.currentDirection}`, true);
-      } else {
-        body.setVelocity(0, 0);
-        this.player.play(`${this.playerClass}-idle-${this.currentDirection}`, true);
-      }
-    }
-  }
-
-  private triggerDash(time: number): void {
-    const cooldown = 2000;
-    if (time < this.lastDashTime + cooldown) {
-      this.combatSystem.showFloatingText(this.player.x, this.player.y - 20, 'Dash em Recarga!', '#ffcc00');
-      return;
-    }
-
-    this.isDashing = true;
-    this.lastDashTime = time;
-    SoundSynth.playDash();
-
-    let dx = 0; let dy = 0;
-    switch (this.currentDirection) {
-      case 'left': dx = -1; break;
-      case 'right': dx = 1; break;
-      case 'up': dy = -1; break;
-      case 'down': dy = 1; break;
-    }
-
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
-    if (body) {
-      body.setVelocity(dx * 350, dy * 350);
-
-      this.add.particles(this.player.x, this.player.y, 'particle-gold', {
-        speed: { min: 10, max: 30 },
-        angle: { min: 0, max: 360 },
-        scale: { start: 0.6, end: 0 },
-        lifespan: 300,
-        quantity: 8,
-        tint: 0xd4af37,
-      });
-
-      const ghostTimer = this.time.addEvent({
-        delay: 40,
-        repeat: 3,
-        callback: () => {
-          if (this.player && this.player.active) {
-            const ghost = this.add.sprite(this.player.x, this.player.y, `${this.playerClass}-sheet`, this.player.frame.name);
-            ghost.setScale(2.0);
-            ghost.setOrigin(0.5, 0.85);
-            ghost.setAlpha(0.4);
-            ghost.setTint(0x3a2010);
-            this.tweens.add({
-              targets: ghost,
-              alpha: 0,
-              duration: 200,
-              onComplete: () => ghost.destroy(),
-            });
-          }
-        }
-      });
-    }
-
-    this.time.delayedCall(180, () => {
-      this.isDashing = false;
-      if (body) body.setVelocity(0, 0);
-    });
-  }
-
-  private applyClassVisuals(): void {
-    if (!this.player) return;
-
-    switch (this.playerClass) {
-      case PlayerClass.PALADIN:
-        this.player.setTint(0xfff5cc);
-        break;
-      case PlayerClass.MAGE:
-        this.player.setTint(0xcce6ff);
-        this.add.particles(0, 0, 'particle-gold', {
-          speed: { min: 5, max: 15 },
-          scale: { start: 0.3, end: 0 },
-          lifespan: 600,
-          quantity: 1,
-          frequency: 150,
-          follow: this.player,
-          followOffset: { x: 0, y: 10 },
-          tint: 0x4488ff,
-          blendMode: 'ADD',
-        });
-        break;
-      case PlayerClass.ARCHER:
-        this.player.setTint(0xccffcc);
-        this.add.particles(0, 0, 'particle-gold', {
-          speedY: { min: 5, max: 15 },
-          speedX: { min: -5, max: 5 },
-          scale: { start: 0.3, end: 0 },
-          lifespan: 800,
-          quantity: 1,
-          frequency: 250,
-          follow: this.player,
-          followOffset: { x: 0, y: 10 },
-          tint: 0x228b22,
-          blendMode: 'ADD',
-        });
-        break;
-      case PlayerClass.ASSASSIN:
-        this.player.setTint(0x777777);
-        break;
+    if (this.activeMonsters.length > 0 && this.activeMonsters.every((m) => m.isDead)) {
+      this.activeMonsters = [];
+      this.time.delayedCall(3000, () => this.startWave(this.currentWaveIndex + 1));
     }
   }
 }

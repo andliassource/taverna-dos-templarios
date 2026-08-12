@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { PlayerClass } from '../../shared/types';
 import { SoundSynth } from '../utils/SoundSynth';
+import { FirebaseService } from '../network/FirebaseService';
+import { SaveManager } from '../systems/SaveManager';
 
 /**
  * MainMenuScene — Menu principal com visual premium.
@@ -21,13 +23,31 @@ export class MainMenuScene extends Phaser.Scene {
       name: 'Paladino',
       icon: '🛡️',
       desc: 'Guerreiro sagrado com alta defesa e HP. Ataca com golpes corpo a corpo imbuídos de Fé.',
-      stats: 'HP:  ██████████ (Alto)\nMP:  ████ (Baixo)\nATK: ██████ (Médio)\nDEF: ██████████ (Máximo)'
+      stats: 'HP:  ████████ (Alto)\nMP:  ████ (Baixo)\nATK: ██████ (Médio)\nDEF: ██████████ (Máximo)'
+    },
+    [PlayerClass.GUARDIAN]: {
+      name: 'Guardião',
+      icon: '🛡️',
+      desc: 'Baluarte defensivo inabalável. Capaz de absorver imensas quantidades de dano e provocar inimigos.',
+      stats: 'HP:  ██████████ (Máximo)\nMP:  ████ (Baixo)\nATK: ████ (Baixo)\nDEF: ██████████ (Máximo)'
+    },
+    [PlayerClass.WARRIOR]: {
+      name: 'Guerreiro',
+      icon: '⚔️',
+      desc: 'Mestre no combate de proximidade com armas pesadas. Causa dano físico massivo em área.',
+      stats: 'HP:  ████████ (Alto)\nMP:  ████ (Baixo)\nATK: ██████████ (Máximo)\nDEF: ██████ (Médio)'
     },
     [PlayerClass.MAGE]: {
       name: 'Mago',
       icon: '🔮',
       desc: 'Mestre das artes arcanas. Dispara projéteis mágicos de longo alcance que consomem Mana.',
       stats: 'HP:  ████ (Baixo)\nMP:  ██████████ (Máximo)\nATK: ████████ (Alto)\nDEF: ████ (Baixo)'
+    },
+    [PlayerClass.NECROMANCER]: {
+      name: 'Necromante',
+      icon: '💀',
+      desc: 'Invocador das artes sombrias. Evoca esqueletos e explode cadáveres de monstros.',
+      stats: 'HP:  ██████ (Médio)\nMP:  ██████████ (Máximo)\nATK: ████████ (Alto)\nDEF: ████ (Baixo)'
     },
     [PlayerClass.ARCHER]: {
       name: 'Arqueiro',
@@ -40,8 +60,40 @@ export class MainMenuScene extends Phaser.Scene {
       icon: '🗡️',
       desc: 'Lutador furtivo e mortal. Avança rapidamente sobre os inimigos causando dano crítico massivo.',
       stats: 'HP:  ██████ (Médio)\nMP:  ████ (Baixo)\nATK: ██████████ (Máximo)\nDEF: ████ (Baixo)'
+    },
+    [PlayerClass.CLERIC]: {
+      name: 'Clérigo',
+      icon: '💚',
+      desc: 'Servo divino capaz de regenerar vida e purificar hordas inimigas com luz sagrada.',
+      stats: 'HP:  ████████ (Alto)\nMP:  ████████ (Alto)\nATK: ██████ (Médio)\nDEF: ██████ (Médio)'
+    },
+    [PlayerClass.DARK_KNIGHT]: {
+      name: 'Cavaleiro Negro',
+      icon: '🛡️',
+      desc: 'Guerreiro das sombras que absorve a essência vital dos inimigos em cada golpe.',
+      stats: 'HP:  ████████ (Alto)\nMP:  ██████ (Médio)\nATK: ████████ (Alto)\nDEF: ████████ (Alto)'
+    },
+    [PlayerClass.ELEMENTALIST]: {
+      name: 'Elementalista',
+      icon: '🔮',
+      desc: 'Mestre da natureza e elementos. Invoca tempestades de fogo, raio e gelo congelante.',
+      stats: 'HP:  ████ (Baixo)\nMP:  ██████████ (Máximo)\nATK: ██████████ (Máximo)\nDEF: ████ (Baixo)'
+    },
+    [PlayerClass.BARD]: {
+      name: 'Bardo',
+      icon: '💚',
+      desc: 'Poeta de batalha cujos canções fornecem bônus de dano, velocidade e cura para o grupo.',
+      stats: 'HP:  ██████ (Médio)\nMP:  ████████ (Alto)\nATK: ██████ (Médio)\nDEF: ██████ (Médio)'
+    },
+    [PlayerClass.DRUID]: {
+      name: 'Druida',
+      icon: '💚',
+      desc: 'Guardião da floresta capaz de se transformar em urso gigante e invocar vinhas sagradas.',
+      stats: 'HP:  ██████████ (Máximo)\nMP:  ██████ (Médio)\nATK: ██████ (Médio)\nDEF: ████████ (Alto)'
     }
   };
+
+  private continueBtn!: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: 'MainMenuScene' });
@@ -119,7 +171,18 @@ export class MainMenuScene extends Phaser.Scene {
     // Fade in
     this.cameras.main.fadeIn(800);
 
-    console.log('[MainMenuScene] Menu principal premium criado');
+    // Verifica se há save para mostrar botão Continuar
+    this.refreshContinueButton();
+
+    // Escuta mudanças de auth para atualizar o botão de login
+    FirebaseService.onAuthChange(() => this.refreshContinueButton());
+  }
+
+  private refreshContinueButton(): void {
+    const hasSave = SaveManager.hasSave();
+    if (this.continueBtn) {
+      this.continueBtn.setVisible(hasSave);
+    }
   }
 
   private createTitle(height: number): void {
@@ -218,9 +281,17 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private createMenuButtons(height: number): void {
+    const hasSave = SaveManager.hasSave();
+    const user = FirebaseService.currentUser;
+
     const buttonConfigs = [
-      { text: '⚔️  NOVA AVENTURA', callback: () => this.onNewGame(), primary: true },
-      { text: '🔑  ENTRAR COM GOOGLE', callback: () => this.onGoogleLogin(), primary: false },
+      ...(hasSave ? [{ text: '▶️  CONTINUAR', callback: () => this.onContinue(), primary: true }] : []),
+      { text: '⚔️  NOVA AVENTURA', callback: () => this.onNewGame(), primary: !hasSave },
+      {
+        text: user ? `👤  ${user.displayName ?? 'Conta Google'}` : '🔑  ENTRAR COM GOOGLE',
+        callback: () => user ? this.onLogout() : this.onGoogleLogin(),
+        primary: false,
+      },
       { text: '⚙️  CONFIGURAÇÕES', callback: () => this.onSettings(), primary: false },
     ];
 
@@ -233,8 +304,9 @@ export class MainMenuScene extends Phaser.Scene {
         startY + index * spacing,
         config.text,
         config.callback,
-        config.primary
+        config.primary,
       );
+      if (config.text.startsWith('▶️')) this.continueBtn = btn;
       this.menuContainer.add(btn);
     });
   }
@@ -301,7 +373,20 @@ export class MainMenuScene extends Phaser.Scene {
     return container;
   }
 
+  private onContinue(): void {
+    this.cameras.main.fadeOut(800, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      const save = SaveManager.load();
+      this.scene.start('WorldScene', {
+        playerClass: save?.playerClass ?? PlayerClass.PALADIN,
+        fromSave: true,
+      });
+      this.scene.launch('UIScene');
+    });
+  }
+
   private onNewGame(): void {
+    SaveManager.clear();
     this.cameras.main.fadeOut(800, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.start('WorldScene', { isNewGame: true, playerClass: this.selectedClass });
@@ -309,15 +394,23 @@ export class MainMenuScene extends Phaser.Scene {
     });
   }
 
-  private onGoogleLogin(): void {
-    console.log('[MainMenuScene] Google login — Firebase pendente');
+  private async onGoogleLogin(): Promise<void> {
+    const user = await FirebaseService.loginWithGoogle();
+    if (user) {
+      this.refreshContinueButton();
+    }
+  }
+
+  private async onLogout(): Promise<void> {
+    await FirebaseService.logout();
+    this.refreshContinueButton();
   }
 
   private createClassSelectionPanel(width: number, height: number): void {
     const startX = 60;
     const startY = height * 0.38;
     const panelWidth = 240;
-    const panelHeight = 280;
+    const panelHeight = 330;
 
     // Fundo do painel de seleção
     const selectBg = this.add.graphics();
@@ -334,11 +427,20 @@ export class MainMenuScene extends Phaser.Scene {
       color: '#ffd700',
     }).setOrigin(0.5);
 
-    const classes = [PlayerClass.PALADIN, PlayerClass.MAGE, PlayerClass.ARCHER, PlayerClass.ASSASSIN];
-    const spacing = 52;
+    const classes = [
+      PlayerClass.PALADIN,
+      PlayerClass.GUARDIAN,
+      PlayerClass.WARRIOR,
+      PlayerClass.MAGE,
+      PlayerClass.NECROMANCER,
+      PlayerClass.ARCHER,
+      PlayerClass.ASSASSIN,
+      PlayerClass.CLERIC,
+    ];
+    const spacing = 34;
 
     classes.forEach((pClass, index) => {
-      const cy = startY + 54 + index * spacing;
+      const cy = startY + 44 + index * spacing;
       const btn = this.createClassButton(startX + panelWidth / 2, cy, pClass);
       this.classButtons.push(btn);
     });
@@ -387,14 +489,14 @@ export class MainMenuScene extends Phaser.Scene {
 
   private createClassButton(x: number, y: number, pClass: PlayerClass): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
-    const w = 200;
-    const h = 38;
+    const w = 210;
+    const h = 28;
     const info = (this.classData as any)[pClass];
 
     const bg = this.add.graphics();
     const label = this.add.text(0, 0, `${info.icon}  ${info.name.toUpperCase()}`, {
       fontFamily: 'Cinzel',
-      fontSize: '13px',
+      fontSize: '11px',
       fontStyle: 'bold',
       color: '#d4a843',
     }).setOrigin(0.5);

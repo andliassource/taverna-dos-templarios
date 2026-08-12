@@ -1,20 +1,15 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from './config/game.config';
+import { FirebaseService } from './network/FirebaseService';
 import './styles/main.css';
 
-/**
- * ⚔️ Taverna dos Templários
- * RPG Arcade Medieval — Cross-Platform (Web / Mobile / Steam)
- *
- * Ponto de entrada principal do jogo.
- * Inicializa o Phaser 3 com a configuração definida.
- */
+// Inicializa auth listener global (sem bloquear o boot)
+FirebaseService.onAuthChange((user) => {
+  if (user) {
+    console.log(`[Firebase] Logado como: ${user.displayName ?? user.email}`);
+  }
+});
 
-// TODO: Descomentar quando o Firebase estiver configurado com chaves reais
-// import { initFirebase } from './config/firebase.config';
-// initFirebase();
-
-// Inicializa o jogo Phaser
 const game = new Phaser.Game(GAME_CONFIG);
 
 // Hot Module Replacement (dev only)

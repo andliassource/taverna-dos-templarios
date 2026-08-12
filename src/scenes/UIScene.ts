@@ -1,5 +1,14 @@
 import Phaser from 'phaser';
 import { Item } from '../../shared/types/item.types';
+import { CombatSystem } from '../systems/CombatSystem';
+import { FirebaseService } from '../network/FirebaseService';
+import { SoundSynth } from '../utils/SoundSynth';
+import { QuestSystem } from '../systems/QuestSystem';
+import { TalentSystem, TalentNode } from '../systems/TalentSystem';
+import { FishingSystem } from '../systems/FishingSystem';
+import { PetSystem, PetItem } from '../systems/PetSystem';
+import { FactionSystem, Faction } from '../systems/FactionSystem';
+import { LeaderboardSystem, LeaderboardEntry } from '../systems/LeaderboardSystem';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -37,8 +46,17 @@ export class UIScene extends Phaser.Scene {
   public joystickVector = { x: 0, y: 0 };
 
   private inventoryKey!: Phaser.Input.Keyboard.Key;
+  private talentKey!: Phaser.Input.Keyboard.Key;
+  private petKey!: Phaser.Input.Keyboard.Key;
+  private leaderboardKey!: Phaser.Input.Keyboard.Key;
   private inventoryContainer!: Phaser.GameObjects.Container;
   private isInventoryOpen = false;
+
+  private profileKey!: Phaser.Input.Keyboard.Key;
+  private profileContainer!: Phaser.GameObjects.Container;
+  private isProfileOpen = false;
+  private statPoints = 0;
+  private baseStats = { str: 10, agi: 10, int: 10, vit: 10 };
   
   private shopContainer!: Phaser.GameObjects.Container;
   private isShopOpen = false;
@@ -95,12 +113,19 @@ export class UIScene extends Phaser.Scene {
     // FPS counter (dev only)
     this.createFPSCounter(width);
 
+    // Indicador de autosave
+    this.createSaveIndicator(width, height);
+
     // Escuta atualizações de combate vindas do WorldScene
     this.setupCombatListeners();
 
-    // Registra atalho de inventário (Tecla I)
+    // Registra atalhos de teclado (Tecla I: Inventário, Tecla C: Perfil, Tecla T: Talentos, Tecla M: Mascotes, Tecla L: Ranking)
     if (this.input.keyboard) {
       this.inventoryKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
+      this.profileKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
+      this.talentKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T);
+      this.petKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+      this.leaderboardKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
     }
 
     // Escuta redesenho do inventário
@@ -120,6 +145,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private arenaWaveText!: Phaser.GameObjects.Text;
+  private saveIndicator!: Phaser.GameObjects.Text;
 
   private setupCombatListeners(): void {
     const worldScene = this.scene.get('WorldScene');
@@ -147,6 +173,14 @@ export class UIScene extends Phaser.Scene {
         this.hideDialogueBox();
       });
     }
+
+    const dungeonScene = this.scene.get('DungeonScene');
+    if (dungeonScene) {
+      this.registerSceneListeners(dungeonScene);
+    }
+
+    this.events.on('show-achievement-banner', (ach: any) => this.showAchievementBanner(ach));
+    this.events.on('update-boss-hp', (data: any) => this.updateBossHpUI(data));
   }
 
   private registerSceneListeners(targetScene: Phaser.Scene): void {
@@ -157,6 +191,8 @@ export class UIScene extends Phaser.Scene {
       level: number;
       gold: number;
       gems: number;
+      statPoints?: number;
+      baseStats?: { str: number; agi: number; int: number; vit: number };
       playerClass?: string;
       skillCooldowns?: number[];
     }) => {
@@ -170,6 +206,9 @@ export class UIScene extends Phaser.Scene {
       this.playerData.gold = data.gold;
       this.playerData.gems = data.gems;
 
+      if (data.statPoints !== undefined) this.statPoints = data.statPoints;
+      if (data.baseStats !== undefined) this.baseStats = data.baseStats;
+
       if (data.playerClass) {
         const classStr = data.playerClass.toString().toUpperCase();
         if (this.playerClassStr !== classStr) {
@@ -180,6 +219,10 @@ export class UIScene extends Phaser.Scene {
 
       if (data.skillCooldowns) {
         this.lastSkillCooldowns = data.skillCooldowns;
+      }
+
+      if (this.isProfileOpen) {
+        this.createProfileUI();
       }
 
       this.updateHUDVisuals();
@@ -264,21 +307,10 @@ export class UIScene extends Phaser.Scene {
     if (this.goldText) this.goldText.setText(`🪙 ${this.playerData.gold.toLocaleString()}`);
     if (this.gemsText) this.gemsText.setText(`💎 ${this.playerData.gems.toLocaleString()}`);
 
-    // Atualiza overlays de recarga (cooldowns) das skills e do Dash
-    let dashCooldownRatio = 0;
-    let activeSceneName = '';
-    if (this.scene.isActive('WorldScene')) activeSceneName = 'WorldScene';
-    else if (this.scene.isActive('BattleScene')) activeSceneName = 'BattleScene';
-
-    if (activeSceneName) {
-      const activeScene = this.scene.get(activeSceneName) as any;
-      if (activeScene && activeScene.lastDashTime) {
-        const now = this.time.now;
-        const lastDash = activeScene.lastDashTime;
-        const cd = 2000;
-        dashCooldownRatio = Math.max(0, (lastDash + cd - now) / cd);
-      }
-    }
+    const activeScene = this.getActiveGameScene();
+    const dashCooldownRatio = activeScene?.lastDashTime
+      ? Math.max(0, (activeScene.lastDashTime + 2000 - this.time.now) / 2000)
+      : 0;
 
     this.skillSlots.forEach((slot, idx) => {
       const overlay = slot.overlay;
@@ -336,7 +368,8 @@ export class UIScene extends Phaser.Scene {
     hudBg.strokeRoundedRect(x - 8, y - 8, barWidth + 90, 110, 8);
 
     // Nome + Classe
-    this.classText = this.add.text(x, y, `⚔️ ${this.playerData.name}`, {
+    const displayName = FirebaseService.currentUser?.displayName ?? 'Templário';
+    this.classText = this.add.text(x, y, `⚔️ ${displayName}`, {
       fontFamily: 'Cinzel',
       fontSize: '14px',
       fontStyle: 'bold',
@@ -550,10 +583,28 @@ export class UIScene extends Phaser.Scene {
         { name: 'Impacto', icon: '⚡', key: '3' },
         { name: 'Esquiva', icon: '💨', key: 'Shift' },
       ],
+      GUARDIAN: [
+        { name: 'Muralha', icon: '🛡️', key: '1' },
+        { name: 'Provocar', icon: '🗣️', key: '2' },
+        { name: 'Investida', icon: '💥', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      WARRIOR: [
+        { name: 'Giratório', icon: '⚔️', key: '1' },
+        { name: 'Grito G.', icon: '📢', key: '2' },
+        { name: 'Impacto', icon: '🌋', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
       MAGE: [
         { name: 'Bola Fogo', icon: '🔥', key: '1' },
         { name: 'Gelo', icon: '❄️', key: '2' },
         { name: 'Teleporte', icon: '🔮', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      NECROMANCER: [
+        { name: 'Orbe Sombr', icon: '💀', key: '1' },
+        { name: 'Servo', icon: '🦴', key: '2' },
+        { name: 'Explosão', icon: '💥', key: '3' },
         { name: 'Esquiva', icon: '💨', key: 'Shift' },
       ],
       ARCHER: [
@@ -566,6 +617,36 @@ export class UIScene extends Phaser.Scene {
         { name: 'Golpe Ft', icon: '🗡️', key: '1' },
         { name: 'Faca Ven', icon: '🧪', key: '2' },
         { name: 'Furtivo', icon: '👤', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      CLERIC: [
+        { name: 'Luz Sagr', icon: '✨', key: '1' },
+        { name: 'Punição', icon: '⚡', key: '2' },
+        { name: 'Aura Prot', icon: '🌟', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      DARK_KNIGHT: [
+        { name: 'Dreno HP', icon: '🩸', key: '1' },
+        { name: 'Marca Som', icon: '👁️', key: '2' },
+        { name: 'Aura Somb', icon: '🌑', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      ELEMENTALIST: [
+        { name: 'Meteoro', icon: '☄️', key: '1' },
+        { name: 'Tempestade', icon: '⚡', key: '2' },
+        { name: 'Onda Gelo', icon: '❄️', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      BARD: [
+        { name: 'Hino Corag', icon: '🎶', key: '1' },
+        { name: 'Balada Reg', icon: '🎵', key: '2' },
+        { name: 'Eco Disson', icon: '🔊', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      DRUID: [
+        { name: 'Forma Urso', icon: '🐻', key: '1' },
+        { name: 'Vinhas', icon: '🌿', key: '2' },
+        { name: 'Semente V', icon: '🌸', key: '3' },
         { name: 'Esquiva', icon: '💨', key: 'Shift' },
       ],
     };
@@ -661,15 +742,10 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(1, 0.5);
     this.dialogueContainer.add(promptText);
 
-    // Pausa movimentação física nas cenas
-    const activeSceneName = this.scene.isActive('WorldScene') ? 'WorldScene' : 'BattleScene';
-    const activeScene = this.scene.get(activeSceneName) as any;
-    if (activeScene && activeScene.player) {
+    const activeScene = this.getActiveGameScene();
+    if (activeScene?.player) {
       activeScene.physics.world.disable(activeScene.player);
-      activeScene.isMoving = false;
-      if (activeScene.player.body) {
-        activeScene.player.body.setVelocity(0, 0);
-      }
+      activeScene.player.body?.setVelocity(0, 0);
       activeScene.player.play(`${activeScene.playerClass}-idle-${activeScene.currentDirection || 'down'}`, true);
     }
 
@@ -691,14 +767,9 @@ export class UIScene extends Phaser.Scene {
 
   private hideDialogueBox(): void {
     this.isDialogueOpen = false;
-    if (this.dialogueContainer) {
-      this.dialogueContainer.destroy();
-    }
-
-    // Reativa a física do jogador na cena ativa
-    const activeSceneName = this.scene.isActive('WorldScene') ? 'WorldScene' : 'BattleScene';
-    const activeScene = this.scene.get(activeSceneName) as any;
-    if (activeScene && activeScene.player) {
+    this.dialogueContainer?.destroy();
+    const activeScene = this.getActiveGameScene();
+    if (activeScene?.player) {
       activeScene.physics.world.enable(activeScene.player);
     }
   }
@@ -731,36 +802,226 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(1, 0);
   }
 
+  private createSaveIndicator(width: number, height: number): void {
+    this.saveIndicator = this.add.text(width / 2, height - 8, '💾 Progresso salvo', {
+      fontFamily: 'Inter',
+      fontSize: '10px',
+      color: '#aaffaa',
+      stroke: '#000000',
+      strokeThickness: 2,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      padding: { x: 8, y: 4 },
+    }).setOrigin(0.5, 1).setDepth(300).setAlpha(0).setScrollFactor(0);
+  }
+
+  public showSaveIndicator(): void {
+    if (!this.saveIndicator) return;
+    this.tweens.killTweensOf(this.saveIndicator);
+    this.saveIndicator.setAlpha(1);
+    this.tweens.add({
+      targets: this.saveIndicator,
+      alpha: 0,
+      delay: 1500,
+      duration: 800,
+      ease: 'Power2',
+    });
+  }
+
   update(): void {
     // Atualiza FPS
     if (this.fpsText) {
       this.fpsText.setText(`FPS: ${Math.round(this.game.loop.actualFps)}`);
     }
 
-    // Atalho do inventário
+    // Atalhos do inventário (I), perfil (C) e talentos (T)
     if (this.inventoryKey && Phaser.Input.Keyboard.JustDown(this.inventoryKey)) {
       this.toggleInventory();
     }
+    if (this.profileKey && Phaser.Input.Keyboard.JustDown(this.profileKey)) {
+      this.toggleProfileUI();
+    }
+    if (this.talentKey && Phaser.Input.Keyboard.JustDown(this.talentKey)) {
+      this.toggleTalentTree();
+    }
+    if (this.petKey && Phaser.Input.Keyboard.JustDown(this.petKey)) {
+      this.togglePetMountUI();
+    }
+    if (this.leaderboardKey && Phaser.Input.Keyboard.JustDown(this.leaderboardKey)) {
+      this.toggleLeaderboardUI();
+    }
+  }
+
+  public toggleProfileUI(forceState?: boolean): void {
+    const newState = forceState !== undefined ? forceState : !this.isProfileOpen;
+    this.isProfileOpen = newState;
+
+    if (this.isProfileOpen) {
+      this.createProfileUI();
+    } else if (this.profileContainer) {
+      this.profileContainer.destroy();
+    }
+  }
+
+  private createProfileUI(): void {
+    if (this.profileContainer) {
+      this.profileContainer.destroy();
+    }
+
+    const { width, height } = this.cameras.main;
+    this.profileContainer = this.add.container(width / 2, height / 2).setDepth(400);
+
+    const w = 360;
+    const h = 380;
+
+    // Fundo medieval escuro com borda dourada
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a0614, 0.95);
+    bg.fillRoundedRect(-w / 2, -h / 2, w, h, 10);
+    bg.lineStyle(2, 0xffd700, 1);
+    bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
+    this.profileContainer.add(bg);
+
+    // Título
+    const title = this.add.text(0, -h / 2 + 20, '📜 PERFIL DO TEMPLÁRIO', {
+      fontFamily: 'Cinzel',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5);
+    this.profileContainer.add(title);
+
+    // Botão Fechar (X)
+    const closeBtn = this.add.text(w / 2 - 20, -h / 2 + 15, '✖', {
+      fontFamily: 'Inter',
+      fontSize: '16px',
+      color: '#ff4444',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleProfileUI(false));
+    this.profileContainer.add(closeBtn);
+
+    // Info Geral
+    const infoText = this.add.text(-w / 2 + 24, -h / 2 + 55,
+      `Classe: ${this.playerData.class || this.playerClassStr}   |   Nível: ${this.playerData.level}\n` +
+      `HP: ${this.playerData.hp}/${this.playerData.maxHp}   |   MP: ${this.playerData.mp}/${this.playerData.maxMp}`,
+      {
+        fontFamily: 'MedievalSharp',
+        fontSize: '13px',
+        color: '#e0d5c0',
+        lineSpacing: 6,
+      }
+    );
+    this.profileContainer.add(infoText);
+
+    // Divisor
+    const div = this.add.graphics();
+    div.lineStyle(1, 0xd4a843, 0.5);
+    div.lineBetween(-w / 2 + 20, -h / 2 + 105, w / 2 - 20, -h / 2 + 105);
+    this.profileContainer.add(div);
+
+    // Pontos de Atributo Disponíveis
+    const statPointsText = this.add.text(0, -h / 2 + 120, `Pontos Disponíveis: ${this.statPoints}`, {
+      fontFamily: 'Cinzel',
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: this.statPoints > 0 ? '#00ff7f' : '#888888',
+    }).setOrigin(0.5);
+    this.profileContainer.add(statPointsText);
+
+    // Lista de Atributos (FOR, AGI, INT, VIT)
+    const statConfigs = [
+      { key: 'str', label: '🏋️ FORÇA (Dano Físico)', val: this.baseStats.str },
+      { key: 'agi', label: '🎯 AGILIDADE (Velocidade & Crit)', val: this.baseStats.agi },
+      { key: 'int', label: '🔮 INTELIGÊNCIA (Dano Mágico & MP)', val: this.baseStats.int },
+      { key: 'vit', label: '❤️ VITALIDADE (HP & Defesa)', val: this.baseStats.vit },
+    ];
+
+    const startY = -h / 2 + 155;
+    const rowHeight = 45;
+
+    statConfigs.forEach((stat, idx) => {
+      const ry = startY + idx * rowHeight;
+
+      // Fundo da linha
+      const rowBg = this.add.graphics();
+      rowBg.fillStyle(0x1a0a2a, 0.6);
+      rowBg.fillRoundedRect(-w / 2 + 20, ry, w - 40, 36, 6);
+      rowBg.lineStyle(1, 0x4a2d6e, 0.5);
+      rowBg.strokeRoundedRect(-w / 2 + 20, ry, w - 40, 36, 6);
+      this.profileContainer.add(rowBg);
+
+      // Label + Valor
+      const lbl = this.add.text(-w / 2 + 32, ry + 10, `${stat.label}: ${stat.val}`, {
+        fontFamily: 'Inter',
+        fontSize: '12px',
+        color: '#ffffff',
+      });
+      this.profileContainer.add(lbl);
+
+      // Botão + se houver pontos
+      if (this.statPoints > 0) {
+        const addBtnBg = this.add.graphics();
+        addBtnBg.fillStyle(0x00aa44, 0.85);
+        addBtnBg.fillRoundedRect(w / 2 - 58, ry + 5, 26, 26, 4);
+        addBtnBg.lineStyle(1, 0x00ff7f, 1);
+        addBtnBg.strokeRoundedRect(w / 2 - 58, ry + 5, 26, 26, 4);
+        this.profileContainer.add(addBtnBg);
+
+        const addLabel = this.add.text(w / 2 - 45, ry + 18, '+', {
+          fontFamily: 'Inter',
+          fontSize: '16px',
+          fontStyle: 'bold',
+          color: '#ffffff',
+        }).setOrigin(0.5);
+        this.profileContainer.add(addLabel);
+
+        const hit = this.add.zone(w / 2 - 45, ry + 18, 30, 30).setInteractive({ useHandCursor: true });
+        hit.on('pointerdown', () => {
+          const sc = this.getActiveCombatSystem();
+          if (sc) {
+            sc.allocateStatPoint(stat.key as any);
+            this.createProfileUI();
+          }
+        });
+      }
+    });
+
+    // Seção de Reputação de Facções
+    const facY = startY + 4 * rowHeight - 5;
+    const facTitle = this.add.text(0, facY, '⚔️ FACÇÕES TEMPLÁRIAS', {
+      fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ffd700'
+    }).setOrigin(0.5);
+    this.profileContainer.add(facTitle);
+
+    const factions = FactionSystem.getInstance().getFactions();
+    factions.forEach((f: Faction, fIdx: number) => {
+      const fy = facY + 16 + fIdx * 20;
+      const rank = FactionSystem.getInstance().getRank(f.id);
+      const fTxt = this.add.text(-w / 2 + 25, fy, `${f.icon} ${f.name}: ${f.reputation} REP [${rank}]`, {
+        fontFamily: 'Inter', fontSize: '9px', color: rank === 'EXALTADO' ? '#00ffcc' : rank === 'RESPEITADO' ? '#ffd700' : '#cccccc'
+      });
+      this.profileContainer.add(fTxt);
+    });
+
+    // Tecla de Atalho Dica
+    const hintText = this.add.text(0, h / 2 - 15, 'Pressione [C] para Fechar', {
+      fontFamily: 'Inter',
+      fontSize: '11px',
+      color: '#888888',
+    }).setOrigin(0.5);
+    this.profileContainer.add(hintText);
   }
 
   private toggleInventory(): void {
     this.isInventoryOpen = !this.isInventoryOpen;
-    
-    // Comunica para as cenas ativas pausarem/despausarem a movimentação do jogador
-    let activeSceneName = '';
-    if (this.scene.isActive('WorldScene')) activeSceneName = 'WorldScene';
-    else if (this.scene.isActive('BattleScene')) activeSceneName = 'BattleScene';
-
-    if (activeSceneName) {
-      const activeScene = this.scene.get(activeSceneName) as any;
-      if (activeScene && activeScene.player) {
-        if (this.isInventoryOpen) {
-          activeScene.physics.world.disable(activeScene.player);
-          activeScene.isMoving = false;
-          activeScene.player.play(`player-idle-${activeScene.currentDirection || 'down'}`, true);
-        } else {
-          activeScene.physics.world.enable(activeScene.player);
-        }
+    const activeScene = this.getActiveGameScene();
+    if (activeScene?.player) {
+      if (this.isInventoryOpen) {
+        activeScene.physics.world.disable(activeScene.player);
+        activeScene.player.play(`player-idle-${activeScene.currentDirection || 'down'}`, true);
+      } else {
+        activeScene.physics.world.enable(activeScene.player);
       }
     }
 
@@ -773,13 +1034,20 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
-  private getActiveCombatSystem(): any {
-    if (this.scene.isActive('WorldScene')) {
-      return (this.scene.get('WorldScene') as any).combatSystem;
-    } else if (this.scene.isActive('BattleScene')) {
-      return (this.scene.get('BattleScene') as any).combatSystem;
-    }
+  private getActiveSceneName(): 'WorldScene' | 'BattleScene' | null {
+    if (this.scene.isActive('WorldScene')) return 'WorldScene';
+    if (this.scene.isActive('BattleScene')) return 'BattleScene';
     return null;
+  }
+
+  private getActiveCombatSystem(): CombatSystem | null {
+    const name = this.getActiveSceneName();
+    return name ? (this.scene.get(name) as any).combatSystem ?? null : null;
+  }
+
+  private getActiveGameScene(): any {
+    const name = this.getActiveSceneName();
+    return name ? this.scene.get(name) : null;
   }
 
   private createInventoryUI(): void {
@@ -1005,16 +1273,9 @@ export class UIScene extends Phaser.Scene {
   // ==================== NPC INTERACTION SYSTEMS ====================
   public toggleMerchantShop(open: boolean): void {
     this.isShopOpen = open;
-    
     if (!open) {
-      if (this.shopContainer) {
-        this.shopContainer.destroy();
-      }
-      const activeScene = this.scene.isActive('WorldScene') ? 'WorldScene' : 'BattleScene';
-      const targetScene = this.scene.get(activeScene) as any;
-      if (targetScene && targetScene.player) {
-        targetScene.physics.world.enable(targetScene.player);
-      }
+      this.shopContainer?.destroy();
+      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
     } else {
       if (this.isInventoryOpen) this.toggleInventory();
       if (this.isForgeOpen) this.toggleBlacksmithForge(false);
@@ -1024,22 +1285,416 @@ export class UIScene extends Phaser.Scene {
 
   public toggleBlacksmithForge(open: boolean): void {
     this.isForgeOpen = open;
-    
     if (!open) {
-      if (this.forgeContainer) {
-        this.forgeContainer.destroy();
-      }
+      this.forgeContainer?.destroy();
       this.selectedForgeItemId = null;
-      const activeScene = this.scene.isActive('WorldScene') ? 'WorldScene' : 'BattleScene';
-      const targetScene = this.scene.get(activeScene) as any;
-      if (targetScene && targetScene.player) {
-        targetScene.physics.world.enable(targetScene.player);
-      }
+      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
     } else {
       if (this.isInventoryOpen) this.toggleInventory();
       if (this.isShopOpen) this.toggleMerchantShop(false);
       this.createBlacksmithForgeUI();
     }
+  }
+
+  private isQuestBoardOpen = false;
+  private questBoardContainer: Phaser.GameObjects.Container | null = null;
+
+  public toggleQuestBoard(open: boolean): void {
+    this.isQuestBoardOpen = open;
+    if (!open) {
+      this.questBoardContainer?.destroy();
+      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
+    } else {
+      if (this.isInventoryOpen) this.toggleInventory();
+      if (this.isShopOpen) this.toggleMerchantShop(false);
+      if (this.isForgeOpen) this.toggleBlacksmithForge(false);
+      this.createQuestBoardUI();
+    }
+  }
+
+  private createQuestBoardUI(): void {
+    if (this.questBoardContainer) {
+      this.questBoardContainer.destroy();
+    }
+
+    const { width, height } = this.cameras.main;
+    this.questBoardContainer = this.add.container(0, 0).setDepth(200);
+
+    const cs = this.getActiveCombatSystem();
+    if (!cs) return;
+
+    const px = width / 2 - 220;
+    const py = height / 2 - 160;
+    const pw = 440;
+    const ph = 320;
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0f091c, 0.95);
+    bg.fillRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(2, 0xffd700, 1);
+    bg.strokeRoundedRect(px, py, pw, ph, 10);
+    this.questBoardContainer.add(bg);
+
+    const title = this.add.text(width / 2, py + 20, '📜 QUADRO DE MISSÕES DIÁRIAS', {
+      fontFamily: 'Cinzel', fontSize: '14px', fontStyle: 'bold', color: '#ffd700'
+    }).setOrigin(0.5);
+    this.questBoardContainer.add(title);
+
+    const closeBtn = this.add.text(px + pw - 24, py + 12, '✖', {
+      fontSize: '18px', color: '#ffd700'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleQuestBoard(false));
+    this.questBoardContainer.add(closeBtn);
+
+    const quests = QuestSystem.getInstance().getQuests();
+    quests.forEach((q, idx) => {
+      const qy = py + 55 + idx * 75;
+
+      const card = this.add.graphics();
+      card.fillStyle(0x1a0f30, 0.8);
+      card.fillRoundedRect(px + 20, qy, pw - 40, 65, 6);
+      card.lineStyle(1, q.completed ? 0x00ffcc : 0x4a2d6e, 0.8);
+      card.strokeRoundedRect(px + 20, qy, pw - 40, 65, 6);
+      this.questBoardContainer!.add(card);
+
+      const qIcon = this.add.text(px + 40, qy + 32, q.icon, { fontSize: '22px' }).setOrigin(0.5);
+      const qTitle = this.add.text(px + 65, qy + 10, q.title, {
+        fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ffffff'
+      });
+      const qDesc = this.add.text(px + 65, qy + 26, `${q.description} (${q.currentCount}/${q.targetCount})`, {
+        fontFamily: 'Inter', fontSize: '9px', color: '#cccccc'
+      });
+      const qReward = this.add.text(px + 65, qy + 42, `Recompensa: 🪙 ${q.goldReward} | 💎 ${q.gemsReward}`, {
+        fontFamily: 'Inter', fontSize: '9px', color: '#ffd700', fontStyle: 'bold'
+      });
+
+      this.questBoardContainer!.add([qIcon, qTitle, qDesc, qReward]);
+
+      if (q.completed && !q.claimed) {
+        const claimBtnBg = this.add.graphics();
+        claimBtnBg.fillStyle(0x00aa66, 1);
+        claimBtnBg.fillRoundedRect(px + pw - 120, qy + 18, 90, 28, 4);
+        this.questBoardContainer!.add(claimBtnBg);
+
+        const claimTxt = this.add.text(px + pw - 75, qy + 32, 'RESGATAR', {
+          fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold', color: '#ffffff'
+        }).setOrigin(0.5);
+        this.questBoardContainer!.add(claimTxt);
+
+        const claimZone = this.add.zone(px + pw - 75, qy + 32, 90, 28).setInteractive({ useHandCursor: true });
+        claimZone.on('pointerdown', () => {
+          if (QuestSystem.getInstance().claim(q.id, cs)) {
+            SoundSynth.playUpgrade();
+            this.createQuestBoardUI();
+          }
+        });
+        this.questBoardContainer!.add(claimZone);
+      } else if (q.claimed) {
+        const doneTxt = this.add.text(px + pw - 75, qy + 32, '✓ CONCLUÍDO', {
+          fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold', color: '#00ffaa'
+        }).setOrigin(0.5);
+        this.questBoardContainer!.add(doneTxt);
+      }
+    });
+  }
+
+  private isTalentTreeOpen = false;
+  private talentTreeContainer: Phaser.GameObjects.Container | null = null;
+
+  public toggleTalentTree(open?: boolean): void {
+    const nextState = open !== undefined ? open : !this.isTalentTreeOpen;
+    this.isTalentTreeOpen = nextState;
+
+    if (!nextState) {
+      this.talentTreeContainer?.destroy();
+      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
+    } else {
+      if (this.isInventoryOpen) this.toggleInventory();
+      if (this.isShopOpen) this.toggleMerchantShop(false);
+      if (this.isForgeOpen) this.toggleBlacksmithForge(false);
+      if (this.isQuestBoardOpen) this.toggleQuestBoard(false);
+      this.createTalentTreeUI();
+    }
+  }
+
+  private createTalentTreeUI(): void {
+    if (this.talentTreeContainer) {
+      this.talentTreeContainer.destroy();
+    }
+
+    const { width, height } = this.cameras.main;
+    this.talentTreeContainer = this.add.container(0, 0).setDepth(200);
+
+    const cs = this.getActiveCombatSystem();
+    if (!cs) return;
+
+    const px = width / 2 - 230;
+    const py = height / 2 - 165;
+    const pw = 460;
+    const ph = 330;
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a0518, 0.95);
+    bg.fillRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(2, 0xffd700, 1);
+    bg.strokeRoundedRect(px, py, pw, ph, 10);
+    this.talentTreeContainer.add(bg);
+
+    const title = this.add.text(width / 2, py + 20, '🌟 ÁRVORE DE TALENTOS', {
+      fontFamily: 'Cinzel', fontSize: '15px', fontStyle: 'bold', color: '#ffd700'
+    }).setOrigin(0.5);
+    this.talentTreeContainer.add(title);
+
+    const closeBtn = this.add.text(px + pw - 24, py + 12, '✖', {
+      fontSize: '18px', color: '#ffd700'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleTalentTree(false));
+    this.talentTreeContainer.add(closeBtn);
+
+    const pointsText = this.add.text(px + 24, py + 45, `PONTOS DISPONÍVEIS: ${TalentSystem.getInstance().getAvailablePoints()}`, {
+      fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#00ffcc'
+    });
+    this.talentTreeContainer.add(pointsText);
+
+    const resetBtnBg = this.add.graphics();
+    resetBtnBg.fillStyle(0x8b0000, 1);
+    resetBtnBg.fillRoundedRect(px + pw - 150, py + 42, 120, 24, 4);
+    this.talentTreeContainer.add(resetBtnBg);
+
+    const resetTxt = this.add.text(px + pw - 90, py + 54, 'RESETAR (🪙200)', {
+      fontFamily: 'Cinzel', fontSize: '8px', fontStyle: 'bold', color: '#ffffff'
+    }).setOrigin(0.5);
+    this.talentTreeContainer.add(resetTxt);
+
+    const resetZone = this.add.zone(px + pw - 90, py + 54, 120, 24).setInteractive({ useHandCursor: true });
+    resetZone.on('pointerdown', () => {
+      if (TalentSystem.getInstance().reset(cs)) {
+        SoundSynth.playUpgrade();
+        this.createTalentTreeUI();
+      }
+    });
+    this.talentTreeContainer.add(resetZone);
+
+    const nodes = TalentSystem.getInstance().getNodes();
+    nodes.forEach((n: TalentNode, idx: number) => {
+      const ny = py + 80 + idx * 56;
+
+      const card = this.add.graphics();
+      card.fillStyle(0x150b28, 0.85);
+      card.fillRoundedRect(px + 20, ny, pw - 40, 50, 6);
+      card.lineStyle(1, 0x4a2d6e, 0.8);
+      card.strokeRoundedRect(px + 20, ny, pw - 40, 50, 6);
+      this.talentTreeContainer!.add(card);
+
+      const nIcon = this.add.text(px + 40, ny + 25, n.icon, { fontSize: '20px' }).setOrigin(0.5);
+      const nName = this.add.text(px + 62, ny + 8, n.name, {
+        fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ffffff'
+      });
+      const nDesc = this.add.text(px + 62, ny + 25, `${n.description} (${n.points}/${n.maxPoints})`, {
+        fontFamily: 'Inter', fontSize: '9px', color: '#aaaaaa'
+      });
+
+      this.talentTreeContainer!.add([nIcon, nName, nDesc]);
+
+      if (n.points < n.maxPoints) {
+        const plusBg = this.add.graphics();
+        plusBg.fillStyle(0x00aa66, 1);
+        plusBg.fillRoundedRect(px + pw - 60, ny + 12, 32, 26, 4);
+        this.talentTreeContainer!.add(plusBg);
+
+        const plusTxt = this.add.text(px + pw - 44, ny + 25, '+', {
+          fontSize: '16px', fontStyle: 'bold', color: '#ffffff'
+        }).setOrigin(0.5);
+        this.talentTreeContainer!.add(plusTxt);
+
+        const plusZone = this.add.zone(px + pw - 44, ny + 25, 32, 26).setInteractive({ useHandCursor: true });
+        plusZone.on('pointerdown', () => {
+          if (TalentSystem.getInstance().allocate(n.id)) {
+            SoundSynth.playUpgrade();
+            this.createTalentTreeUI();
+          }
+        });
+        this.talentTreeContainer!.add(plusZone);
+      }
+    });
+  }
+
+  private isPetMountOpen = false;
+  private petMountContainer: Phaser.GameObjects.Container | null = null;
+
+  public togglePetMountUI(open?: boolean): void {
+    const nextState = open !== undefined ? open : !this.isPetMountOpen;
+    this.isPetMountOpen = nextState;
+
+    if (!nextState) {
+      this.petMountContainer?.destroy();
+      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
+    } else {
+      if (this.isInventoryOpen) this.toggleInventory();
+      if (this.isShopOpen) this.toggleMerchantShop(false);
+      if (this.isForgeOpen) this.toggleBlacksmithForge(false);
+      if (this.isQuestBoardOpen) this.toggleQuestBoard(false);
+      if (this.isTalentTreeOpen) this.toggleTalentTree(false);
+      this.createPetMountUI();
+    }
+  }
+
+  private createPetMountUI(): void {
+    if (this.petMountContainer) {
+      this.petMountContainer.destroy();
+    }
+
+    const { width, height } = this.cameras.main;
+    this.petMountContainer = this.add.container(0, 0).setDepth(200);
+
+    const px = width / 2 - 230;
+    const py = height / 2 - 165;
+    const pw = 460;
+    const ph = 330;
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0e1428, 0.95);
+    bg.fillRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(2, 0x00ffcc, 1);
+    bg.strokeRoundedRect(px, py, pw, ph, 10);
+    this.petMountContainer.add(bg);
+
+    const title = this.add.text(width / 2, py + 20, '🐾 MASCOTES & MONTARIAS TEMPLÁRIAS', {
+      fontFamily: 'Cinzel', fontSize: '14px', fontStyle: 'bold', color: '#00ffcc'
+    }).setOrigin(0.5);
+    this.petMountContainer.add(title);
+
+    const closeBtn = this.add.text(px + pw - 24, py + 12, '✖', {
+      fontSize: '18px', color: '#00ffcc'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.togglePetMountUI(false));
+    this.petMountContainer.add(closeBtn);
+
+    const items = PetSystem.getInstance().getItems();
+    const activePet = PetSystem.getInstance().getActivePet();
+    const activeMount = PetSystem.getInstance().getActiveMount();
+
+    items.forEach((item: PetItem, idx: number) => {
+      const iy = py + 55 + idx * 52;
+
+      const card = this.add.graphics();
+      card.fillStyle(0x182440, 0.85);
+      card.fillRoundedRect(px + 20, iy, pw - 40, 46, 6);
+
+      const isEquipped = (item.type === 'PET' && activePet?.id === item.id) ||
+                         (item.type === 'MOUNT' && activeMount?.id === item.id);
+
+      card.lineStyle(1, isEquipped ? 0x00ffcc : 0x2e426e, 0.8);
+      card.strokeRoundedRect(px + 20, iy, pw - 40, 46, 6);
+      this.petMountContainer!.add(card);
+
+      const icon = this.add.text(px + 40, iy + 23, item.icon, { fontSize: '20px' }).setOrigin(0.5);
+      const name = this.add.text(px + 62, iy + 7, `${item.name} [${item.type}]`, {
+        fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ffffff'
+      });
+      const desc = this.add.text(px + 62, iy + 24, item.description, {
+        fontFamily: 'Inter', fontSize: '9px', color: '#aaaaaa'
+      });
+
+      this.petMountContainer!.add([icon, name, desc]);
+
+      if (item.unlocked) {
+        const btnBg = this.add.graphics();
+        btnBg.fillStyle(isEquipped ? 0x8b0000 : 0x00aa66, 1);
+        btnBg.fillRoundedRect(px + pw - 100, iy + 10, 75, 26, 4);
+        this.petMountContainer!.add(btnBg);
+
+        const btnTxt = this.add.text(px + pw - 62, iy + 23, isEquipped ? 'REMOVER' : 'EQUIPAR', {
+          fontFamily: 'Cinzel', fontSize: '8px', fontStyle: 'bold', color: '#ffffff'
+        }).setOrigin(0.5);
+        this.petMountContainer!.add(btnTxt);
+
+        const zone = this.add.zone(px + pw - 62, iy + 23, 75, 26).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', () => {
+          PetSystem.getInstance().equip(item.id);
+          SoundSynth.playUpgrade();
+          this.createPetMountUI();
+        });
+        this.petMountContainer!.add(zone);
+      }
+    });
+  }
+
+  private isLeaderboardOpen = false;
+  private leaderboardContainer: Phaser.GameObjects.Container | null = null;
+
+  public toggleLeaderboardUI(open?: boolean): void {
+    const nextState = open !== undefined ? open : !this.isLeaderboardOpen;
+    this.isLeaderboardOpen = nextState;
+
+    if (!nextState) {
+      this.leaderboardContainer?.destroy();
+      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
+    } else {
+      if (this.isInventoryOpen) this.toggleInventory();
+      if (this.isShopOpen) this.toggleMerchantShop(false);
+      if (this.isForgeOpen) this.toggleBlacksmithForge(false);
+      if (this.isQuestBoardOpen) this.toggleQuestBoard(false);
+      if (this.isTalentTreeOpen) this.toggleTalentTree(false);
+      if (this.isPetMountOpen) this.togglePetMountUI(false);
+      this.createLeaderboardUI();
+    }
+  }
+
+  private createLeaderboardUI(): void {
+    if (this.leaderboardContainer) {
+      this.leaderboardContainer.destroy();
+    }
+
+    const { width, height } = this.cameras.main;
+    this.leaderboardContainer = this.add.container(0, 0).setDepth(200);
+
+    const px = width / 2 - 230;
+    const py = height / 2 - 165;
+    const pw = 460;
+    const ph = 330;
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x120a1c, 0.95);
+    bg.fillRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(2, 0xffd700, 1);
+    bg.strokeRoundedRect(px, py, pw, ph, 10);
+    this.leaderboardContainer.add(bg);
+
+    const title = this.add.text(width / 2, py + 20, '🏆 RANKING GLOBAL DOS TEMPLÁRIOS', {
+      fontFamily: 'Cinzel', fontSize: '14px', fontStyle: 'bold', color: '#ffd700'
+    }).setOrigin(0.5);
+    this.leaderboardContainer.add(title);
+
+    const closeBtn = this.add.text(px + pw - 24, py + 12, '✖', {
+      fontSize: '18px', color: '#ffd700'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleLeaderboardUI(false));
+    this.leaderboardContainer.add(closeBtn);
+
+    const entries = LeaderboardSystem.getInstance().getEntries();
+    entries.forEach((entry: LeaderboardEntry, idx: number) => {
+      const iy = py + 55 + idx * 50;
+
+      const card = this.add.graphics();
+      card.fillStyle(0x221235, 0.85);
+      card.fillRoundedRect(px + 20, iy, pw - 40, 44, 6);
+
+      const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`;
+      card.lineStyle(1, entry.rank <= 3 ? 0xffd700 : 0x4a2d6e, 0.8);
+      card.strokeRoundedRect(px + 20, iy, pw - 40, 44, 6);
+      this.leaderboardContainer!.add(card);
+
+      const rankTxt = this.add.text(px + 40, iy + 22, medal, { fontSize: '16px' }).setOrigin(0.5);
+      const nameTxt = this.add.text(px + 65, iy + 7, `${entry.name} (Lv.${entry.level})`, {
+        fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ffffff'
+      });
+      const statsTxt = this.add.text(px + 65, iy + 24, `Arena: Onda ${entry.arenaWave} | Ouro: 🪙 ${entry.gold.toLocaleString()}`, {
+        fontFamily: 'Inter', fontSize: '9px', color: '#ffd700'
+      });
+
+      this.leaderboardContainer!.add([rankTxt, nameTxt, statsTxt]);
+    });
   }
 
   private createMerchantShopUI(): void {
@@ -1642,5 +2297,151 @@ export class UIScene extends Phaser.Scene {
     createBtn(width - 120, height - 96, '2', 0x228b22, () => triggerSkill(1));
     createBtn(width - 70, height - 126, '3', 0xd4af37, () => triggerSkill(2));
     createBtn(width - 170, height - 42, '💨', 0x708090, triggerDashAction);
+  }
+
+  private showAchievementBanner(ach: { name: string; description: string; icon: string; titleReward?: string }): void {
+    SoundSynth.playUpgrade();
+    const { width } = this.cameras.main;
+
+    const bannerContainer = this.add.container(width / 2, -70).setDepth(300);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1a0d2e, 0.95);
+    bg.fillRoundedRect(-160, 0, 320, 56, 8);
+    bg.lineStyle(2, 0xffd700, 1);
+    bg.strokeRoundedRect(-160, 0, 320, 56, 8);
+
+    const iconText = this.add.text(-140, 28, ach.icon, { fontSize: '24px' }).setOrigin(0.5);
+    const titleText = this.add.text(-110, 14, `🏆 CONQUISTA: ${ach.name.toUpperCase()}`, {
+      fontFamily: 'Cinzel',
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+    });
+
+    const descText = this.add.text(-110, 32, ach.description, {
+      fontFamily: 'Inter',
+      fontSize: '9px',
+      color: '#e0e0e0',
+    });
+
+    bannerContainer.add([bg, iconText, titleText, descText]);
+
+    this.tweens.add({
+      targets: bannerContainer,
+      y: 20,
+      duration: 600,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(3000, () => {
+          this.tweens.add({
+            targets: bannerContainer,
+            y: -70,
+            duration: 500,
+            ease: 'Back.easeIn',
+            onComplete: () => bannerContainer.destroy(),
+          });
+        });
+      },
+    });
+  }
+
+  private bossHpContainer: Phaser.GameObjects.Container | null = null;
+  private bossHpBar: Phaser.GameObjects.Graphics | null = null;
+
+  private updateBossHpUI(data: { name: string; hp: number; maxHp: number; phase: number }): void {
+    const { width } = this.cameras.main;
+
+    if (!this.bossHpContainer) {
+      this.bossHpContainer = this.add.container(width / 2, 45).setDepth(200);
+
+      const bg = this.add.graphics();
+      bg.fillStyle(0x0a0512, 0.9);
+      bg.fillRoundedRect(-180, 0, 360, 32, 6);
+      bg.lineStyle(1.5, 0xff2244, 1);
+      bg.strokeRoundedRect(-180, 0, 360, 32, 6);
+
+      const bossTitle = this.add.text(0, 8, `👑 ${data.name.toUpperCase()} (FASE ${data.phase})`, {
+        fontFamily: 'Cinzel',
+        fontSize: '10px',
+        fontStyle: 'bold',
+        color: '#ff2244',
+      }).setOrigin(0.5);
+
+      this.bossHpBar = this.add.graphics();
+      this.bossHpContainer.add([bg, bossTitle, this.bossHpBar]);
+    }
+
+    if (this.bossHpBar) {
+      this.bossHpBar.clear();
+      const pct = Math.max(0, Math.min(1, data.hp / data.maxHp));
+      this.bossHpBar.fillStyle(data.phase === 2 ? 0xff0000 : 0xd42444, 1);
+      this.bossHpBar.fillRoundedRect(-170, 20, 340 * pct, 6, 3);
+    }
+
+    if (data.hp <= 0 && this.bossHpContainer) {
+      this.bossHpContainer.destroy();
+      this.bossHpContainer = null;
+    }
+  }
+
+  private fishingContainer: Phaser.GameObjects.Container | null = null;
+
+  public startFishingMinigame(): void {
+    const cs = this.getActiveCombatSystem();
+    if (!cs) return;
+
+    if (this.fishingContainer) this.fishingContainer.destroy();
+
+    const { width, height } = this.cameras.main;
+    this.fishingContainer = this.add.container(width / 2, height / 2).setDepth(300);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a1020, 0.92);
+    bg.fillRoundedRect(-140, -50, 280, 100, 8);
+    bg.lineStyle(2, 0x00ffff, 1);
+    bg.strokeRoundedRect(-140, -50, 280, 100, 8);
+
+    const statusText = this.add.text(0, -20, '🎣 Aguardando a fisgada...', {
+      fontFamily: 'Cinzel', fontSize: '11px', color: '#00ffff', fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    const subText = this.add.text(0, 10, 'Prepare-se para apertar ESPAÇO!', {
+      fontFamily: 'Inter', fontSize: '9px', color: '#aaaaaa'
+    }).setOrigin(0.5);
+
+    this.fishingContainer.add([bg, statusText, subText]);
+
+    const spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    const spaceListener = () => {
+      if (FishingSystem.getInstance().getIsHooked()) {
+        const catchItem = FishingSystem.getInstance().reelIn(cs);
+        if (catchItem) {
+          SoundSynth.playUpgrade();
+          statusText.setText(`✨ CAPTUROU: ${catchItem.name.toUpperCase()}!`);
+          subText.setText(`+${catchItem.gold} Ouro | +${catchItem.gems} Gemas`);
+          this.time.delayedCall(1600, () => {
+            this.fishingContainer?.destroy();
+            this.fishingContainer = null;
+          });
+        }
+      }
+    };
+
+    if (spaceKey) {
+      spaceKey.once('down', spaceListener);
+    }
+
+    FishingSystem.getInstance().startFishing(
+      this, cs,
+      () => {
+        statusText.setText('❗ FISGOU! PRESSIONE ESPAÇO AGORA!');
+        statusText.setColor('#00ff44');
+        bg.lineStyle(2.5, 0x00ff44, 1);
+        bg.strokeRoundedRect(-140, -50, 280, 100, 8);
+      },
+      () => {}
+    );
   }
 }

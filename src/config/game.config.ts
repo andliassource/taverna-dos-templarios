@@ -4,6 +4,7 @@ import { PreloadScene } from '../scenes/PreloadScene';
 import { MainMenuScene } from '../scenes/MainMenuScene';
 import { WorldScene } from '../scenes/WorldScene';
 import { BattleScene } from '../scenes/BattleScene';
+import { DungeonScene } from '../scenes/DungeonScene';
 import { UIScene } from '../scenes/UIScene';
 
 /**
@@ -45,6 +46,7 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
     MainMenuScene,
     WorldScene,
     BattleScene,
+    DungeonScene,
     UIScene,
   ],
   input: {

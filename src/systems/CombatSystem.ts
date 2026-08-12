@@ -3,6 +3,11 @@ import { Monster } from '../entities/Monster';
 import { PlayerClass } from '../../shared/types';
 import { Item } from '../../shared/types/item.types';
 import { SoundSynth } from '../utils/SoundSynth';
+import { AchievementSystem } from './AchievementSystem';
+import { QuestSystem } from './QuestSystem';
+import { TalentSystem } from './TalentSystem';
+import { PetSystem } from './PetSystem';
+import { FactionSystem } from './FactionSystem';
 
 export interface LootDrop {
   id: string;
@@ -28,6 +33,8 @@ export class CombatSystem {
   private playerMaxXp = 100;
   private gold = 500;
   private gems = 10;
+  private statPoints = 0;
+  private baseStats = { str: 10, agi: 10, int: 10, vit: 10 };
   private lastPlayerAttackTime = 0;
   private attackCooldown = 400; // ms
 
@@ -37,7 +44,10 @@ export class CombatSystem {
   private regenInterval = 1000; // 1s
 
   private inventory: Item[] = [];
-  private lastSkillTimes: number[] = [0, 0, 0];
+  private lastSkillTimes: number[] = [0, 0, 0, 0];
+  private awakeningTier = 0;
+  private comboHits = 0;
+  private lastHitTime = 0;
   private isInvulnerable = false;
   private isStealth = false;
   private equipped: Record<string, Item | null> = {
@@ -103,11 +113,11 @@ export class CombatSystem {
 
   public registerMonster(monster: Monster): void {
     this.monsters.push(monster);
-    
-    // Registra overlap do projétil com o monstro
-    this.scene.physics.add.overlap(this.projectiles, monster, (proj: any, m: any) => {
-      this.handleProjectileHit(proj, monster);
-    });
+    this.scene.physics.add.overlap(
+      this.projectiles,
+      monster,
+      (proj) => this.handleProjectileHit(proj as Phaser.Physics.Arcade.Sprite, monster),
+    );
   }
 
   public performMeleeAttack(
@@ -119,12 +129,28 @@ export class CombatSystem {
 
     if (this.playerClass === PlayerClass.PALADIN) {
       this.executePaladinAttack(player, direction, time);
+    } else if (this.playerClass === PlayerClass.GUARDIAN) {
+      this.executeGuardianAttack(player, direction, time);
+    } else if (this.playerClass === PlayerClass.WARRIOR) {
+      this.executeWarriorAttack(player, direction, time);
     } else if (this.playerClass === PlayerClass.MAGE) {
       this.executeMageAttack(player, direction, time);
+    } else if (this.playerClass === PlayerClass.NECROMANCER) {
+      this.executeNecromancerAttack(player, direction, time);
     } else if (this.playerClass === PlayerClass.ARCHER) {
       this.executeArcherAttack(player, direction, time);
     } else if (this.playerClass === PlayerClass.ASSASSIN) {
       this.executeAssassinAttack(player, direction, time);
+    } else if (this.playerClass === PlayerClass.CLERIC) {
+      this.executeClericAttack(player, direction, time);
+    } else if (this.playerClass === PlayerClass.DARK_KNIGHT) {
+      this.executeDarkKnightAttack(player, direction, time);
+    } else if (this.playerClass === PlayerClass.ELEMENTALIST) {
+      this.executeElementalistAttack(player, direction, time);
+    } else if (this.playerClass === PlayerClass.BARD) {
+      this.executeBardAttack(player, direction, time);
+    } else if (this.playerClass === PlayerClass.DRUID) {
+      this.executeDruidAttack(player, direction, time);
     }
   }
 
@@ -164,8 +190,19 @@ export class CombatSystem {
   }
 
   private onMonsterKilled(monster: Monster): void {
+    // Desbloqueia conquista Primeiro Sangue
+    AchievementSystem.getInstance().unlock('FIRST_BLOOD', this.scene);
+    QuestSystem.getInstance().trackProgress('SKELETON_HUNT');
+    FactionSystem.getInstance().addReputation('SILVER_GUARD', 15);
+
+    if (monster.config.id === 'lord_malakor') {
+      AchievementSystem.getInstance().unlock('BOSS_SLAYER', this.scene);
+      QuestSystem.getInstance().trackProgress('BOSS_CHALLENGE');
+      FactionSystem.getInstance().addReputation('CELESTIAL_MAGES', 150);
+    }
+
     // Recompensa de XP
-    this.playerXp += monster.config.xpReward;
+    this.playerXp += Math.floor(monster.config.xpReward * PetSystem.getInstance().getXpMultiplier());
     if (this.playerXp >= this.playerMaxXp) {
       this.levelUp();
     }
@@ -184,15 +221,21 @@ export class CombatSystem {
 
   private levelUp(): void {
     this.playerLevel++;
+    this.statPoints += 5;
+    TalentSystem.getInstance().addPoints(1);
     this.playerXp -= this.playerMaxXp;
     this.playerMaxXp = Math.floor(this.playerMaxXp * 1.5);
-    this.maxPlayerHp += 20;
-    this.playerHp = this.maxPlayerHp;
+    this.maxPlayerHp += 15;
     this.maxPlayerMp += 10;
-    this.playerMp = this.maxPlayerMp;
+    this.playerHp = this.getMaxHP();
+    this.playerMp = this.getMaxMP();
 
-    // Efeito visual de Level Up
+    if (this.playerLevel >= 10) {
+      AchievementSystem.getInstance().unlock('LEVEL_MASTER', this.scene);
+    }
+
     this.scene.events.emit('player-level-up', { level: this.playerLevel });
+    this.scene.events.emit('request-save');
   }
 
   private spawnLoot(x: number, y: number, goldAmount: number): void {
@@ -292,12 +335,26 @@ export class CombatSystem {
     this.lootDrops.push(drop);
   }
 
-  public updateLootCollection(playerX: number, playerY: number): void {
+  public updateLootCollection(playerX: number, playerY: number, petX?: number, petY?: number): void {
     for (let i = this.lootDrops.length - 1; i >= 0; i--) {
       const drop = this.lootDrops[i];
-      const dist = Phaser.Math.Distance.Between(playerX, playerY, drop.x, drop.y);
+      
+      // Se o Pet estiver por perto, o loot é atraído magneticamente
+      if (petX !== undefined && petY !== undefined) {
+        const petDist = Phaser.Math.Distance.Between(petX, petY, drop.x, drop.y);
+        if (petDist < 140) {
+          drop.x = Phaser.Math.Linear(drop.x, petX, 0.15);
+          drop.y = Phaser.Math.Linear(drop.y, petY, 0.15);
+          drop.sprite.setPosition(drop.x, drop.y);
+        }
+      }
 
-      if (dist < 24) {
+      const dist = Phaser.Math.Distance.Between(playerX, playerY, drop.x, drop.y);
+      const petDist = (petX !== undefined && petY !== undefined)
+        ? Phaser.Math.Distance.Between(petX, petY, drop.x, drop.y)
+        : 999;
+
+      if (dist < 28 || petDist < 24) {
         if (drop.type === 'item') {
           // Verifica limite do inventário
           if (this.inventory.length >= 16) {
@@ -362,7 +419,6 @@ export class CombatSystem {
   }
 
   private emitStateUpdate(): void {
-    const time = this.scene.time.now;
     this.scene.events.emit('update-hud-state', {
       hp: this.playerHp,
       maxHp: this.maxPlayerHp,
@@ -375,7 +431,7 @@ export class CombatSystem {
       gems: this.gems,
       skillCooldowns: this.lastSkillTimes.map((lastTime, idx) => {
         const cd = this.getSkillCooldown(idx);
-        return Math.max(0, (lastTime + cd - time) / cd);
+        return Math.max(0, (lastTime + cd - this.scene.time.now) / cd);
       }),
     });
   }
@@ -656,6 +712,108 @@ export class CombatSystem {
     });
   }
 
+  private executeGuardianAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
+    this.lastPlayerAttackTime = time;
+    SoundSynth.playSlash();
+    let offsetX = 0; let offsetY = 0;
+    switch (direction) {
+      case 'left': offsetX = -24; break;
+      case 'right': offsetX = 24; break;
+      case 'up': offsetY = -24; break;
+      case 'down': offsetY = 24; break;
+    }
+    const attackX = player.x + offsetX;
+    const attackY = player.y + offsetY;
+    this.createHolySlashEffect(attackX, attackY, 0);
+
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 8);
+    const baseDamage = this.getModifiedDamage(rawDamage, player);
+    this.monsters.forEach((monster) => {
+      if (monster.isDead) return;
+      if (Phaser.Math.Distance.Between(attackX, attackY, monster.x, monster.y) < 36) {
+        const died = monster.takeDamage(baseDamage);
+        if (died) this.onMonsterKilled(monster);
+      }
+    });
+  }
+
+  private executeWarriorAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
+    this.lastPlayerAttackTime = time;
+    SoundSynth.playSlash();
+    let offsetX = 0; let offsetY = 0;
+    switch (direction) {
+      case 'left': offsetX = -28; break;
+      case 'right': offsetX = 28; break;
+      case 'up': offsetY = -28; break;
+      case 'down': offsetY = 28; break;
+    }
+    const attackX = player.x + offsetX;
+    const attackY = player.y + offsetY;
+    this.createHolySlashEffect(attackX, attackY, 0);
+
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 14);
+    const baseDamage = this.getModifiedDamage(rawDamage, player);
+    this.monsters.forEach((monster) => {
+      if (monster.isDead) return;
+      if (Phaser.Math.Distance.Between(attackX, attackY, monster.x, monster.y) < 38) {
+        const died = monster.takeDamage(baseDamage);
+        if (died) this.onMonsterKilled(monster);
+      }
+    });
+  }
+
+  private executeNecromancerAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
+    if (this.playerMp < 8) {
+      this.showFloatingText(player.x, player.y - 20, 'Mana Insuficiente!', '#4488ff');
+      return;
+    }
+    this.playerMp -= 8;
+    this.emitStateUpdate();
+    this.lastPlayerAttackTime = time;
+    SoundSynth.playFireball();
+
+    let vx = 0; let vy = 0;
+    switch (direction) {
+      case 'left': vx = -260; break;
+      case 'right': vx = 260; break;
+      case 'up': vy = -260; break;
+      case 'down': vy = 260; break;
+    }
+
+    const proj = this.scene.physics.add.sprite(player.x, player.y - 8, 'mage-proj');
+    proj.setTint(0x4b0082);
+    proj.setDepth(40);
+    proj.setVelocity(vx, vy);
+    proj.setData('damage', this.getModifiedDamage(this.getAttackPower(), player));
+    proj.setData('type', 'mage');
+    this.projectiles.add(proj);
+  }
+
+  private executeClericAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
+    this.lastPlayerAttackTime = time;
+    SoundSynth.playSlash();
+    let offsetX = 0; let offsetY = 0;
+    switch (direction) {
+      case 'left': offsetX = -24; break;
+      case 'right': offsetX = 24; break;
+      case 'up': offsetY = -24; break;
+      case 'down': offsetY = 24; break;
+    }
+    const attackX = player.x + offsetX;
+    const attackY = player.y + offsetY;
+    this.createHolySlashEffect(attackX, attackY, 0);
+
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 8);
+    const baseDamage = this.getModifiedDamage(rawDamage, player);
+    this.monsters.forEach((monster) => {
+      if (monster.isDead) return;
+      if (Phaser.Math.Distance.Between(attackX, attackY, monster.x, monster.y) < 34) {
+        const died = monster.takeDamage(baseDamage);
+        if (died) this.onMonsterKilled(monster);
+      }
+    });
+  }
+
   private handleProjectileHit(projectile: Phaser.Physics.Arcade.Sprite, monster: Monster): void {
     if (monster.isDead) return;
     
@@ -795,8 +953,30 @@ export class CombatSystem {
   // ==================== HABILIDADES ATIVAS DE CLASSE ====================
 
   public getSkillCooldown(index: number): number {
-    const cds = [3000, 6000, 12000];
-    return cds[index];
+    const cds = [3000, 6000, 12000, 25000];
+    return cds[index] ?? 5000;
+  }
+
+  public awakenClass(): boolean {
+    if (this.playerLevel < 10) {
+      this.showFloatingText(240, 160, 'Requer Nível 10 para Despertar!', '#ff4444');
+      return false;
+    }
+    if (this.gold < 1000) {
+      this.showFloatingText(240, 160, 'Requer 1.000 Ouro para Despertar!', '#ff4444');
+      return false;
+    }
+
+    this.gold -= 1000;
+    this.awakeningTier = 1;
+    this.maxPlayerHp += 50;
+    this.maxPlayerMp += 30;
+    this.playerHp = this.maxPlayerHp;
+    this.playerMp = this.maxPlayerMp;
+
+    SoundSynth.playUpgrade();
+    this.emitStateUpdate();
+    return true;
   }
 
   public useSkill(
@@ -806,6 +986,11 @@ export class CombatSystem {
     time: number
   ): void {
     if (this.playerHp <= 0) return;
+
+    if (skillIndex === 3) {
+      this.useUltimateSkill(player, direction, time);
+      return;
+    }
 
     const cooldown = this.getSkillCooldown(skillIndex);
     const lastTime = this.lastSkillTimes[skillIndex];
@@ -824,12 +1009,28 @@ export class CombatSystem {
     let success = false;
     if (this.playerClass === PlayerClass.PALADIN) {
       success = this.usePaladinSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.GUARDIAN) {
+      success = this.useGuardianSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.WARRIOR) {
+      success = this.useWarriorSkill(player, skillIndex, direction, time);
     } else if (this.playerClass === PlayerClass.MAGE) {
       success = this.useMageSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.NECROMANCER) {
+      success = this.useNecromancerSkill(player, skillIndex, direction, time);
     } else if (this.playerClass === PlayerClass.ARCHER) {
       success = this.useArcherSkill(player, skillIndex, direction, time);
     } else if (this.playerClass === PlayerClass.ASSASSIN) {
       success = this.useAssassinSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.CLERIC) {
+      success = this.useClericSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.DARK_KNIGHT) {
+      success = this.useDarkKnightSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.ELEMENTALIST) {
+      success = this.useElementalistSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.BARD) {
+      success = this.useBardSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.DRUID) {
+      success = this.useDruidSkill(player, skillIndex, direction, time);
     }
 
     if (success) {
@@ -837,6 +1038,47 @@ export class CombatSystem {
       this.lastSkillTimes[skillIndex] = time;
       this.emitStateUpdate();
     }
+  }
+
+  private useUltimateSkill(player: Phaser.GameObjects.Sprite, _direction: string, time: number): void {
+    const mpCost = 30;
+    if (this.playerMp < mpCost) {
+      this.showFloatingText(player.x, player.y - 20, 'MP Insuficiente!', '#00ffff');
+      return;
+    }
+
+    const cooldown = this.getSkillCooldown(3);
+    const lastTime = this.lastSkillTimes[3];
+    if (time < lastTime + cooldown) {
+      this.showFloatingText(player.x, player.y - 20, 'Suprema em Recarga!', '#ffcc00');
+      return;
+    }
+
+    this.playerMp -= mpCost;
+    this.lastSkillTimes[3] = time;
+    this.scene.cameras.main.shake(300, 0.012);
+
+    SoundSynth.playUpgrade();
+    this.showFloatingText(player.x, player.y - 45, '🌟 HABILIDADE SUPREMA ATIVADA! 🌟', '#ffd700');
+
+    const cx = player.x;
+    const cy = player.y;
+
+    for (let i = 0; i < 6; i++) {
+      this.scene.time.delayedCall(i * 120, () => {
+        const rx = cx + (Math.random() * 160 - 80);
+        const ry = cy + (Math.random() * 160 - 80);
+        this.createMageExplosionEffect(rx, ry);
+        this.monsters.forEach(m => {
+          if (!m.isDead && Phaser.Math.Distance.Between(rx, ry, m.x, m.y) < 60) {
+            const died = m.takeDamage(120);
+            if (died) this.onMonsterKilled(m);
+          }
+        });
+      });
+    }
+
+    this.emitStateUpdate();
   }
 
   private usePaladinSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
@@ -1270,12 +1512,157 @@ export class CombatSystem {
     return false;
   }
 
+  private useGuardianSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      SoundSynth.playUpgrade();
+      this.showFloatingText(player.x, player.y - 24, 'MURALHA INABALÁVEL!', '#ffd700');
+      this.isInvulnerable = true;
+      player.setTint(0xffd700);
+      this.scene.time.delayedCall(4000, () => {
+        if (player.active) {
+          this.isInvulnerable = false;
+          player.clearTint();
+        }
+      });
+      return true;
+    } else if (index === 1) {
+      SoundSynth.playSlash();
+      this.showFloatingText(player.x, player.y - 24, 'PROVOCAR HORDAS!', '#ff4444');
+      this.monsters.forEach((monster) => {
+        if (!monster.isDead && Phaser.Math.Distance.Between(player.x, player.y, monster.x, monster.y) < 180) {
+          monster.setTarget(player);
+          monster.takeDamage(this.getAttackPower() * 0.4);
+        }
+      });
+      return true;
+    } else if (index === 2) {
+      SoundSynth.playDash();
+      this.showFloatingText(player.x, player.y - 24, 'INVESTIDA DE ESCUDO!', '#00a8ff');
+      let dx = 0; let dy = 0;
+      if (direction === 'left') dx = -90;
+      if (direction === 'right') dx = 90;
+      if (direction === 'up') dy = -90;
+      if (direction === 'down') dy = 90;
+      player.setPosition(player.x + dx, player.y + dy);
+      const dmg = this.getAttackPower() * 2.2;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 50) {
+          m.takeDamage(dmg);
+        }
+      });
+      return true;
+    }
+    return false;
+  }
+
+  private useWarriorSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      SoundSynth.playSlash();
+      this.showFloatingText(player.x, player.y - 24, 'CORTE GIRATÓRIO!', '#ff4400');
+      const circle = this.scene.add.graphics();
+      circle.setPosition(player.x, player.y);
+      circle.fillStyle(0xff4400, 0.4);
+      circle.fillCircle(0, 0, 70);
+      this.scene.tweens.add({ targets: circle, alpha: 0, scaleX: 1.3, scaleY: 1.3, duration: 250, onComplete: () => circle.destroy() });
+      const dmg = this.getAttackPower() * 2.0;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 70) {
+          m.takeDamage(dmg);
+        }
+      });
+      return true;
+    } else if (index === 1) {
+      SoundSynth.playUpgrade();
+      this.showFloatingText(player.x, player.y - 24, 'GRITO DE GUERRA (+ATK)!', '#ffbb00');
+      player.setTint(0xff6600);
+      this.scene.time.delayedCall(6000, () => { if (player.active) player.clearTint(); });
+      return true;
+    } else if (index === 2) {
+      SoundSynth.playSlash();
+      this.showFloatingText(player.x, player.y - 24, 'IMPACTO DEVASTADOR!', '#aa0000');
+      this.scene.cameras.main.shake(200, 0.03);
+      const dmg = this.getAttackPower() * 3.0;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 60) {
+          m.takeDamage(dmg);
+        }
+      });
+      return true;
+    }
+    return false;
+  }
+
+  private useNecromancerSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      SoundSynth.playFireball();
+      this.showFloatingText(player.x, player.y - 24, 'ORBE SOMBRIO!', '#8a2be2');
+      let vx = 0; let vy = 0;
+      if (direction === 'left') vx = -280;
+      if (direction === 'right') vx = 280;
+      if (direction === 'up') vy = -280;
+      if (direction === 'down') vy = 280;
+      const proj = this.scene.physics.add.sprite(player.x, player.y - 8, 'mage-proj');
+      proj.setTint(0x4b0082);
+      proj.setDepth(40);
+      proj.setVelocity(vx, vy);
+      proj.setData('damage', this.getAttackPower() * 2.2);
+      proj.setData('type', 'mage');
+      this.projectiles.add(proj);
+      return true;
+    } else if (index === 1) {
+      SoundSynth.playUpgrade();
+      this.showFloatingText(player.x, player.y - 24, 'SERVO ESQUELETO INVOCADO!', '#800080');
+      const serv = this.scene.add.text(player.x + 20, player.y, '💀', { fontSize: '18px' }).setOrigin(0.5);
+      this.scene.tweens.add({ targets: serv, y: player.y - 15, duration: 800, yoyo: true, repeat: 5, onComplete: () => serv.destroy() });
+      return true;
+    } else if (index === 2) {
+      SoundSynth.playFireball();
+      this.showFloatingText(player.x, player.y - 24, 'EXPLOSÃO CADAVÉRICA!', '#990000');
+      const dmg = this.getAttackPower() * 2.8;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 100) {
+          m.takeDamage(dmg);
+        }
+      });
+      return true;
+    }
+    return false;
+  }
+
+  private useClericSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      SoundSynth.playUpgrade();
+      const healAmount = Math.floor(this.getMaxHP() * 0.35);
+      this.playerHp = Math.min(this.getMaxHP(), this.playerHp + healAmount);
+      this.showFloatingText(player.x, player.y - 24, `✨ LUZ SAGRADA +${healAmount} HP`, '#00ff7f');
+      this.emitStateUpdate();
+      return true;
+    } else if (index === 1) {
+      SoundSynth.playFireball();
+      this.showFloatingText(player.x, player.y - 24, 'PUNIÇÃO DIVINA!', '#ffd700');
+      const dmg = this.getAttackPower() * 2.5;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 70) {
+          m.takeDamage(dmg);
+        }
+      });
+      return true;
+    } else if (index === 2) {
+      SoundSynth.playUpgrade();
+      this.showFloatingText(player.x, player.y - 24, 'AURA DE PROTEÇÃO!', '#00ffff');
+      this.isInvulnerable = true;
+      this.scene.time.delayedCall(3000, () => { this.isInvulnerable = false; });
+      return true;
+    }
+    return false;
+  }
+
   // ==================== GETTERS & SETTERS ====================
   public getHP(): number { return this.playerHp; }
   public setHP(val: number): void { this.playerHp = val; this.emitStateUpdate(); }
   
   public getMaxHP(): number {
-    let baseMaxHp = this.maxPlayerHp;
+    const baseMaxHp = this.maxPlayerHp + (this.baseStats.vit * 15);
     const armor = this.equipped.ARMOR;
     const helmet = this.equipped.HELMET;
     const shield = this.equipped.SHIELD;
@@ -1290,7 +1677,7 @@ export class CombatSystem {
   public setMP(val: number): void { this.playerMp = val; this.emitStateUpdate(); }
   
   public getMaxMP(): number {
-    let baseMaxMp = this.maxPlayerMp;
+    const baseMaxMp = this.maxPlayerMp + (this.baseStats.int * 8);
     const weapon = this.equipped.WEAPON;
     const helmet = this.equipped.HELMET;
     const bonus = (weapon ? (weapon.stats.mp || 0) : 0) +
@@ -1298,6 +1685,25 @@ export class CombatSystem {
     return baseMaxMp + bonus;
   }
   public setMaxMP(val: number): void { this.maxPlayerMp = val; this.emitStateUpdate(); }
+
+  public getStatPoints(): number { return this.statPoints; }
+  public setStatPoints(val: number): void { this.statPoints = val; this.emitStateUpdate(); }
+  public getBaseStats(): { str: number; agi: number; int: number; vit: number } { return this.baseStats; }
+  public setBaseStats(stats: { str: number; agi: number; int: number; vit: number }): void {
+    this.baseStats = stats;
+    this.emitStateUpdate();
+  }
+
+  public allocateStatPoint(stat: 'str' | 'agi' | 'int' | 'vit'): boolean {
+    if (this.statPoints <= 0) return false;
+    this.statPoints--;
+    this.baseStats[stat]++;
+    this.playerHp = Math.min(this.playerHp, this.getMaxHP());
+    this.playerMp = Math.min(this.playerMp, this.getMaxMP());
+    this.emitStateUpdate();
+    this.scene.events.emit('request-save');
+    return true;
+  }
 
   public getLevel(): number { return this.playerLevel; }
   public setLevel(val: number): void { this.playerLevel = val; this.emitStateUpdate(); }
@@ -1330,16 +1736,38 @@ export class CombatSystem {
   }
 
   public getAttackPower(): number {
-    let baseAtk = 25;
+    let baseAtk = 20;
+    let statBonus = this.baseStats.str * 2;
+
     switch (this.playerClass) {
-      case PlayerClass.PALADIN: baseAtk = 25; break;
-      case PlayerClass.MAGE: baseAtk = 30; break;
-      case PlayerClass.ARCHER: baseAtk = 20; break;
-      case PlayerClass.ASSASSIN: baseAtk = 35; break;
+      case PlayerClass.PALADIN:
+      case PlayerClass.GUARDIAN:
+      case PlayerClass.WARRIOR:
+        baseAtk = 25;
+        statBonus = this.baseStats.str * 2.5;
+        break;
+      case PlayerClass.MAGE:
+      case PlayerClass.NECROMANCER:
+        baseAtk = 28;
+        statBonus = this.baseStats.int * 2.5;
+        break;
+      case PlayerClass.ARCHER:
+        baseAtk = 22;
+        statBonus = this.baseStats.agi * 2.5;
+        break;
+      case PlayerClass.ASSASSIN:
+        baseAtk = 32;
+        statBonus = (this.baseStats.str * 1.5) + (this.baseStats.agi * 1.5);
+        break;
+      case PlayerClass.CLERIC:
+        baseAtk = 20;
+        statBonus = (this.baseStats.int * 1.5) + (this.baseStats.vit * 1.0);
+        break;
     }
+
     const weapon = this.equipped.WEAPON;
     const bonus = weapon ? (weapon.stats.atk || 0) : 0;
-    return baseAtk + bonus;
+    return Math.floor(baseAtk + statBonus + bonus);
   }
 
   public getDefense(): number {
@@ -1389,9 +1817,9 @@ export class CombatSystem {
     if (!item) return;
 
     if (this.inventory.length >= 16) {
-      const scrollX = this.scene.cameras.main.scrollX;
-      const scrollY = this.scene.cameras.main.scrollY;
-      this.showFloatingText(scrollX + 240, scrollY + 160, 'Inventário Cheio!', '#ff4444');
+      const cx = this.scene.cameras.main.scrollX + 240;
+      const cy = this.scene.cameras.main.scrollY + 160;
+      this.showFloatingText(cx, cy, 'Inventário Cheio!', '#ff4444');
       return;
     }
 
@@ -1424,36 +1852,28 @@ export class CombatSystem {
 
     const isHp = item.name.includes('Vida') || item.name.includes('HP');
     const isMp = item.name.includes('Mana') || item.name.includes('MP');
-
     const maxHp = this.getMaxHP();
     const maxMp = this.getMaxMP();
+    const cx = this.scene.cameras.main.scrollX + 240;
+    const cy = this.scene.cameras.main.scrollY + 160;
 
     if (isHp && this.playerHp >= maxHp) {
-      const scrollX = this.scene.cameras.main.scrollX;
-      const scrollY = this.scene.cameras.main.scrollY;
-      this.showFloatingText(scrollX + 240, scrollY + 160, 'Vida já está cheia!', '#ff4444');
+      this.showFloatingText(cx, cy, 'Vida já está cheia!', '#ff4444');
       return false;
     }
     if (isMp && this.playerMp >= maxMp) {
-      const scrollX = this.scene.cameras.main.scrollX;
-      const scrollY = this.scene.cameras.main.scrollY;
-      this.showFloatingText(scrollX + 240, scrollY + 160, 'Mana já está cheia!', '#ff4444');
+      this.showFloatingText(cx, cy, 'Mana já está cheia!', '#ff4444');
       return false;
     }
 
-    // Remove do inventário
     this.inventory.splice(itemIndex, 1);
 
     if (isHp) {
       this.playerHp = Math.min(maxHp, this.playerHp + 50);
-      const scrollX = this.scene.cameras.main.scrollX;
-      const scrollY = this.scene.cameras.main.scrollY;
-      this.showFloatingText(scrollX + 240, scrollY + 160, '🧪 HP Recobrado +50!', '#00ff00');
+      this.showFloatingText(cx, cy, '🧪 HP Recobrado +50!', '#00ff00');
     } else if (isMp) {
       this.playerMp = Math.min(maxMp, this.playerMp + 30);
-      const scrollX = this.scene.cameras.main.scrollX;
-      const scrollY = this.scene.cameras.main.scrollY;
-      this.showFloatingText(scrollX + 240, scrollY + 160, '💧 MP Recobrado +30!', '#4488ff');
+      this.showFloatingText(cx, cy, '💧 MP Recobrado +30!', '#4488ff');
     }
 
     this.emitStateUpdate();
@@ -1462,16 +1882,14 @@ export class CombatSystem {
   }
 
   public buyItem(itemConfig: Omit<Item, 'id'>, cost: number): boolean {
+    const cx = this.scene.cameras.main.scrollX + 240;
+    const cy = this.scene.cameras.main.scrollY + 160;
     if (this.gold < cost) {
-      const scrollX = this.scene.cameras.main.scrollX;
-      const scrollY = this.scene.cameras.main.scrollY;
-      this.showFloatingText(scrollX + 240, scrollY + 160, 'Ouro Insuficiente!', '#ff4444');
+      this.showFloatingText(cx, cy, 'Ouro Insuficiente!', '#ff4444');
       return false;
     }
     if (this.inventory.length >= 16) {
-      const scrollX = this.scene.cameras.main.scrollX;
-      const scrollY = this.scene.cameras.main.scrollY;
-      this.showFloatingText(scrollX + 240, scrollY + 160, 'Inventário Cheio!', '#ff4444');
+      this.showFloatingText(cx, cy, 'Inventário Cheio!', '#ff4444');
       return false;
     }
 
@@ -1501,28 +1919,26 @@ export class CombatSystem {
   }
 
   public upgradeItem(itemId: string): boolean {
-    let item = this.inventory.find(item => item.id === itemId);
+    let item = this.inventory.find(i => i.id === itemId);
     let isEquipped = false;
-    let equippedSlot = '';
 
     if (!item) {
       for (const slot in this.equipped) {
         if (this.equipped[slot]?.id === itemId) {
           item = this.equipped[slot]!;
           isEquipped = true;
-          equippedSlot = slot;
           break;
         }
       }
     }
 
-    if (!item) return false;
-    if (item.type === 'POTION') return false;
+    if (!item || item.type === 'POTION') return false;
+
+    const cx = this.scene.cameras.main.scrollX + 240;
+    const cy = this.scene.cameras.main.scrollY + 160;
 
     if (this.gold < 100 || this.gems < 1) {
-      const scrollX = this.scene.cameras.main.scrollX;
-      const scrollY = this.scene.cameras.main.scrollY;
-      this.showFloatingText(scrollX + 240, scrollY + 160, 'Ouro ou Gemas Insuficientes!', '#ff4444');
+      this.showFloatingText(cx, cy, 'Ouro ou Gemas Insuficientes!', '#ff4444');
       return false;
     }
 
@@ -1541,19 +1957,336 @@ export class CombatSystem {
     if (item.stats.hp) item.stats.hp += 12;
     if (item.stats.mp) item.stats.mp += 8;
 
-    if (isEquipped) {
-      this.playerHp = Math.min(this.playerHp, this.getMaxHP());
-      this.playerMp = Math.min(this.playerMp, this.getMaxMP());
-    }
+    SoundSynth.playUpgrade();
+    this.showFloatingText(cx, cy, `Item Aprimorado para +${nextLevel}! ✨`, '#00ff7f');
 
     this.emitStateUpdate();
     this.scene.events.emit('update-inventory-ui');
-
-    SoundSynth.playUpgrade();
-    const scrollX = this.scene.cameras.main.scrollX;
-    const scrollY = this.scene.cameras.main.scrollY;
-    this.showFloatingText(scrollX + 240, scrollY + 160, '🔨 Aprimorado com Sucesso!', '#ffd700');
-
     return true;
+  }
+
+  // ==================== ATAQUES BÁSICOS (4 NOVAS CLASSES) ====================
+
+  private executeDarkKnightAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
+    this.lastPlayerAttackTime = time;
+    SoundSynth.playSlash();
+    let offsetX = 0; let offsetY = 0;
+    switch (direction) {
+      case 'left': offsetX = -26; break;
+      case 'right': offsetX = 26; break;
+      case 'up': offsetY = -26; break;
+      case 'down': offsetY = 26; break;
+    }
+    const attackX = player.x + offsetX;
+    const attackY = player.y + offsetY;
+    this.createHolySlashEffect(attackX, attackY, 0);
+
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 16);
+    const baseDamage = this.getModifiedDamage(rawDamage, player);
+    let totalDealt = 0;
+
+    this.monsters.forEach((monster) => {
+      if (monster.isDead) return;
+      if (Phaser.Math.Distance.Between(attackX, attackY, monster.x, monster.y) < 40) {
+        const died = monster.takeDamage(baseDamage);
+        totalDealt += baseDamage;
+        if (died) this.onMonsterKilled(monster);
+      }
+    });
+
+    // Dreno de vida passivo (5% do dano causado)
+    if (totalDealt > 0) {
+      const healAmount = Math.max(1, Math.floor(totalDealt * 0.05));
+      this.playerHp = Math.min(this.getMaxHP(), this.playerHp + healAmount);
+      this.showFloatingText(player.x, player.y - 14, `+${healAmount} HP`, '#7b68ee');
+      this.emitStateUpdate();
+    }
+  }
+
+  private executeElementalistAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
+    if (this.playerMp < 6) {
+      this.showFloatingText(player.x, player.y - 20, 'Mana Insuficiente!', '#4488ff');
+      return;
+    }
+    this.playerMp -= 6;
+    this.emitStateUpdate();
+    this.lastPlayerAttackTime = time;
+    SoundSynth.playFireball();
+
+    let vx = 0; let vy = 0;
+    switch (direction) {
+      case 'left': vx = -310; break;
+      case 'right': vx = 310; break;
+      case 'up': vy = -310; break;
+      case 'down': vy = 310; break;
+    }
+
+    const proj = this.scene.physics.add.sprite(player.x, player.y - 8, 'mage-proj');
+    const colors = [0xff0055, 0x00dfff, 0xffaa00];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    proj.setTint(color);
+    proj.setDepth(40);
+    proj.setVelocity(vx, vy);
+    proj.setData('damage', this.getModifiedDamage(this.getAttackPower() * 1.1, player));
+    proj.setData('type', 'mage');
+    this.projectiles.add(proj);
+  }
+
+  private executeBardAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
+    this.lastPlayerAttackTime = time;
+    SoundSynth.playUpgrade();
+
+    let vx = 0; let vy = 0;
+    switch (direction) {
+      case 'left': vx = -280; break;
+      case 'right': vx = 280; break;
+      case 'up': vy = -280; break;
+      case 'down': vy = 280; break;
+    }
+
+    const wave = this.scene.physics.add.sprite(player.x, player.y - 6, 'mage-proj');
+    wave.setTint(0xffd700);
+    wave.setDepth(40);
+    wave.setScale(1.4);
+    wave.setVelocity(vx, vy);
+    wave.setData('damage', this.getModifiedDamage(this.getAttackPower(), player));
+    wave.setData('type', 'mage');
+    this.projectiles.add(wave);
+  }
+
+  private executeDruidAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
+    this.lastPlayerAttackTime = time;
+    SoundSynth.playSlash();
+    let offsetX = 0; let offsetY = 0;
+    switch (direction) {
+      case 'left': offsetX = -24; break;
+      case 'right': offsetX = 24; break;
+      case 'up': offsetY = -24; break;
+      case 'down': offsetY = 24; break;
+    }
+    const attackX = player.x + offsetX;
+    const attackY = player.y + offsetY;
+    this.createHolySlashEffect(attackX, attackY, 0);
+
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 10);
+    const baseDamage = this.getModifiedDamage(rawDamage, player);
+    this.monsters.forEach((monster) => {
+      if (monster.isDead) return;
+      if (Phaser.Math.Distance.Between(attackX, attackY, monster.x, monster.y) < 38) {
+        const died = monster.takeDamage(baseDamage);
+        if (died) this.onMonsterKilled(monster);
+      }
+    });
+  }
+
+  // ==================== HABILIDADES ATIVAS (4 NOVAS CLASSES) ====================
+
+  private useDarkKnightSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      // 1. Dreno de Vida Sombrio
+      SoundSynth.playSlash();
+      this.showFloatingText(player.x, player.y - 24, 'DRENO DE VIDA!', '#990033');
+      const circle = this.scene.add.graphics();
+      circle.setPosition(player.x, player.y);
+      circle.fillStyle(0x800020, 0.5);
+      circle.fillCircle(0, 0, 80);
+      this.scene.tweens.add({ targets: circle, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 300, onComplete: () => circle.destroy() });
+
+      let drained = 0;
+      const dmg = this.getAttackPower() * 1.8;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 80) {
+          m.takeDamage(dmg);
+          drained += dmg * 0.25;
+        }
+      });
+      if (drained > 0) {
+        this.playerHp = Math.min(this.getMaxHP(), this.playerHp + Math.floor(drained));
+        this.showFloatingText(player.x, player.y - 12, `+${Math.floor(drained)} HP`, '#00ff7f');
+      }
+      return true;
+    } else if (index === 1) {
+      // 2. Marca Sombria (Amaldiçoa)
+      SoundSynth.playUpgrade();
+      this.showFloatingText(player.x, player.y - 24, 'MARCA SOMBRIA!', '#4b0082');
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 160) {
+          m.setTint(0x4b0082);
+          m.takeDamage(this.getAttackPower() * 1.2);
+        }
+      });
+      return true;
+    } else if (index === 2) {
+      // 3. Aura da Sombra
+      SoundSynth.playFireball();
+      this.showFloatingText(player.x, player.y - 24, 'AURA DA SOMBRA!', '#220033');
+      const auraTimer = this.scene.time.addEvent({
+        delay: 500,
+        repeat: 5,
+        callback: () => {
+          if (!player.active) return;
+          this.monsters.forEach((m) => {
+            if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 90) {
+              m.takeDamage(this.getAttackPower() * 0.6);
+            }
+          });
+        }
+      });
+      return true;
+    }
+    return false;
+  }
+
+  private useElementalistSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      // 1. Chuva de Meteoros
+      SoundSynth.playFireball();
+      this.showFloatingText(player.x, player.y - 24, 'CHUVA DE METEOROS!', '#ff3300');
+      let tx = player.x; let ty = player.y;
+      if (direction === 'left') tx -= 100;
+      if (direction === 'right') tx += 100;
+      if (direction === 'up') ty -= 100;
+      if (direction === 'down') ty += 100;
+
+      const met = this.scene.add.graphics();
+      met.setPosition(tx, ty);
+      met.fillStyle(0xff3300, 0.6);
+      met.fillCircle(0, 0, 75);
+      this.scene.tweens.add({ targets: met, alpha: 0, scaleX: 1.4, scaleY: 1.4, duration: 400, onComplete: () => met.destroy() });
+
+      const dmg = this.getAttackPower() * 3.0;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(tx, ty, m.x, m.y) < 75) {
+          m.takeDamage(dmg);
+        }
+      });
+      return true;
+    } else if (index === 1) {
+      // 2. Tempestade Elétrica
+      SoundSynth.playArrow();
+      this.showFloatingText(player.x, player.y - 24, 'TEMPESTADE ELÉTRICA!', '#ffff00');
+      const dmg = this.getAttackPower() * 1.5;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 140) {
+          m.setTint(0xffff00);
+          m.takeDamage(dmg);
+          this.scene.time.delayedCall(1500, () => { if (m.active) m.clearTint(); });
+        }
+      });
+      return true;
+    } else if (index === 2) {
+      // 3. Onda de Gelo
+      SoundSynth.playUpgrade();
+      this.showFloatingText(player.x, player.y - 24, 'ONDA DE GELO (CONGELAMENTO)!', '#00ffff');
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 120) {
+          m.setTint(0x00ffff);
+          const speed = m.config.speed;
+          m.config.speed = 0;
+          this.scene.time.delayedCall(3000, () => {
+            if (m.active) {
+              m.clearTint();
+              m.config.speed = speed;
+            }
+          });
+        }
+      });
+      return true;
+    }
+    return false;
+  }
+
+  private useBardSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      // 1. Hino da Coragem
+      SoundSynth.playUpgrade();
+      this.showFloatingText(player.x, player.y - 24, 'HINO DA CORAGEM (+30% ATK)!', '#ffd700');
+      const ring = this.scene.add.graphics();
+      ring.setPosition(player.x, player.y);
+      ring.lineStyle(3, 0xffd700, 0.8);
+      ring.strokeCircle(0, 0, 100);
+      this.scene.tweens.add({ targets: ring, alpha: 0, scaleX: 1.5, scaleY: 1.5, duration: 500, onComplete: () => ring.destroy() });
+      return true;
+    } else if (index === 1) {
+      // 2. Balada da Regeneração
+      SoundSynth.playLoot();
+      this.showFloatingText(player.x, player.y - 24, 'BALADA REGENERATIVA!', '#00ff7f');
+      const healTimer = this.scene.time.addEvent({
+        delay: 1000,
+        repeat: 5,
+        callback: () => {
+          if (!player.active) return;
+          this.playerHp = Math.min(this.getMaxHP(), this.playerHp + 25);
+          this.playerMp = Math.min(this.getMaxMP(), this.playerMp + 15);
+          this.showFloatingText(player.x, player.y - 14, '+25 HP / +15 MP', '#00ff7f');
+          this.emitStateUpdate();
+        }
+      });
+      return true;
+    } else if (index === 2) {
+      // 3. Eco Dissonante
+      SoundSynth.playFireball();
+      this.showFloatingText(player.x, player.y - 24, 'ECO DISSONANTE!', '#ff00ff');
+      const dmg = this.getAttackPower() * 2.2;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 110) {
+          m.takeDamage(dmg);
+        }
+      });
+      return true;
+    }
+    return false;
+  }
+
+  private useDruidSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      // 1. Forma de Urso
+      SoundSynth.playUpgrade();
+      this.showFloatingText(player.x, player.y - 24, 'FORMA DE URSO (+DEF)!', '#8b4513');
+      player.setScale(1.4);
+      player.setTint(0x8b4513);
+      this.scene.time.delayedCall(8000, () => {
+        if (player.active) {
+          player.setScale(1);
+          player.clearTint();
+          this.showFloatingText(player.x, player.y - 24, 'Forma de Urso Expirou', '#888888');
+        }
+      });
+      return true;
+    } else if (index === 1) {
+      // 2. Vinhas Asfixiantes
+      SoundSynth.playSlash();
+      this.showFloatingText(player.x, player.y - 24, 'VINHAS ASFIXIANTES!', '#228b22');
+      const dmg = this.getAttackPower() * 1.6;
+      this.monsters.forEach((m) => {
+        if (!m.isDead && Phaser.Math.Distance.Between(player.x, player.y, m.x, m.y) < 100) {
+          m.setTint(0x228b22);
+          m.takeDamage(dmg);
+          const origSpeed = m.config.speed;
+          m.config.speed = 0;
+          this.scene.time.delayedCall(2000, () => {
+            if (m.active) {
+              m.clearTint();
+              m.config.speed = origSpeed;
+            }
+          });
+        }
+      });
+      return true;
+    } else if (index === 2) {
+      // 3. Semente da Vida
+      SoundSynth.playLoot();
+      this.showFloatingText(player.x, player.y - 24, 'SEMENTE DA VIDA!', '#32cd32');
+      const bloom = this.scene.add.graphics();
+      bloom.setPosition(player.x, player.y);
+      bloom.fillStyle(0x32cd32, 0.4);
+      bloom.fillCircle(0, 0, 90);
+      this.scene.tweens.add({ targets: bloom, alpha: 0, duration: 4000, onComplete: () => bloom.destroy() });
+
+      this.playerHp = Math.min(this.getMaxHP(), this.playerHp + Math.floor(this.getMaxHP() * 0.4));
+      this.emitStateUpdate();
+      return true;
+    }
+    return false;
   }
 }

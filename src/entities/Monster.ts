@@ -86,6 +86,16 @@ export class Monster extends Phaser.GameObjects.Container {
   private homeX: number;
   private homeY: number;
 
+  public setTint(color: number): this {
+    if (this.sprite) this.sprite.setTint(color);
+    return this;
+  }
+
+  public clearTint(): this {
+    if (this.sprite) this.sprite.clearTint();
+    return this;
+  }
+
   constructor(scene: Phaser.Scene, x: number, y: number, presetKey: string) {
     super(scene, x, y);
     this.config = { ...MONSTER_PRESETS[presetKey] };

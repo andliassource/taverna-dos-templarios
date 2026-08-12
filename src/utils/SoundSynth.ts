@@ -2,7 +2,7 @@ export class SoundSynth {
   private static context: AudioContext | null = null;
   private static bgmTimer: number | null = null;
   private static activeOscillators: { osc: any; gain: any }[] = [];
-  private static currentBgmType: 'village' | 'arena' | 'menu' | null = null;
+  private static currentBgmType: 'village' | 'arena' | 'menu' | 'dungeon' | null = null;
 
   private static getContext(): AudioContext {
     if (!this.context) {
@@ -237,7 +237,7 @@ export class SoundSynth {
     }
   }
 
-  public static playBGM(type: 'village' | 'arena' | 'menu'): void {
+  public static playBGM(type: 'village' | 'arena' | 'menu' | 'dungeon'): void {
     try {
       if (this.currentBgmType === type) return;
       this.stopBGM();
@@ -261,12 +261,19 @@ export class SoundSynth {
         [116.54, 146.83, 174.61]  // Bb (Si bemol maior)
       ];
 
+      const dungeonChords = [
+        [98.00, 116.54, 146.83],  // Gm baixo
+        [87.31, 110.00, 130.81],  // F baixo
+        [73.42, 92.50, 110.00]    // Dm profundo
+      ];
+
       const menuChords = [
         [110.00, 164.81, 220.00], // A arpeggio
         [116.54, 174.61, 233.08]  // Bb arpeggio
       ];
 
       const chords = type === 'arena' ? arenaChords :
+                     type === 'dungeon' ? dungeonChords :
                      type === 'menu' ? menuChords : villageChords;
                      
       const interval = type === 'arena' ? 180 : 320; // Arena mais acelerada

@@ -505,7 +505,7 @@ export class UIScene extends Phaser.Scene {
     const gap = 8;
     const totalWidth = slotCount * (slotSize + gap) - gap;
     const startX = (width - totalWidth) / 2;
-    const y = height - slotSize - 16;
+    const y = height - slotSize - 38;
 
     // Fundo do hotbar
     const hotbarBg = this.add.graphics();

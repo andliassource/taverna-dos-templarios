@@ -118,8 +118,14 @@ export class Monster extends Phaser.GameObjects.Container {
     // Sombra sob o monstro
     const shadow = this.scene.add.ellipse(0, 10, 20, 8, 0x000000, 0.35);
 
-    // Sprite Pixel Art
-    this.sprite = this.scene.add.sprite(0, 0, `monster-${this.config.id}`);
+    // Sprite Pixel Art (com fallback de segurança para prevenir caixa preta)
+    let textureKey = `monster-${this.config.id}`;
+    if (!this.scene.textures.exists(textureKey)) {
+      const altKey = `monster-${this.config.id.replace('shadow_', '').replace('demon_', '')}`;
+      textureKey = this.scene.textures.exists(altKey) ? altKey : 'monster-goblin';
+    }
+
+    this.sprite = this.scene.add.sprite(0, 0, textureKey);
     this.sprite.setScale(2.0);
     this.sprite.setOrigin(0.5, 0.75);
     this.sprite.setPipeline('Light2D');

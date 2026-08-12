@@ -659,16 +659,53 @@ export class PreloadScene extends Phaser.Scene {
       "..SSSWWWWWWSSS..",
       "....WW....WW....",
       "....WW....WW....",
-      "....WW....WW....",
-      "................"
-    ], {
-      'W': '#eeeeee',
-      'S': '#888888',
-      'B': '#222222',
-      'R': '#ff0000'
-    });
+        ".....WWWWWW.....",
+        "....WWWWWWWW....",
+        "...WWWWWWWWWW...",
+        "...WWBRWWRBWW...",
+        "...WWWWWWWWWW...",
+        "....WWWWWWWW....",
+        ".....W.WW.W.....",
+        "....SSSSSSSS....",
+        "...SSSSSSSSSS...",
+        "..SSSSSSSSSSSS..",
+        "..SSSWWWWWWSSS..",
+        "..SSSWWWWWWSSS..",
+        "....WW....WW....",
+        "....WW....WW....",
+        "....WW....WW....",
+        "................"
+      ], {
+        'W': '#eeeeee',
+        'S': '#888888',
+        'B': '#222222',
+        'R': '#ff0000'
+      });
 
     // 3. SHADOW WOLF
+    makeTexture('monster-shadow_wolf', [
+      "................",
+      "......AA........",
+      ".....AAAA.......",
+      "....AAAAAA......",
+      "....AARAAW......",
+      "...AAAAAAWW.....",
+      "...AAAAAA.......",
+      "..AAAAAAAA......",
+      ".AAAAAAAAAA.....",
+      "AAAAAAAAAAAA....",
+      "AAAAAAAAAAAA....",
+      "AAAAAAAAAAAA....",
+      ".AA.AA..AA.AA...",
+      ".AA.AA..AA.AA...",
+      ".AA.AA..AA.AA...",
+      "................"
+    ], {
+      'A': '#444455',
+      'W': '#ffffff',
+      'R': '#ff4444'
+    });
+
     makeTexture('monster-wolf', [
       "................",
       "......AA........",
@@ -693,6 +730,30 @@ export class PreloadScene extends Phaser.Scene {
     });
 
     // 4. DEMON IMP
+    makeTexture('monster-demon_imp', [
+      "....B......B....",
+      "....BB....BB....",
+      ".....RRRRRR.....",
+      "....RRRRRRRR....",
+      "...RRRRRRRRRR...",
+      "...RRDYYDYYDR...",
+      "...RRRRRRRRRR...",
+      "....RRRRRRRR....",
+      ".....RRRRRR.....",
+      "....RRRRRRRR....",
+      "...RRRRRRRRRR...",
+      "..RRRRRRRRRRRR..",
+      "..R.R.R..R.R.R..",
+      "..R.R......R.R..",
+      "..R.R......R.R..",
+      "................"
+    ], {
+      'R': '#cc2222',
+      'B': '#440000',
+      'Y': '#ffff00',
+      'D': '#330000'
+    });
+
     makeTexture('monster-imp', [
       "....B......B....",
       "....BB....BB....",

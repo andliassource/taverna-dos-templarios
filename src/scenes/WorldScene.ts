@@ -200,20 +200,17 @@ export class WorldScene extends BaseGameScene {
     npcSprite.setScale(2.0).setOrigin(0.5, 0.85).setPipeline('Light2D');
 
     const shadow = this.add.ellipse(0, 6, 20, 8, 0x000000, 0.35);
-    const glow = this.add.graphics();
-    glow.fillStyle(0xffd700, 0.08);
-    glow.fillCircle(0, -10, 24);
 
-    const nameText = this.add.text(0, 16, name, {
+    const nameText = this.add.text(0, -28, name, {
       fontFamily: 'MedievalSharp', fontSize: '10px', color: '#ffd700',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    const iconText = this.add.text(0, -38, icon, { fontSize: '14px' }).setOrigin(0.5);
+    const iconText = this.add.text(0, -42, icon, { fontSize: '14px' }).setOrigin(0.5);
 
-    container.add([shadow, glow, npcSprite, nameText, iconText]);
+    container.add([shadow, npcSprite, nameText, iconText]);
 
-    this.tweens.add({ targets: iconText, y: -44, duration: 1200, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: iconText, y: -48, duration: 1200, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
     this.tweens.add({ targets: npcSprite, scaleY: 2.05, duration: 1800, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
 
     return container;

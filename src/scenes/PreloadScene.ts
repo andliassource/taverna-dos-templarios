@@ -6,7 +6,7 @@ import menuBgImg from '../assets/sprites/menu_bg.png';
 
 /**
  * PreloadScene — Carrega e processa assets de alta qualidade para o jogo.
- * Gera procedimentalmente todos os sprites de personagens, NPCs e decorações retrô.
+ * Gera procedimentalmente todos os sprites de personagens, NPCs, retratos e decorações retrô.
  */
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -40,6 +40,9 @@ export class PreloadScene extends Phaser.Scene {
     // Cria as spritesheets procedimentais retrô 16-bit de cada classe e NPCs
     this.createClassSpritesheets();
 
+    // Cria os retratos (portraits) procedimentais 128x128 para diálogos de alta fidelidade
+    this.createPortraits();
+
     // Cria texturas decorativas do mapa
     this.createDecorationTextures();
 
@@ -58,8 +61,17 @@ export class PreloadScene extends Phaser.Scene {
       setTimeout(() => loadingScreen.classList.add('hidden'), 800);
     }
 
-    console.log('[PreloadScene] ✅ Sprites e texturas 16-bit procedimentais criados');
+    console.log('[PreloadScene] ✅ Sprites, portraits e texturas 16-bit procedimentais criados');
     this.scene.start('MainMenuScene');
+  }
+
+  private adjustColorBrightness(hex: string, percent: number): string {
+    const num = parseInt(hex.replace("#",""), 16),
+      amt = Math.round(2.55 * percent),
+      R = (num >> 16) + amt,
+      G = (num >> 8 & 0x00FF) + amt,
+      B = (num & 0x0000FF) + amt;
+    return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
   }
 
   private processTilesetClean(): void {
@@ -113,6 +125,15 @@ export class PreloadScene extends Phaser.Scene {
     const ctx = canvas!.getContext();
     ctx.imageSmoothingEnabled = false;
 
+    // Cores de luz e sombra dinâmicas (sombreamento direcional HSL simulado)
+    const primDark = this.adjustColorBrightness(primaryColor, -25);
+    const primLight = this.adjustColorBrightness(primaryColor, 20);
+    const secDark = this.adjustColorBrightness(secondaryColor, -20);
+    const secLight = this.adjustColorBrightness(secondaryColor, 20);
+    const headDark = this.adjustColorBrightness(headColor, -15);
+    const hairDark = this.adjustColorBrightness(accessoryColor, -25);
+    const hairLight = this.adjustColorBrightness(accessoryColor, 20);
+
     // Direções: 0 = Down, 1 = Left, 2 = Right, 3 = Up
     // Frames: 0 = Idle, 1 = Passo A, 2 = Idle, 3 = Passo B
     for (let dir = 0; dir < 4; dir++) {
@@ -121,61 +142,101 @@ export class PreloadScene extends Phaser.Scene {
         const offsetY = dir * frameH;
 
         // Sombra nos pés
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(offsetX + 3, offsetY + 18, 10, 2);
 
         const legOffset = (frame === 1) ? 1 : (frame === 3) ? -1 : 0;
         const armOffset = (frame === 1) ? -1 : (frame === 3) ? 1 : 0;
 
         // 1. Pernas (Y=14 a 17)
-        ctx.fillStyle = secondaryColor;
+        ctx.fillStyle = secDark;
         if (dir === 0 || dir === 3) {
           ctx.fillRect(offsetX + 4, offsetY + 14 + legOffset, 3, 3);
+          ctx.fillStyle = secondaryColor;
           ctx.fillRect(offsetX + 9, offsetY + 14 - legOffset, 3, 3);
-        } else if (dir === 1) {
-          ctx.fillRect(offsetX + 5 + legOffset, offsetY + 14, 3, 3);
-          ctx.fillRect(offsetX + 8 - legOffset, offsetY + 14, 3, 3);
         } else {
-          ctx.fillRect(offsetX + 5 - legOffset, offsetY + 14, 3, 3);
-          ctx.fillRect(offsetX + 8 + legOffset, offsetY + 14, 3, 3);
+          ctx.fillRect(offsetX + 5 + legOffset, offsetY + 14, 3, 3);
+          ctx.fillStyle = secondaryColor;
+          ctx.fillRect(offsetX + 8 - legOffset, offsetY + 14, 3, 3);
         }
 
         // 2. Corpo/Capa/Armadura (Y=8 a 13)
         ctx.fillStyle = primaryColor;
         ctx.fillRect(offsetX + 5, offsetY + 8, 6, 6);
+        ctx.fillStyle = primLight; // Destaque na esquerda
+        ctx.fillRect(offsetX + 5, offsetY + 8, 2, 6);
+        ctx.fillStyle = primDark; // Sombra na direita
+        ctx.fillRect(offsetX + 9, offsetY + 8, 2, 6);
+
+        // Manto longo para Mago e Mestre
+        if (key.includes('MAGE') || key.includes('master')) {
+          ctx.fillStyle = primaryColor;
+          ctx.fillRect(offsetX + 4, offsetY + 11, 8, 4);
+          ctx.fillStyle = primLight;
+          ctx.fillRect(offsetX + 4, offsetY + 11, 2, 4);
+          ctx.fillStyle = primDark;
+          ctx.fillRect(offsetX + 10, offsetY + 11, 2, 4);
+        }
+
+        // Hombreiras de aço para Paladino
+        if (key.includes('PALADIN')) {
+          ctx.fillStyle = '#a0b0c0'; // Ombreira esquerda
+          ctx.fillRect(offsetX + 3, offsetY + 8, 2, 3);
+          ctx.fillStyle = '#708090'; // Ombreira direita sombreada
+          ctx.fillRect(offsetX + 11, offsetY + 8, 2, 3);
+        }
 
         // Braços
         ctx.fillStyle = secondaryColor;
         if (dir === 0) {
+          ctx.fillStyle = secLight;
           ctx.fillRect(offsetX + 3, offsetY + 9 + armOffset, 2, 4);
+          ctx.fillStyle = secDark;
           ctx.fillRect(offsetX + 11, offsetY + 9 - armOffset, 2, 4);
         } else if (dir === 3) {
+          ctx.fillStyle = secDark;
           ctx.fillRect(offsetX + 3, offsetY + 9 - armOffset, 2, 4);
+          ctx.fillStyle = secLight;
           ctx.fillRect(offsetX + 11, offsetY + 9 + armOffset, 2, 4);
         } else if (dir === 1) {
+          ctx.fillStyle = secLight;
           ctx.fillRect(offsetX + 4 - armOffset, offsetY + 9, 2, 4);
         } else {
+          ctx.fillStyle = secDark;
           ctx.fillRect(offsetX + 10 + armOffset, offsetY + 9, 2, 4);
         }
 
         // 3. Cabeça/Rosto (Y=3 a 7)
         ctx.fillStyle = headColor;
         ctx.fillRect(offsetX + 5, offsetY + 3, 6, 5);
+        ctx.fillStyle = headDark;
+        ctx.fillRect(offsetX + 9, offsetY + 3, 2, 5);
 
         // Cabelo / Capuz / Chapéu
         if (hasHood) {
           ctx.fillStyle = primaryColor;
           ctx.fillRect(offsetX + 4, offsetY + 2, 8, 2);
           ctx.fillRect(offsetX + 4, offsetY + 4, 1, 4);
+          ctx.fillStyle = primDark;
           ctx.fillRect(offsetX + 11, offsetY + 4, 1, 4);
+          ctx.fillStyle = primLight;
+          ctx.fillRect(offsetX + 4, offsetY + 2, 3, 1);
         } else if (hasHat) {
           ctx.fillStyle = primaryColor;
           ctx.fillRect(offsetX + 3, offsetY + 2, 10, 2);
-          ctx.fillStyle = '#ff8800';
-          ctx.fillRect(offsetX + 6, offsetY + 0, 4, 2);
+          ctx.fillStyle = primLight;
+          ctx.fillRect(offsetX + 3, offsetY + 2, 3, 1);
+          ctx.fillStyle = primaryColor;
+          ctx.fillRect(offsetX + 5, offsetY + 0, 6, 2);
+          ctx.fillStyle = '#ffcc00';
+          ctx.fillRect(offsetX + 5, offsetY + 2, 6, 1);
         } else {
-          ctx.fillStyle = accessoryColor; // Cabelo/Elmo
+          ctx.fillStyle = accessoryColor;
           ctx.fillRect(offsetX + 5, offsetY + 2, 6, 2);
+          ctx.fillStyle = hairLight;
+          ctx.fillRect(offsetX + 5, offsetY + 2, 2, 1);
+          ctx.fillStyle = hairDark;
+          ctx.fillRect(offsetX + 9, offsetY + 2, 2, 1);
         }
 
         // Olhos
@@ -190,23 +251,42 @@ export class PreloadScene extends Phaser.Scene {
         }
 
         // Arma / Acessórios nas mãos
-        ctx.fillStyle = accessoryColor;
         if (key.includes('PALADIN') || key.includes('blacksmith')) {
+          ctx.fillStyle = '#c0c0c0'; // Lâmina de metal
           if (dir === 0 || dir === 2) {
-            ctx.fillRect(offsetX + 12, offsetY + 8, 2, 6); // Espada/Martelo
+            ctx.fillRect(offsetX + 12, offsetY + 8, 2, 6);
+            ctx.fillStyle = '#8b5a2b'; // Cabo
+            ctx.fillRect(offsetX + 11, offsetY + 12, 3, 1);
           } else if (dir === 1) {
-            ctx.fillRect(offsetX + 2, offsetY + 8, 2, 5);  // Escudo/Ferramenta
+            ctx.fillStyle = '#7a7a7a'; // Escudo
+            ctx.fillRect(offsetX + 2, offsetY + 8, 2, 5);
+            ctx.fillStyle = '#d4af37';
+            ctx.fillRect(offsetX + 2, offsetY + 10, 2, 1);
           }
         } else if (key.includes('MAGE')) {
-          ctx.fillStyle = '#d4af37';
+          ctx.fillStyle = '#8b5a2b';
           if (dir === 0 || dir === 2) {
-            ctx.fillRect(offsetX + 12, offsetY + 5, 1, 10); // Cajado
+            ctx.fillRect(offsetX + 12, offsetY + 5, 1, 10);
             ctx.fillStyle = '#4488ff';
-            ctx.fillRect(offsetX + 12, offsetY + 4, 1, 1); // Cristal
+            ctx.fillRect(offsetX + 12, offsetY + 4, 1, 1);
+          }
+        } else if (key.includes('ARCHER')) {
+          ctx.fillStyle = '#8b5a2b';
+          if (dir === 0 || dir === 2) {
+            ctx.fillRect(offsetX + 12, offsetY + 7, 1, 6);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(offsetX + 11, offsetY + 8, 1, 4);
+          }
+        } else if (key.includes('ASSASSIN')) {
+          ctx.fillStyle = '#c0c0c0';
+          if (dir === 0 || dir === 2) {
+            ctx.fillRect(offsetX + 12, offsetY + 11, 2, 3);
+          } else if (dir === 1) {
+            ctx.fillRect(offsetX + 2, offsetY + 11, 2, 3);
           }
         } else if (key.includes('merchant')) {
           ctx.fillStyle = '#ff4444';
-          ctx.fillRect(offsetX + 11, offsetY + 11, 2, 2); // Poção
+          ctx.fillRect(offsetX + 11, offsetY + 11, 2, 2);
         }
       }
     }
@@ -220,6 +300,151 @@ export class PreloadScene extends Phaser.Scene {
         tex.add(idx, 0, col * frameW, row * frameH, frameW, frameH);
       }
     }
+  }
+
+  private createPortraits(): void {
+    const drawPortrait = (
+      key: string,
+      primaryColor: string,
+      secondaryColor: string,
+      accessoryColor: string,
+      headColor: string,
+      hasHood: boolean,
+      hasHat: boolean,
+      details: (ctx: CanvasRenderingContext2D) => void
+    ) => {
+      if (this.textures.exists(key)) return;
+      const size = 64;
+      const canvas = this.textures.createCanvas(key, size, size);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = false;
+
+      // 1. Moldura medieval decorativa
+      ctx.fillStyle = '#1a0a2a'; // Borda preta
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#d4af37'; // Borda dourada
+      ctx.fillRect(2, 2, size - 4, size - 4);
+      ctx.fillStyle = '#0a0612'; // Fundo do retrato
+      ctx.fillRect(4, 4, size - 8, size - 8);
+
+      // Fundo em gradiente suave radial
+      const grad = ctx.createRadialGradient(size / 2, size / 2, 5, size / 2, size / 2, size - 10);
+      grad.addColorStop(0, '#22143b');
+      grad.addColorStop(1, '#050208');
+      ctx.fillStyle = grad;
+      ctx.fillRect(4, 4, size - 8, size - 8);
+
+      // 2. Ombros e Peito (Y=38 a 58)
+      ctx.fillStyle = this.adjustColorBrightness(primaryColor, -15);
+      ctx.fillRect(14, 38, 36, 20);
+      ctx.fillStyle = primaryColor;
+      ctx.fillRect(14, 38, 18, 20); // Destaque esquerdo
+
+      // 3. Cabeça (Y=18 a 38)
+      ctx.fillStyle = this.adjustColorBrightness(headColor, -15);
+      ctx.fillRect(20, 18, 24, 20);
+      ctx.fillStyle = headColor;
+      ctx.fillRect(20, 18, 12, 20); // Destaque esquerdo
+
+      // Olhos básicos
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(26, 26, 2, 2);
+      ctx.fillRect(36, 26, 2, 2);
+
+      // Cabelo / Capuz / Chapéu
+      if (hasHood) {
+        ctx.fillStyle = primaryColor;
+        ctx.fillRect(16, 14, 32, 6);
+        ctx.fillRect(16, 20, 4, 18);
+        ctx.fillStyle = this.adjustColorBrightness(primaryColor, -25);
+        ctx.fillRect(44, 20, 4, 18);
+      } else if (hasHat) {
+        ctx.fillStyle = primaryColor;
+        ctx.fillRect(12, 14, 40, 4); // Aba do chapéu
+        ctx.fillRect(22, 4, 20, 10);  // Ponta
+        ctx.fillStyle = '#ffcc00';    // Faixa amarela
+        ctx.fillRect(22, 12, 20, 2);
+      } else {
+        ctx.fillStyle = accessoryColor;
+        ctx.fillRect(18, 12, 28, 6);
+        ctx.fillRect(18, 18, 4, 14);
+        ctx.fillStyle = this.adjustColorBrightness(accessoryColor, -25);
+        ctx.fillRect(42, 18, 4, 14);
+      }
+
+      // Detalhes únicos via callback
+      details(ctx);
+
+      canvas!.refresh();
+    };
+
+    // 1. PALADIN (Elmo com visor brilhante e cruz de ouro)
+    drawPortrait('portrait-PALADIN', '#2b4ca3', '#7b9cb8', '#d4af37', '#ffd1a9', false, false, (ctx) => {
+      ctx.fillStyle = '#a0b0c0'; // Elmo metálico
+      ctx.fillRect(18, 14, 28, 24);
+      ctx.fillStyle = '#708090'; // Sombra
+      ctx.fillRect(32, 14, 14, 24);
+      // Cruz dourada no elmo
+      ctx.fillStyle = '#d4af37';
+      ctx.fillRect(30, 14, 4, 24);
+      ctx.fillRect(22, 22, 20, 4);
+      // Slits brilhantes dos olhos
+      ctx.fillStyle = '#4488ff';
+      ctx.fillRect(24, 23, 5, 2);
+      ctx.fillRect(35, 23, 5, 2);
+    });
+
+    // 2. MAGE (Chapéu de mago roxo e barba branca ancestral)
+    drawPortrait('portrait-MAGE', '#58137b', '#e066ff', '#4488ff', '#ffd1a9', false, true, (ctx) => {
+      ctx.fillStyle = '#eeeeee'; // Barba branca
+      ctx.fillRect(24, 32, 16, 12);
+      ctx.fillStyle = '#cccccc'; // Sombra da barba
+      ctx.fillRect(32, 32, 8, 12);
+    });
+
+    // 3. ARCHER (Capuz verde, cabelo ruivo)
+    drawPortrait('portrait-ARCHER', '#135c13', '#7a4f2b', '#ff8c00', '#ffd1a9', true, false, (ctx) => {
+      ctx.fillStyle = '#ff8c00'; // Cabelo laranja
+      ctx.fillRect(22, 19, 20, 4);
+      ctx.fillStyle = '#e06600';
+      ctx.fillRect(32, 19, 10, 4);
+    });
+
+    // 4. ASSASSIN (Máscara ninja, olhos verdes brilhantes na escuridão)
+    drawPortrait('portrait-ASSASSIN', '#1f2421', '#333333', '#708090', '#ffd1a9', true, false, (ctx) => {
+      ctx.fillStyle = '#111111'; // Máscara preta
+      ctx.fillRect(20, 28, 24, 10);
+      // Olhos verdes brilhantes
+      ctx.fillStyle = '#00ff66';
+      ctx.fillRect(25, 25, 3, 2);
+      ctx.fillRect(36, 25, 3, 2);
+    });
+
+    // 5. NPC FERREIRO (Cabelo ruivo arrepiado, barba e fuligem no rosto)
+    drawPortrait('portrait-blacksmith', '#5c3317', '#444444', '#cc3333', '#e0b080', false, false, (ctx) => {
+      ctx.fillStyle = '#cc3333'; // Barba ruiva
+      ctx.fillRect(22, 30, 20, 14);
+      ctx.fillStyle = '#aa2222';
+      ctx.fillRect(32, 30, 10, 14);
+      ctx.fillStyle = '#222222'; // Manchas de carvão
+      ctx.fillRect(23, 22, 3, 2);
+      ctx.fillRect(38, 24, 2, 2);
+    });
+
+    // 6. NPC MERCADORA (Capuz roxo, cabelo prateado comprido)
+    drawPortrait('portrait-merchant', '#a020f0', '#ffb6c1', '#32cd32', '#ffd1a9', true, false, (ctx) => {
+      ctx.fillStyle = '#e0e0e0'; // Cabelo prata nas laterais
+      ctx.fillRect(20, 22, 3, 10);
+      ctx.fillRect(41, 22, 3, 10);
+    });
+
+    // 7. NPC MESTRE (Manto dourado real, capuz e uma longa barba branca)
+    drawPortrait('portrait-master', '#d4af37', '#4b0082', '#ffffff', '#e0b080', true, false, (ctx) => {
+      ctx.fillStyle = '#ffffff'; // Longa barba ancestral
+      ctx.fillRect(22, 32, 20, 22);
+      ctx.fillStyle = '#dddddd';
+      ctx.fillRect(32, 32, 10, 22);
+    });
   }
 
   private createDecorationTextures(): void {

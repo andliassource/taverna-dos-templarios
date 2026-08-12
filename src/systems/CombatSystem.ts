@@ -37,6 +37,9 @@ export class CombatSystem {
   private regenInterval = 1000; // 1s
 
   private inventory: Item[] = [];
+  private lastSkillTimes: number[] = [0, 0, 0];
+  private isInvulnerable = false;
+  private isStealth = false;
   private equipped: Record<string, Item | null> = {
     WEAPON: null,
     ARMOR: null,
@@ -349,6 +352,9 @@ export class CombatSystem {
     this.emitStateUpdate();
     SoundSynth.playHurt();
 
+    // Tremo de tela ao sofrer dano (game feel)
+    this.scene.cameras.main.shake(150, 0.02);
+
     // Se o HP zerou
     if (this.playerHp <= 0) {
       this.scene.events.emit('player-died');
@@ -356,6 +362,7 @@ export class CombatSystem {
   }
 
   private emitStateUpdate(): void {
+    const time = this.scene.time.now;
     this.scene.events.emit('update-hud-state', {
       hp: this.playerHp,
       maxHp: this.maxPlayerHp,
@@ -366,6 +373,10 @@ export class CombatSystem {
       level: this.playerLevel,
       gold: this.gold,
       gems: this.gems,
+      skillCooldowns: this.lastSkillTimes.map((lastTime, idx) => {
+        const cd = this.getSkillCooldown(idx);
+        return Math.max(0, (lastTime + cd - time) / cd);
+      }),
     });
   }
 
@@ -479,6 +490,16 @@ export class CombatSystem {
     });
   }
 
+  private getModifiedDamage(baseDamage: number, player: Phaser.GameObjects.Sprite): number {
+    if (this.isStealth) {
+      this.isStealth = false;
+      player.setAlpha(1);
+      this.showFloatingText(player.x, player.y - 28, 'MEGA CRÍTICO!', '#ff3333');
+      return baseDamage * 3.0;
+    }
+    return baseDamage;
+  }
+
   private executePaladinAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
     this.lastPlayerAttackTime = time;
     SoundSynth.playSlash();
@@ -493,7 +514,8 @@ export class CombatSystem {
     const attackY = player.y + offsetY;
     this.createHolySlashEffect(attackX, attackY, angle);
 
-    const baseDamage = this.getAttackPower() + Math.floor(Math.random() * 10);
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 10);
+    const baseDamage = this.getModifiedDamage(rawDamage, player);
     this.monsters.forEach((monster) => {
       if (monster.isDead) return;
       const dist = Phaser.Math.Distance.Between(attackX, attackY, monster.x, monster.y);
@@ -526,7 +548,8 @@ export class CombatSystem {
     proj.setDepth(40);
     proj.setVelocity(vx, vy);
     proj.setRotation(angle);
-    proj.setData('damage', this.getAttackPower() + Math.floor(Math.random() * 10));
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 10);
+    proj.setData('damage', this.getModifiedDamage(rawDamage, player));
     proj.setData('type', 'mage');
     this.projectiles.add(proj);
 
@@ -558,7 +581,8 @@ export class CombatSystem {
     proj.setDepth(40);
     proj.setVelocity(vx, vy);
     proj.setRotation(angle);
-    proj.setData('damage', this.getAttackPower() + Math.floor(Math.random() * 6));
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 6);
+    proj.setData('damage', this.getModifiedDamage(rawDamage, player));
     proj.setData('type', 'archer');
     this.projectiles.add(proj);
   }
@@ -585,7 +609,7 @@ export class CombatSystem {
     for (let i = 1; i <= 3; i++) {
       const gx = player.x + (dx * i / 4);
       const gy = player.y + (dy * i / 4);
-      const ghost = this.scene.add.sprite(gx, gy, 'player-sheet', player.frame.name);
+      const ghost = this.scene.add.sprite(gx, gy, `${this.playerClass}-sheet`, player.frame.name);
       ghost.setScale(player.scaleX);
       ghost.setOrigin(player.originX, player.originY);
       ghost.setAlpha(0.4);
@@ -616,7 +640,8 @@ export class CombatSystem {
       onComplete: () => slash.destroy(),
     });
 
-    const baseDamage = this.getAttackPower() + Math.floor(Math.random() * 15);
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 15);
+    const baseDamage = this.getModifiedDamage(rawDamage, player);
     this.monsters.forEach((monster) => {
       if (monster.isDead) return;
       const dist = Phaser.Math.Distance.Between(targetX, targetY, monster.x, monster.y);
@@ -689,7 +714,7 @@ export class CombatSystem {
     });
   }
 
-  private showFloatingText(x: number, y: number, text: string, color: string): void {
+  public showFloatingText(x: number, y: number, text: string, color: string): void {
     const fText = this.scene.add.text(x, y, text, {
       fontFamily: 'Cinzel',
       fontSize: '10px',
@@ -738,6 +763,511 @@ export class CombatSystem {
         mageCanvas.refresh();
       }
     }
+
+    if (!this.scene.textures.exists('fire-proj')) {
+      const fireCanvas = this.scene.textures.createCanvas('fire-proj', 12, 12);
+      if (fireCanvas) {
+        const ctx = fireCanvas.getContext();
+        const grad = ctx.createRadialGradient(6, 6, 0, 6, 6, 6);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.3, '#ffaa00');
+        grad.addColorStop(0.7, '#ff3300');
+        grad.addColorStop(1, 'rgba(255, 51, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 12, 12);
+        fireCanvas.refresh();
+      }
+    }
+
+    if (!this.scene.textures.exists('dagger-proj')) {
+      const daggerCanvas = this.scene.textures.createCanvas('dagger-proj', 12, 4);
+      if (daggerCanvas) {
+        const ctx = daggerCanvas.getContext();
+        ctx.fillStyle = '#00ff66';
+        ctx.fillRect(0, 1, 8, 2);
+        ctx.fillStyle = '#708090';
+        ctx.fillRect(8, 0, 4, 4);
+        daggerCanvas.refresh();
+      }
+    }
+  }
+
+  // ==================== HABILIDADES ATIVAS DE CLASSE ====================
+
+  public getSkillCooldown(index: number): number {
+    const cds = [3000, 6000, 12000];
+    return cds[index];
+  }
+
+  public useSkill(
+    player: Phaser.GameObjects.Sprite,
+    skillIndex: number,
+    direction: string,
+    time: number
+  ): void {
+    if (this.playerHp <= 0) return;
+
+    const cooldown = this.getSkillCooldown(skillIndex);
+    const lastTime = this.lastSkillTimes[skillIndex];
+    if (time < lastTime + cooldown) {
+      this.showFloatingText(player.x, player.y - 20, 'Em Recarga!', '#ffcc00');
+      return;
+    }
+
+    const costs = [12, 20, 30];
+    const cost = costs[skillIndex];
+    if (this.playerMp < cost) {
+      this.showFloatingText(player.x, player.y - 20, 'Mana Insuficiente!', '#4488ff');
+      return;
+    }
+
+    let success = false;
+    if (this.playerClass === PlayerClass.PALADIN) {
+      success = this.usePaladinSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.MAGE) {
+      success = this.useMageSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.ARCHER) {
+      success = this.useArcherSkill(player, skillIndex, direction, time);
+    } else if (this.playerClass === PlayerClass.ASSASSIN) {
+      success = this.useAssassinSkill(player, skillIndex, direction, time);
+    }
+
+    if (success) {
+      this.playerMp -= cost;
+      this.lastSkillTimes[skillIndex] = time;
+      this.emitStateUpdate();
+    }
+  }
+
+  private usePaladinSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      // 1. Escudo Divino (Invulnerabilidade por 2s)
+      this.isInvulnerable = true;
+      SoundSynth.playLoot();
+      this.showFloatingText(player.x, player.y - 24, 'ESCUDO DIVINO!', '#ffd700');
+
+      const shield = this.scene.add.graphics();
+      shield.setDepth(30);
+      shield.lineStyle(2, 0xffd700, 0.8);
+      shield.fillStyle(0xfff7c2, 0.25);
+      shield.strokeCircle(0, 0, 20);
+      shield.fillCircle(0, 0, 20);
+
+      const updateShield = () => {
+        if (shield.active && player.active) {
+          shield.setPosition(player.x, player.y - 8);
+        }
+      };
+      this.scene.events.on('update', updateShield);
+
+      this.scene.time.delayedCall(2000, () => {
+        this.isInvulnerable = false;
+        this.scene.events.off('update', updateShield);
+        shield.destroy();
+      });
+      return true;
+    } else if (index === 1) {
+      // 2. Luz Sagrada (Cura HP)
+      this.playerHp = Math.min(this.getMaxHP(), this.playerHp + 45);
+      SoundSynth.playLoot();
+      this.showFloatingText(player.x, player.y - 24, '+45 HP', '#22ff22');
+
+      this.scene.add.particles(player.x, player.y - 8, 'particle-gold', {
+        speed: { min: 20, max: 50 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 0.8, end: 0 },
+        lifespan: 400,
+        quantity: 16,
+        tint: 0x22ff22,
+        blendMode: 'ADD',
+      });
+      return true;
+    } else if (index === 2) {
+      // 3. Impacto da Justiça (Golpe de Área + Knockback Forte)
+      SoundSynth.playUpgrade();
+      this.scene.cameras.main.shake(200, 0.025);
+      this.showFloatingText(player.x, player.y - 24, 'IMPACTO DA JUSTIÇA!', '#ffaa00');
+
+      const circle = this.scene.add.graphics();
+      circle.setDepth(50);
+      circle.setPosition(player.x, player.y);
+      circle.lineStyle(3, 0xffaa00, 1);
+      circle.fillStyle(0xffd700, 0.35);
+      circle.strokeCircle(0, 0, 75);
+      circle.fillCircle(0, 0, 75);
+
+      this.scene.tweens.add({
+        targets: circle,
+        scaleX: 1.3,
+        scaleY: 1.3,
+        alpha: 0,
+        duration: 300,
+        onComplete: () => circle.destroy(),
+      });
+
+      const damage = this.getAttackPower() * 2.2;
+      this.monsters.forEach((monster) => {
+        if (monster.isDead) return;
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, monster.x, monster.y);
+        if (dist < 85) {
+          monster.takeDamage(damage);
+          const body = monster.body as Phaser.Physics.Arcade.Body;
+          if (body) {
+            const angle = Phaser.Math.Angle.Between(player.x, player.y, monster.x, monster.y);
+            body.setVelocity(Math.cos(angle) * 350, Math.sin(angle) * 350);
+            this.scene.time.delayedCall(200, () => { if (body && !monster.isDead) body.setVelocity(0); });
+          }
+        }
+      });
+      return true;
+    }
+    return false;
+  }
+
+  private useMageSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      // 1. Bola de Fogo Arcana (Explosão pesada de área)
+      SoundSynth.playFireball();
+      this.showFloatingText(player.x, player.y - 24, 'BOLA DE FOGO ARCANA!', '#ff4400');
+
+      let vx = 0; let vy = 0; let angle = 0;
+      switch (direction) {
+        case 'left': vx = -300; angle = Math.PI; break;
+        case 'right': vx = 300; angle = 0; break;
+        case 'up': vy = -300; angle = -Math.PI / 2; break;
+        case 'down': vy = 300; angle = Math.PI / 2; break;
+      }
+
+      const proj = this.scene.physics.add.sprite(player.x, player.y - 8, 'fire-proj');
+      proj.setDepth(40);
+      proj.setVelocity(vx, vy);
+      proj.setRotation(angle);
+      proj.setData('damage', this.getAttackPower() * 2.0);
+      proj.setData('type', 'mage'); // Dispara a explosão de área ao atingir
+      this.projectiles.add(proj);
+      return true;
+    } else if (index === 1) {
+      // 2. Barreira de Gelo (Congela/Lentidão em área)
+      SoundSynth.playFireball();
+      this.showFloatingText(player.x, player.y - 24, 'BARREIRA DE GELO!', '#00ffff');
+
+      const ice = this.scene.add.graphics();
+      ice.setDepth(30);
+      ice.setPosition(player.x, player.y);
+      ice.lineStyle(2, 0x00ffff, 0.85);
+      ice.fillStyle(0xe0ffff, 0.25);
+      ice.strokeCircle(0, 0, 60);
+      ice.fillCircle(0, 0, 60);
+
+      this.scene.tweens.add({
+        targets: ice,
+        alpha: 0,
+        duration: 3000,
+        onComplete: () => ice.destroy(),
+      });
+
+      this.monsters.forEach((monster) => {
+        if (monster.isDead) return;
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, monster.x, monster.y);
+        if (dist < 65) {
+          monster.takeDamage(this.getAttackPower() * 0.5);
+          // Efeito visual de gelo no monstro
+          monster.setAlpha(0.65);
+          const origSpeed = monster.config.speed;
+          monster.config.speed = origSpeed * 0.4;
+          this.scene.time.delayedCall(3000, () => {
+            if (monster.active && !monster.isDead) {
+              monster.setAlpha(1);
+              monster.config.speed = origSpeed;
+            }
+          });
+        }
+      });
+      return true;
+    } else if (index === 2) {
+      // 3. Teletransporte (Blink para frente)
+      SoundSynth.playDash();
+      this.showFloatingText(player.x, player.y - 24, 'TELETRANSPORTE!', '#8a2be2');
+
+      let dx = 0; let dy = 0;
+      switch (direction) {
+        case 'left': dx = -110; break;
+        case 'right': dx = 110; break;
+        case 'up': dy = -110; break;
+        case 'down': dy = 110; break;
+      }
+
+      // Poeira arcanas no início
+      this.scene.add.particles(player.x, player.y - 8, 'particle-gold', {
+        speed: { min: 20, max: 40 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 0.8, end: 0 },
+        lifespan: 250,
+        quantity: 12,
+        tint: 0x8a2be2,
+      });
+
+      // Warp físico (reseta física para evitar ficar preso nas paredes)
+      player.x += dx;
+      player.y += dy;
+      if (player.body) {
+        (player.body as Phaser.Physics.Arcade.Body).reset(player.x, player.y);
+      }
+
+      // Poeira arcana no fim
+      this.scene.add.particles(player.x, player.y - 8, 'particle-gold', {
+        speed: { min: 20, max: 40 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 0.8, end: 0 },
+        lifespan: 250,
+        quantity: 12,
+        tint: 0x8a2be2,
+      });
+      return true;
+    }
+    return false;
+  }
+
+  private useArcherSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      // 1. Disparo Triplo
+      SoundSynth.playArrow();
+      this.showFloatingText(player.x, player.y - 24, 'DISPARO TRIPLO!', '#00ff00');
+
+      let baseAngle = 0;
+      switch (direction) {
+        case 'left': baseAngle = Math.PI; break;
+        case 'right': baseAngle = 0; break;
+        case 'up': baseAngle = -Math.PI / 2; break;
+        case 'down': baseAngle = Math.PI / 2; break;
+      }
+
+      const angles = [baseAngle - 0.25, baseAngle, baseAngle + 0.25];
+      angles.forEach((ang) => {
+        const vx = Math.cos(ang) * 380;
+        const vy = Math.sin(ang) * 380;
+
+        const proj = this.scene.physics.add.sprite(player.x, player.y - 8, 'arrow-proj');
+        proj.setDepth(40);
+        proj.setVelocity(vx, vy);
+        proj.setRotation(ang);
+        proj.setData('damage', this.getAttackPower() * 0.95);
+        proj.setData('type', 'archer');
+        this.projectiles.add(proj);
+      });
+      return true;
+    } else if (index === 1) {
+      // 2. Armadilha Explosiva
+      SoundSynth.playSlash();
+      this.showFloatingText(player.x, player.y - 24, 'ARMADILHA NO CHÃO!', '#a0522d');
+
+      const trap = this.scene.physics.add.sprite(player.x, player.y, 'particle-gold');
+      trap.setTint(0xffaa00);
+      trap.setScale(2.0);
+      trap.setDepth(15);
+
+      const triggerTrap = () => {
+        if (!trap.active) return;
+        SoundSynth.playUpgrade();
+        this.scene.cameras.main.shake(150, 0.02);
+        
+        const boom = this.scene.add.graphics();
+        boom.setDepth(50);
+        boom.setPosition(trap.x, trap.y);
+        boom.fillStyle(0xff3300, 0.5);
+        boom.fillCircle(0, 0, 50);
+        this.scene.tweens.add({ targets: boom, alpha: 0, duration: 250, onComplete: () => boom.destroy() });
+
+        this.scene.add.particles(trap.x, trap.y, 'particle-gold', {
+          speed: { min: 40, max: 90 },
+          angle: { min: 0, max: 360 },
+          scale: { start: 1, end: 0 },
+          lifespan: 300,
+          quantity: 20,
+          tint: 0xff3300,
+        });
+
+        const dmg = this.getAttackPower() * 2.5;
+        this.monsters.forEach((m) => {
+          if (m.isDead) return;
+          const d = Phaser.Math.Distance.Between(trap.x, trap.y, m.x, m.y);
+          if (d < 55) {
+            m.takeDamage(dmg);
+          }
+        });
+
+        trap.destroy();
+      };
+
+      // Fica verificando se há monstros por perto para explodir
+      const checkInterval = this.scene.time.addEvent({
+        delay: 200,
+        callback: () => {
+          if (!trap.active) {
+            checkInterval.destroy();
+            return;
+          }
+          this.monsters.forEach((m) => {
+            if (!m.isDead && Phaser.Math.Distance.Between(trap.x, trap.y, m.x, m.y) < 26) {
+              triggerTrap();
+              checkInterval.destroy();
+            }
+          });
+        },
+        loop: true
+      });
+      return true;
+    } else if (index === 2) {
+      // 3. Chuva de Flechas
+      SoundSynth.playArrow();
+      this.showFloatingText(player.x, player.y - 24, 'CHUVA DE FLECHAS!', '#32cd32');
+
+      let tx = player.x; let ty = player.y;
+      switch (direction) {
+        case 'left': tx -= 90; break;
+        case 'right': tx += 90; break;
+        case 'up': ty -= 90; break;
+        case 'down': ty += 90; break;
+      }
+
+      const area = this.scene.add.graphics();
+      area.setDepth(15);
+      area.setPosition(tx, ty);
+      area.lineStyle(1.5, 0x32cd32, 0.7);
+      area.strokeCircle(0, 0, 50);
+
+      this.scene.time.addEvent({
+        delay: 150,
+        repeat: 12,
+        callback: () => {
+          if (!area.active) return;
+          // Spawn visual de flecha caindo
+          const fx = tx + Phaser.Math.Between(-40, 40);
+          const fy = ty + Phaser.Math.Between(-40, 40);
+
+          const arrow = this.scene.add.text(fx, fy - 60, '⬇️', { fontSize: '10px' }).setDepth(45);
+          this.scene.tweens.add({
+            targets: arrow,
+            y: fy,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => {
+              arrow.destroy();
+              // Causa dano
+              this.monsters.forEach((m) => {
+                if (!m.isDead && Phaser.Math.Distance.Between(fx, fy, m.x, m.y) < 24) {
+                  m.takeDamage(this.getAttackPower() * 0.35);
+                }
+              });
+            }
+          });
+        },
+        callbackScope: this
+      });
+
+      this.scene.time.delayedCall(150 * 13, () => {
+        if (area.active) area.destroy();
+      });
+      return true;
+    }
+    return false;
+  }
+
+  private useAssassinSkill(player: Phaser.GameObjects.Sprite, index: number, direction: string, time: number): boolean {
+    if (index === 0) {
+      // 1. Golpe Fantasma (Dash venenoso de área)
+      SoundSynth.playDash();
+      this.showFloatingText(player.x, player.y - 24, 'GOLPE FANTASMA!', '#4b0082');
+
+      let dx = 0; let dy = 0;
+      switch (direction) {
+        case 'left': dx = -100; break;
+        case 'right': dx = 100; break;
+        case 'up': dy = -100; break;
+        case 'down': dy = 100; break;
+      }
+
+      const body = player.body as Phaser.Physics.Arcade.Body;
+      if (body) body.checkCollision.none = true;
+
+      // Rastro
+      for (let i = 1; i <= 4; i++) {
+        const gx = player.x + (dx * i / 5);
+        const gy = player.y + (dy * i / 5);
+        const ghost = this.scene.add.sprite(gx, gy, `${this.playerClass}-sheet`, player.frame.name);
+        ghost.setScale(player.scaleX);
+        ghost.setOrigin(player.originX, player.originY);
+        ghost.setAlpha(0.35);
+        ghost.setTint(0x4b0082);
+        this.scene.tweens.add({ targets: ghost, alpha: 0, duration: 250, onComplete: () => ghost.destroy() });
+      }
+
+      player.setPosition(player.x + dx, player.y + dy);
+      if (body) {
+        body.reset(player.x, player.y);
+        this.scene.time.delayedCall(120, () => { body.checkCollision.none = false; });
+      }
+
+      // Dano + Envenenar
+      const damage = this.getAttackPower() * 1.8;
+      this.monsters.forEach((monster) => {
+        if (monster.isDead) return;
+        const dist = Phaser.Math.Distance.Between(player.x, player.y, monster.x, monster.y);
+        if (dist < 45) {
+          monster.takeDamage(damage);
+          // Efeito de veneno (DOT): 5 de dano por segundo por 4s
+          this.scene.time.addEvent({
+            delay: 1000,
+            repeat: 3,
+            callback: () => {
+              if (monster.active && !monster.isDead) {
+                monster.takeDamage(5);
+                monster.applyPoisonTint();
+              }
+            }
+          });
+        }
+      });
+      return true;
+    } else if (index === 1) {
+      // 2. Adaga Envenenada (Projétil verde + lentidão)
+      SoundSynth.playArrow();
+      this.showFloatingText(player.x, player.y - 24, 'ADAGA VENENOSA!', '#00ff66');
+
+      let vx = 0; let vy = 0; let angle = 0;
+      switch (direction) {
+        case 'left': vx = -340; angle = Math.PI; break;
+        case 'right': vx = 340; angle = 0; break;
+        case 'up': vy = -340; angle = -Math.PI / 2; break;
+        case 'down': vy = 340; angle = Math.PI / 2; break;
+      }
+
+      const proj = this.scene.physics.add.sprite(player.x, player.y - 8, 'dagger-proj');
+      proj.setDepth(40);
+      proj.setVelocity(vx, vy);
+      proj.setRotation(angle);
+      proj.setData('damage', this.getAttackPower() * 1.1);
+      proj.setData('type', 'assassin');
+      this.projectiles.add(proj);
+      return true;
+    } else if (index === 2) {
+      // 3. Furtividade / Invanescência (Fica transparente, próximo golpe é mega crit)
+      SoundSynth.playDash();
+      this.showFloatingText(player.x, player.y - 24, 'INVISIBILIDADE!', '#111111');
+
+      this.isStealth = true;
+      player.setAlpha(0.25);
+
+      this.scene.time.delayedCall(5000, () => {
+        if (this.isStealth && player.active) {
+          this.isStealth = false;
+          player.setAlpha(1);
+          this.showFloatingText(player.x, player.y - 24, 'Furtividade Expirou!', '#888888');
+        }
+      });
+      return true;
+    }
+    return false;
   }
 
   // ==================== GETTERS & SETTERS ====================

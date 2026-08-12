@@ -162,12 +162,17 @@ export class Monster extends Phaser.GameObjects.Container {
     this.hp -= amount;
     this.updateHpBar();
 
-    // Feedback visual (Hit Flash vermelho e escala elástica)
-    this.sprite.setTint(0xff3333);
+    const isCrit = Math.random() > 0.72;
+    if (isCrit) {
+      this.scene.cameras.main.shake(100, 0.012);
+    }
+
+    // Feedback visual (Hit Flash vermelho ou branco crítico e escala elástica)
+    this.sprite.setTint(isCrit ? 0xffffff : 0xff3333);
     this.scene.tweens.add({
       targets: this.sprite,
-      scaleX: 2.3,
-      scaleY: 2.3,
+      scaleX: isCrit ? 2.5 : 2.2,
+      scaleY: isCrit ? 2.5 : 2.2,
       duration: 80,
       yoyo: true,
       onComplete: () => {
@@ -188,7 +193,7 @@ export class Monster extends Phaser.GameObjects.Container {
     }
 
     // Texto de Dano Flutuante
-    this.showFloatingDamage(amount);
+    this.showFloatingDamage(amount, isCrit);
 
     if (this.hp <= 0) {
       this.die();
@@ -197,8 +202,7 @@ export class Monster extends Phaser.GameObjects.Container {
     return false;
   }
 
-  private showFloatingDamage(amount: number): void {
-    const isCrit = Math.random() > 0.75;
+  private showFloatingDamage(amount: number, isCrit: boolean): void {
     const dmgText = this.scene.add.text(
       this.x + (Math.random() * 16 - 8),
       this.y - 30,
@@ -221,6 +225,15 @@ export class Monster extends Phaser.GameObjects.Container {
       ease: 'Cubic.easeOut',
       onComplete: () => dmgText.destroy(),
     });
+  }
+
+  public applyPoisonTint(): void {
+    if (this.sprite) {
+      this.sprite.setTint(0x00ff00);
+      this.scene.time.delayedCall(150, () => {
+        if (this.sprite) this.sprite.clearTint();
+      });
+    }
   }
 
   private die(): void {

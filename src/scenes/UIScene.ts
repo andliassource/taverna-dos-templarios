@@ -17,6 +17,25 @@ export class UIScene extends Phaser.Scene {
   private mapNameText!: Phaser.GameObjects.Text;
   private fpsText!: Phaser.GameObjects.Text;
 
+  private skillSlots: {
+    container: Phaser.GameObjects.Container;
+    iconText: Phaser.GameObjects.Text;
+    nameText: Phaser.GameObjects.Text;
+    keyText: Phaser.GameObjects.Text;
+    overlay: Phaser.GameObjects.Graphics;
+    cooldownText: Phaser.GameObjects.Text;
+  }[] = [];
+  private lastSkillCooldowns: number[] = [0, 0, 0];
+  private playerClassStr = 'PALADIN';
+
+  private dialogueContainer!: Phaser.GameObjects.Container;
+  private isDialogueOpen = false;
+  private dialogueConfirmCallback: (() => void) | null = null;
+
+  private mobileControlsContainer!: Phaser.GameObjects.Container;
+  private isMobileControlsVisible = false;
+  public joystickVector = { x: 0, y: 0 };
+
   private inventoryKey!: Phaser.Input.Keyboard.Key;
   private inventoryContainer!: Phaser.GameObjects.Container;
   private isInventoryOpen = false;
@@ -63,6 +82,10 @@ export class UIScene extends Phaser.Scene {
     // Hotbar — Parte inferior
     this.createHotbar(width, height);
 
+    // Controles Mobile Touch (Joystick + Botões)
+    this.createMobileControlsToggle(width);
+    this.createMobileControlsUI(width, height);
+
     // Moedas — Abaixo do HUD
     this.createCurrencyDisplay();
 
@@ -102,15 +125,27 @@ export class UIScene extends Phaser.Scene {
     const worldScene = this.scene.get('WorldScene');
     if (worldScene) {
       this.registerSceneListeners(worldScene);
-      // Registra a atualização do ciclo de tempo no HUD
       worldScene.events.on('update-game-time', (data: { hour: number }) => {
         this.updateTimeHUD(data.hour);
+      });
+      // Listener de Diálogos
+      worldScene.events.on('show-dialogue', (data: any) => {
+        this.showDialogueBox(data);
+      });
+      worldScene.events.on('hide-dialogue', () => {
+        this.hideDialogueBox();
       });
     }
 
     const battleScene = this.scene.get('BattleScene');
     if (battleScene) {
       this.registerSceneListeners(battleScene);
+      battleScene.events.on('show-dialogue', (data: any) => {
+        this.showDialogueBox(data);
+      });
+      battleScene.events.on('hide-dialogue', () => {
+        this.hideDialogueBox();
+      });
     }
   }
 
@@ -122,6 +157,8 @@ export class UIScene extends Phaser.Scene {
       level: number;
       gold: number;
       gems: number;
+      playerClass?: string;
+      skillCooldowns?: number[];
     }) => {
       this.playerData.hp = data.hp;
       this.playerData.maxHp = data.maxHp;
@@ -132,6 +169,18 @@ export class UIScene extends Phaser.Scene {
       this.playerData.level = data.level;
       this.playerData.gold = data.gold;
       this.playerData.gems = data.gems;
+
+      if (data.playerClass) {
+        const classStr = data.playerClass.toString().toUpperCase();
+        if (this.playerClassStr !== classStr) {
+          this.playerClassStr = classStr;
+          this.updateHotbarSkills();
+        }
+      }
+
+      if (data.skillCooldowns) {
+        this.lastSkillCooldowns = data.skillCooldowns;
+      }
 
       this.updateHUDVisuals();
     });
@@ -214,6 +263,40 @@ export class UIScene extends Phaser.Scene {
     // Atualiza textos de Moedas
     if (this.goldText) this.goldText.setText(`🪙 ${this.playerData.gold.toLocaleString()}`);
     if (this.gemsText) this.gemsText.setText(`💎 ${this.playerData.gems.toLocaleString()}`);
+
+    // Atualiza overlays de recarga (cooldowns) das skills e do Dash
+    let dashCooldownRatio = 0;
+    let activeSceneName = '';
+    if (this.scene.isActive('WorldScene')) activeSceneName = 'WorldScene';
+    else if (this.scene.isActive('BattleScene')) activeSceneName = 'BattleScene';
+
+    if (activeSceneName) {
+      const activeScene = this.scene.get(activeSceneName) as any;
+      if (activeScene && activeScene.lastDashTime) {
+        const now = this.time.now;
+        const lastDash = activeScene.lastDashTime;
+        const cd = 2000;
+        dashCooldownRatio = Math.max(0, (lastDash + cd - now) / cd);
+      }
+    }
+
+    this.skillSlots.forEach((slot, idx) => {
+      const overlay = slot.overlay;
+      overlay.clear();
+
+      const ratio = idx === 3 ? dashCooldownRatio : (this.lastSkillCooldowns[idx] || 0);
+      if (ratio > 0) {
+        overlay.fillStyle(0x000000, 0.65);
+        overlay.slice(21, 21, 20, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * ratio), false);
+        overlay.fillPath();
+
+        const cdTime = idx === 3 ? 2000 : [3000, 6000, 12000][idx];
+        const remaining = (ratio * cdTime / 1000).toFixed(1);
+        slot.cooldownText.setText(`${remaining}s`).setVisible(true);
+      } else {
+        slot.cooldownText.setVisible(false);
+      }
+    });
   }
 
   private showLevelUpBanner(level: number): void {
@@ -377,9 +460,13 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createHotbar(width: number, height: number): void {
-    const slotSize = 40;
-    const slotCount = 8;
-    const gap = 4;
+    // Limpa slots se já existirem
+    this.skillSlots.forEach((s) => s.container.destroy());
+    this.skillSlots = [];
+
+    const slotSize = 42;
+    const slotCount = 4;
+    const gap = 8;
     const totalWidth = slotCount * (slotSize + gap) - gap;
     const startX = (width - totalWidth) / 2;
     const y = height - slotSize - 16;
@@ -391,35 +478,228 @@ export class UIScene extends Phaser.Scene {
     hotbarBg.lineStyle(1, 0xd4a843, 0.6);
     hotbarBg.strokeRoundedRect(startX - 8, y - 8, totalWidth + 16, slotSize + 16, 8);
 
-    // Slots
-    const skillNames = ['Golpe', 'Escudo', 'Cura', 'Buff', '—', '—', '—', 'Poção'];
-    const skillColors = [0xdc143c, 0x3498db, 0x27ae60, 0xf39c12, 0x333333, 0x333333, 0x333333, 0xff6699];
-
     for (let i = 0; i < slotCount; i++) {
       const sx = startX + i * (slotSize + gap);
+      const container = this.add.container(sx, y);
 
       // Slot background
-      hotbarBg.fillStyle(0x1a0a2e, 0.9);
-      hotbarBg.fillRoundedRect(sx, y, slotSize, slotSize, 4);
-      hotbarBg.lineStyle(1, 0x4a2d6e, 0.8);
-      hotbarBg.strokeRoundedRect(sx, y, slotSize, slotSize, 4);
+      const slotBg = this.add.graphics();
+      slotBg.fillStyle(0x1a0a2e, 0.95);
+      slotBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
+      slotBg.lineStyle(1.5, 0x4a2d6e, 0.8);
+      slotBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+      container.add(slotBg);
 
-      // Ícone placeholder
-      const iconBg = this.add.graphics();
-      iconBg.fillStyle(skillColors[i], 0.3);
-      iconBg.fillRoundedRect(sx + 4, y + 4, slotSize - 8, slotSize - 8, 3);
-
-      // Nome da skill
-      this.add.text(sx + slotSize / 2, y + slotSize / 2 - 2, skillNames[i], {
-        fontFamily: 'Inter', fontSize: '8px', fontStyle: 'bold',
-        color: '#e0d5c0', stroke: '#000', strokeThickness: 1,
+      // Icon Text (emoji)
+      const iconText = this.add.text(slotSize / 2, slotSize / 2 - 4, '❓', {
+        fontSize: '18px',
       }).setOrigin(0.5);
+      container.add(iconText);
 
-      // Keybind
-      this.add.text(sx + 3, y + 2, `${i + 1}`, {
-        fontFamily: 'Inter', fontSize: '8px', fontStyle: 'bold',
+      // Skill Name Text (very small at the bottom of the slot)
+      const nameText = this.add.text(slotSize / 2, slotSize - 6, 'Skill', {
+        fontFamily: 'Inter',
+        fontSize: '7px',
+        fontStyle: 'bold',
+        color: '#aaaaaa',
+      }).setOrigin(0.5);
+      container.add(nameText);
+
+      // Keybind text (top-left)
+      const keyText = this.add.text(3, 2, `${i + 1}`, {
+        fontFamily: 'Inter',
+        fontSize: '8px',
+        fontStyle: 'bold',
         color: '#d4a843',
       });
+      container.add(keyText);
+
+      // Cooldown Overlay (Graphics)
+      const overlay = this.add.graphics();
+      container.add(overlay);
+
+      // Cooldown Text remaining (center, bold)
+      const cooldownText = this.add.text(slotSize / 2, slotSize / 2, '', {
+        fontFamily: 'Cinzel',
+        fontSize: '11px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3,
+      }).setOrigin(0.5).setVisible(false);
+      container.add(cooldownText);
+
+      this.skillSlots.push({
+        container,
+        iconText,
+        nameText,
+        keyText,
+        overlay,
+        cooldownText,
+      });
+    }
+
+    this.updateHotbarSkills();
+  }
+
+  private updateHotbarSkills(): void {
+    const SKILL_MAP: Record<string, { name: string; icon: string; key: string }[]> = {
+      PALADIN: [
+        { name: 'Escudo', icon: '🛡️', key: '1' },
+        { name: 'Cura', icon: '💚', key: '2' },
+        { name: 'Impacto', icon: '⚡', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      MAGE: [
+        { name: 'Bola Fogo', icon: '🔥', key: '1' },
+        { name: 'Gelo', icon: '❄️', key: '2' },
+        { name: 'Teleporte', icon: '🔮', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      ARCHER: [
+        { name: 'Tiro Trip', icon: '🏹', key: '1' },
+        { name: 'Trap', icon: '💣', key: '2' },
+        { name: 'Chuva Fl', icon: '⛈️', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+      ASSASSIN: [
+        { name: 'Golpe Ft', icon: '🗡️', key: '1' },
+        { name: 'Faca Ven', icon: '🧪', key: '2' },
+        { name: 'Furtivo', icon: '👤', key: '3' },
+        { name: 'Esquiva', icon: '💨', key: 'Shift' },
+      ],
+    };
+
+    const skills = SKILL_MAP[this.playerClassStr] || SKILL_MAP.PALADIN;
+    skills.forEach((skill, idx) => {
+      const slot = this.skillSlots[idx];
+      if (slot) {
+        slot.iconText.setText(skill.icon);
+        slot.nameText.setText(skill.name);
+        slot.keyText.setText(skill.key);
+      }
+    });
+  }
+
+  private showDialogueBox(data: { portrait: string; title: string; text: string; hasConfirm?: boolean; onConfirm?: () => void }): void {
+    if (this.dialogueContainer) {
+      this.dialogueContainer.destroy();
+    }
+
+    const { width, height } = this.cameras.main;
+    this.isDialogueOpen = true;
+    this.dialogueConfirmCallback = data.onConfirm || null;
+
+    this.dialogueContainer = this.add.container(0, 0).setDepth(300);
+
+    const boxW = 440;
+    const boxH = 96;
+    const px = (width - boxW) / 2;
+    const py = height - boxH - 74;
+
+    // Fundo medieval com borda dourada
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a0614, 0.95);
+    bg.fillRoundedRect(px, py, boxW, boxH, 8);
+    bg.lineStyle(2, 0xd4a843, 1);
+    bg.strokeRoundedRect(px, py, boxW, boxH, 8);
+    this.dialogueContainer.add(bg);
+
+    // Moldura do portrait
+    const portraitX = px + 12;
+    const portraitY = py + 12;
+    const portraitSize = 72;
+
+    const portBg = this.add.graphics();
+    portBg.fillStyle(0x1a0f30, 0.85);
+    portBg.fillRoundedRect(portraitX, portraitY, portraitSize, portraitSize, 4);
+    portBg.lineStyle(1.5, 0xd4a843, 0.7);
+    portBg.strokeRoundedRect(portraitX, portraitY, portraitSize, portraitSize, 4);
+    this.dialogueContainer.add(portBg);
+
+    // Portrait Sprite
+    const portSprite = this.add.sprite(portraitX + portraitSize / 2, portraitY + portraitSize / 2, data.portrait);
+    portSprite.setDisplaySize(portraitSize - 6, portraitSize - 6);
+    this.dialogueContainer.add(portSprite);
+
+    // Título do NPC
+    const titleText = this.add.text(px + portraitSize + 24, py + 12, data.title, {
+      fontFamily: 'Cinzel',
+      fontSize: '13px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+    });
+    this.dialogueContainer.add(titleText);
+
+    // Conteúdo de texto
+    const textObj = this.add.text(px + portraitSize + 24, py + 30, '', {
+      fontFamily: 'Inter',
+      fontSize: '10px',
+      color: '#ffffff',
+      wordWrap: { width: boxW - portraitSize - 40 },
+    });
+    this.dialogueContainer.add(textObj);
+
+    // Efeito de digitação (typing effect)
+    let currentIdx = 0;
+    const timer = this.time.addEvent({
+      delay: 20,
+      repeat: data.text.length - 1,
+      callback: () => {
+        if (textObj.active) {
+          textObj.text += data.text[currentIdx];
+          currentIdx++;
+        }
+      }
+    });
+
+    // Prompt de ação
+    const promptText = this.add.text(px + boxW - 12, py + boxH - 14, data.hasConfirm ? '[ENTER] Confirmar  |  [ESC] Cancelar' : '[ENTER] Fechar', {
+      fontFamily: 'Cinzel',
+      fontSize: '8.5px',
+      color: '#8aa6cc',
+    }).setOrigin(1, 0.5);
+    this.dialogueContainer.add(promptText);
+
+    // Pausa movimentação física nas cenas
+    const activeSceneName = this.scene.isActive('WorldScene') ? 'WorldScene' : 'BattleScene';
+    const activeScene = this.scene.get(activeSceneName) as any;
+    if (activeScene && activeScene.player) {
+      activeScene.physics.world.disable(activeScene.player);
+      activeScene.isMoving = false;
+      if (activeScene.player.body) {
+        activeScene.player.body.setVelocity(0, 0);
+      }
+      activeScene.player.play(`${activeScene.playerClass}-idle-${activeScene.currentDirection || 'down'}`, true);
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!this.isDialogueOpen) return;
+      if (event.key === 'Enter') {
+        window.removeEventListener('keydown', onKeyDown);
+        if (this.dialogueConfirmCallback) {
+          this.dialogueConfirmCallback();
+        }
+        this.hideDialogueBox();
+      } else if (event.key === 'Escape') {
+        window.removeEventListener('keydown', onKeyDown);
+        this.hideDialogueBox();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+  }
+
+  private hideDialogueBox(): void {
+    this.isDialogueOpen = false;
+    if (this.dialogueContainer) {
+      this.dialogueContainer.destroy();
+    }
+
+    // Reativa a física do jogador na cena ativa
+    const activeSceneName = this.scene.isActive('WorldScene') ? 'WorldScene' : 'BattleScene';
+    const activeScene = this.scene.get(activeSceneName) as any;
+    if (activeScene && activeScene.player) {
+      activeScene.physics.world.enable(activeScene.player);
     }
   }
 
@@ -1169,5 +1449,198 @@ export class UIScene extends Phaser.Scene {
     else icon = '🌙';
 
     this.mapNameText.setText(`📍 ${this.playerData.map}  |  ${icon} ${timeStr}`);
+  }
+
+  private createMobileControlsToggle(width: number): void {
+    const x = width - 128;
+    const y = 140;
+
+    const btn = this.add.text(x, y, '📱 Controles Touch', {
+      fontFamily: 'Inter',
+      fontSize: '9px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      backgroundColor: 'rgba(10, 6, 18, 0.85)',
+      padding: { x: 8, y: 4 },
+      stroke: '#ffd700',
+      strokeThickness: 1,
+    }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+
+    btn.on('pointerdown', () => {
+      this.toggleMobileControls();
+    });
+  }
+
+  private toggleMobileControls(): void {
+    this.isMobileControlsVisible = !this.isMobileControlsVisible;
+    if (this.mobileControlsContainer) {
+      this.mobileControlsContainer.setVisible(this.isMobileControlsVisible);
+    }
+  }
+
+  private createMobileControlsUI(width: number, height: number): void {
+    this.mobileControlsContainer = this.add.container(0, 0).setVisible(false).setDepth(250);
+
+    // ==================== JOYSTICK (Canto Inferior Esquerdo) ====================
+    const joyX = 80;
+    const joyY = height - 80;
+    const joyBaseRadius = 45;
+    const joyThumbRadius = 20;
+
+    const joyBase = this.add.graphics();
+    joyBase.fillStyle(0xffffff, 0.15);
+    joyBase.lineStyle(2, 0xffffff, 0.4);
+    joyBase.fillCircle(joyX, joyY, joyBaseRadius);
+    joyBase.strokeCircle(joyX, joyY, joyBaseRadius);
+    this.mobileControlsContainer.add(joyBase);
+
+    const joyThumb = this.add.graphics();
+    joyThumb.fillStyle(0xffd700, 0.7);
+    joyThumb.lineStyle(1.5, 0xffffff, 0.9);
+    joyThumb.fillCircle(joyX, joyY, joyThumbRadius);
+    joyThumb.strokeCircle(joyX, joyY, joyThumbRadius);
+    this.mobileControlsContainer.add(joyThumb);
+
+    const joyZone = this.add.zone(joyX, joyY, joyBaseRadius * 2.5, joyBaseRadius * 2.5).setInteractive();
+    this.mobileControlsContainer.add(joyZone);
+    this.input.setDraggable(joyZone);
+
+    joyZone.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.isDown) {
+        const dist = Phaser.Math.Distance.Between(joyX, joyY, pointer.x, pointer.y);
+        const angle = Phaser.Math.Angle.Between(joyX, joyY, pointer.x, pointer.y);
+
+        const clampedDist = Math.min(dist, joyBaseRadius);
+        const tx = joyX + Math.cos(angle) * clampedDist;
+        const ty = joyY + Math.sin(angle) * clampedDist;
+
+        joyThumb.clear();
+        joyThumb.fillStyle(0xffd700, 0.7);
+        joyThumb.lineStyle(1.5, 0xffffff, 0.9);
+        joyThumb.fillCircle(tx, ty, joyThumbRadius);
+        joyThumb.strokeCircle(tx, ty, joyThumbRadius);
+
+        this.joystickVector.x = Math.cos(angle) * (clampedDist / joyBaseRadius);
+        this.joystickVector.y = Math.sin(angle) * (clampedDist / joyBaseRadius);
+      }
+    });
+
+    const resetJoystick = () => {
+      joyThumb.clear();
+      joyThumb.fillStyle(0xffd700, 0.7);
+      joyThumb.lineStyle(1.5, 0xffffff, 0.9);
+      joyThumb.fillCircle(joyX, joyY, joyThumbRadius);
+      joyThumb.strokeCircle(joyX, joyY, joyThumbRadius);
+
+      this.joystickVector.x = 0;
+      this.joystickVector.y = 0;
+    };
+
+    joyZone.on('pointerout', resetJoystick);
+    joyZone.on('pointerup', resetJoystick);
+
+    // ==================== BOTÕES DE AÇÃO (Canto Inferior Direito) ====================
+    const btnRadius = 20;
+    const attackRadius = 28;
+
+    const createBtn = (x: number, y: number, label: string, color: number, callback: () => void) => {
+      const g = this.add.graphics();
+      g.fillStyle(color, 0.65);
+      g.lineStyle(2, 0xffffff, 0.85);
+      g.fillCircle(x, y, btnRadius);
+      g.strokeCircle(x, y, btnRadius);
+      this.mobileControlsContainer.add(g);
+
+      const t = this.add.text(x, y, label, {
+        fontFamily: 'Inter',
+        fontSize: '12px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+      }).setOrigin(0.5);
+      this.mobileControlsContainer.add(t);
+
+      const zone = this.add.zone(x, y, btnRadius * 2, btnRadius * 2).setInteractive({ useHandCursor: true });
+      zone.on('pointerdown', () => {
+        g.clear();
+        g.fillStyle(color, 0.9);
+        g.lineStyle(2, 0xffd700, 1);
+        g.fillCircle(x, y, btnRadius);
+        g.strokeCircle(x, y, btnRadius);
+        callback();
+      });
+      zone.on('pointerup', () => {
+        g.clear();
+        g.fillStyle(color, 0.65);
+        g.lineStyle(2, 0xffffff, 0.85);
+        g.fillCircle(x, y, btnRadius);
+        g.strokeCircle(x, y, btnRadius);
+      });
+      this.mobileControlsContainer.add(zone);
+    };
+
+    const getActiveScene = () => {
+      const name = this.scene.isActive('WorldScene') ? 'WorldScene' : 'BattleScene';
+      return this.scene.get(name) as any;
+    };
+
+    const triggerAttack = () => {
+      const sc = getActiveScene();
+      const cs = this.getActiveCombatSystem();
+      if (sc && cs) {
+        cs.performMeleeAttack(sc.player, sc.currentDirection, this.time.now);
+      }
+    };
+
+    const triggerSkill = (idx: number) => {
+      const sc = getActiveScene();
+      const cs = this.getActiveCombatSystem();
+      if (sc && cs) {
+        cs.useSkill(sc.player, idx, sc.currentDirection, this.time.now);
+      }
+    };
+
+    const triggerDashAction = () => {
+      const sc = getActiveScene();
+      if (sc && sc.triggerDash) {
+        sc.triggerDash(this.time.now);
+      }
+    };
+
+    // Botão de Ataque Básico (Espada)
+    const atkX = width - 60;
+    const atkY = height - 65;
+    const atkBg = this.add.graphics();
+    atkBg.fillStyle(0xdc143c, 0.65);
+    atkBg.lineStyle(2.5, 0xffffff, 0.9);
+    atkBg.fillCircle(atkX, atkY, attackRadius);
+    atkBg.strokeCircle(atkX, atkY, attackRadius);
+    this.mobileControlsContainer.add(atkBg);
+
+    const atkText = this.add.text(atkX, atkY, '⚔️', { fontSize: '20px' }).setOrigin(0.5);
+    this.mobileControlsContainer.add(atkText);
+
+    const atkZone = this.add.zone(atkX, atkY, attackRadius * 2, attackRadius * 2).setInteractive({ useHandCursor: true });
+    atkZone.on('pointerdown', () => {
+      atkBg.clear();
+      atkBg.fillStyle(0xdc143c, 0.95);
+      atkBg.lineStyle(2.5, 0xffd700, 1);
+      atkBg.fillCircle(atkX, atkY, attackRadius);
+      atkBg.strokeCircle(atkX, atkY, attackRadius);
+      triggerAttack();
+    });
+    atkZone.on('pointerup', () => {
+      atkBg.clear();
+      atkBg.fillStyle(0xdc143c, 0.65);
+      atkBg.lineStyle(2.5, 0xffffff, 0.9);
+      atkBg.fillCircle(atkX, atkY, attackRadius);
+      atkBg.strokeCircle(atkX, atkY, attackRadius);
+    });
+    this.mobileControlsContainer.add(atkZone);
+
+    // Botões de Habilidades em arco
+    createBtn(width - 120, height - 42, '1', 0x58137b, () => triggerSkill(0));
+    createBtn(width - 120, height - 96, '2', 0x228b22, () => triggerSkill(1));
+    createBtn(width - 70, height - 126, '3', 0xd4af37, () => triggerSkill(2));
+    createBtn(width - 170, height - 42, '💨', 0x708090, triggerDashAction);
   }
 }

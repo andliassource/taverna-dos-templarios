@@ -31,6 +31,12 @@ export class WorldScene extends Phaser.Scene {
   private isNearMerchant = false;
   private isNearBlacksmith = false;
   private enterKey!: Phaser.Input.Keyboard.Key;
+  private key1!: Phaser.Input.Keyboard.Key;
+  private key2!: Phaser.Input.Keyboard.Key;
+  private key3!: Phaser.Input.Keyboard.Key;
+  private shiftKey!: Phaser.Input.Keyboard.Key;
+  private isDashing = false;
+  private lastDashTime = 0;
 
   // Sistema de Tempo e Iluminação
   private gameHour = 12.0; // Hora atual do jogo (0.0 a 24.0)
@@ -434,6 +440,10 @@ export class WorldScene extends Phaser.Scene {
       this.cursors = this.input.keyboard.createCursorKeys();
       this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
       this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+      this.key1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+      this.key2 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+      this.key3 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+      this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
       this.wasd = {
         w: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
         a: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
@@ -457,12 +467,12 @@ export class WorldScene extends Phaser.Scene {
       if (dist < 48) {
         if (!this.isNearAldric) {
           this.isNearAldric = true;
-          this.interactionText.setText('Mestre Aldric: "Deseja entrar na Arena?"\n[Pressione ENTER para aceitar o desafio]');
+          this.interactionText.setText('Mestre Aldric: "Deseja entrar na Arena?"\n[Pressione ENTER para conversar]');
           this.interactionText.setVisible(true);
         }
 
         if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-          this.startBattleArena();
+          this.openAldricDialogue();
           return;
         }
       } else {
@@ -479,12 +489,12 @@ export class WorldScene extends Phaser.Scene {
       if (dist < 48) {
         if (!this.isNearMerchant) {
           this.isNearMerchant = true;
-          this.interactionText.setText('Mercadora Elise: "Deseja ver meus suprimentos?"\n[Pressione ENTER para negociar]');
+          this.interactionText.setText('Mercadora Elise: "Deseja ver meus suprimentos?"\n[Pressione ENTER para conversar]');
           this.interactionText.setVisible(true);
         }
 
         if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-          this.openMerchantShop();
+          this.openEliseDialogue();
           return;
         }
       } else {
@@ -501,12 +511,12 @@ export class WorldScene extends Phaser.Scene {
       if (dist < 48) {
         if (!this.isNearBlacksmith) {
           this.isNearBlacksmith = true;
-          this.interactionText.setText('Ferreiro Bjorn: "Deseja aprimorar seus equipamentos?"\n[Pressione ENTER para forjar]');
+          this.interactionText.setText('Ferreiro Bjorn: "Deseja forjar?"\n[Pressione ENTER para conversar]');
           this.interactionText.setVisible(true);
         }
 
         if (this.enterKey && Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-          this.openBlacksmithForge();
+          this.openBjornDialogue();
           return;
         }
       } else {
@@ -520,6 +530,22 @@ export class WorldScene extends Phaser.Scene {
     // Ataque com a barra de Espaço
     if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
       this.combatSystem.performMeleeAttack(this.player, this.currentDirection, time);
+    }
+
+    // Habilidades com as teclas 1, 2, 3
+    if (this.key1 && Phaser.Input.Keyboard.JustDown(this.key1)) {
+      this.combatSystem.useSkill(this.player, 0, this.currentDirection, time);
+    }
+    if (this.key2 && Phaser.Input.Keyboard.JustDown(this.key2)) {
+      this.combatSystem.useSkill(this.player, 1, this.currentDirection, time);
+    }
+    if (this.key3 && Phaser.Input.Keyboard.JustDown(this.key3)) {
+      this.combatSystem.useSkill(this.player, 2, this.currentDirection, time);
+    }
+
+    // Esquiva/Dash com Shift
+    if (this.shiftKey && Phaser.Input.Keyboard.JustDown(this.shiftKey)) {
+      this.triggerDash(time);
     }
 
     // Coleta de loot ao passar por cima
@@ -538,6 +564,7 @@ export class WorldScene extends Phaser.Scene {
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     if (body) {
+      if (this.isDashing) return; // Mantém velocidade e direção do Dash
       let vx = 0;
       let vy = 0;
 
@@ -557,6 +584,18 @@ export class WorldScene extends Phaser.Scene {
         this.currentDirection = 'down';
       }
 
+      // Adiciona suporte a movimentação pelo joystick virtual mobile
+      const uiScene = this.scene.get('UIScene') as any;
+      if (uiScene && uiScene.joystickVector && (uiScene.joystickVector.x !== 0 || uiScene.joystickVector.y !== 0)) {
+        vx = uiScene.joystickVector.x;
+        vy = uiScene.joystickVector.y;
+        if (Math.abs(vx) > Math.abs(vy)) {
+          this.currentDirection = vx > 0 ? 'right' : 'left';
+        } else {
+          this.currentDirection = vy > 0 ? 'down' : 'up';
+        }
+      }
+
       if (vx !== 0 || vy !== 0) {
         const length = Math.hypot(vx, vy);
         const speed = 130;
@@ -570,6 +609,65 @@ export class WorldScene extends Phaser.Scene {
       // Atualiza profundidade dinâmica (sorting Y)
       this.player.setDepth(this.player.y / 32 + 2);
     }
+  }
+
+  private triggerDash(time: number): void {
+    const cooldown = 2000;
+    if (time < this.lastDashTime + cooldown) {
+      this.combatSystem.showFloatingText(this.player.x, this.player.y - 20, 'Dash em Recarga!', '#ffcc00');
+      return;
+    }
+
+    this.isDashing = true;
+    this.lastDashTime = time;
+    SoundSynth.playDash();
+
+    let dx = 0; let dy = 0;
+    switch (this.currentDirection) {
+      case 'left': dx = -1; break;
+      case 'right': dx = 1; break;
+      case 'up': dy = -1; break;
+      case 'down': dy = 1; break;
+    }
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setVelocity(dx * 350, dy * 350);
+
+      this.add.particles(this.player.x, this.player.y, 'particle-gold', {
+        speed: { min: 10, max: 30 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 0.6, end: 0 },
+        lifespan: 300,
+        quantity: 8,
+        tint: 0xd4af37,
+      });
+
+      const ghostTimer = this.time.addEvent({
+        delay: 40,
+        repeat: 3,
+        callback: () => {
+          if (this.player && this.player.active) {
+            const ghost = this.add.sprite(this.player.x, this.player.y, `${this.playerClass}-sheet`, this.player.frame.name);
+            ghost.setScale(2.0);
+            ghost.setOrigin(0.5, 0.85);
+            ghost.setAlpha(0.4);
+            ghost.setTint(0x3a2010);
+            this.tweens.add({
+              targets: ghost,
+              alpha: 0,
+              duration: 200,
+              onComplete: () => ghost.destroy(),
+            });
+          }
+        }
+      });
+    }
+
+    this.time.delayedCall(180, () => {
+      this.isDashing = false;
+      if (body) body.setVelocity(0, 0);
+    });
   }
 
   private createDecorations(mapWidth: number, mapHeight: number): void {
@@ -722,15 +820,55 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private openMerchantShop(): void {
+  private openAldricDialogue(): void {
+    if (this.isNearAldric) {
+      this.isNearAldric = false;
+      this.interactionText.setVisible(false);
+    }
+    this.events.emit('show-dialogue', {
+      portrait: 'portrait-master',
+      title: 'Mestre Aldric',
+      text: 'A Arena é um local de grande perigo, mas também de glórias incomparáveis. Você tem coragem de testar sua bravura contra as hordas?',
+      hasConfirm: true,
+      onConfirm: () => {
+        this.startBattleArena();
+      }
+    });
+  }
+
+  private openEliseDialogue(): void {
     if (this.isNearMerchant) {
       this.isNearMerchant = false;
       this.interactionText.setVisible(false);
     }
-    this.physics.world.disable(this.player);
-    this.isMoving = false;
-    this.player.play(`player-idle-${this.currentDirection}`, true);
+    this.events.emit('show-dialogue', {
+      portrait: 'portrait-merchant',
+      title: 'Mercadora Elise',
+      text: 'Olá, bravo guerreiro! Deseja ver os meus suprimentos mágicos e poções curativas para a sua jornada?',
+      hasConfirm: true,
+      onConfirm: () => {
+        this.openMerchantShop();
+      }
+    });
+  }
 
+  private openBjornDialogue(): void {
+    if (this.isNearBlacksmith) {
+      this.isNearBlacksmith = false;
+      this.interactionText.setVisible(false);
+    }
+    this.events.emit('show-dialogue', {
+      portrait: 'portrait-blacksmith',
+      title: 'Ferreiro Bjorn',
+      text: 'Saudações! Minha forja está quente. Quer aprimorar suas armas e armaduras com o poder das gemas e moedas de ouro?',
+      hasConfirm: true,
+      onConfirm: () => {
+        this.openBlacksmithForge();
+      }
+    });
+  }
+
+  private openMerchantShop(): void {
     const uiScene = this.scene.get('UIScene') as any;
     if (uiScene) {
       uiScene.toggleMerchantShop(true);
@@ -738,14 +876,6 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private openBlacksmithForge(): void {
-    if (this.isNearBlacksmith) {
-      this.isNearBlacksmith = false;
-      this.interactionText.setVisible(false);
-    }
-    this.physics.world.disable(this.player);
-    this.isMoving = false;
-    this.player.play(`player-idle-${this.currentDirection}`, true);
-
     const uiScene = this.scene.get('UIScene') as any;
     if (uiScene) {
       uiScene.toggleBlacksmithForge(true);

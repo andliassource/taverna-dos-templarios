@@ -23,6 +23,12 @@ export class BattleScene extends Phaser.Scene {
   private wallLayer!: Phaser.Tilemaps.TilemapLayer;
   private playerClass: PlayerClass = PlayerClass.PALADIN;
   private combatSystem!: CombatSystem;
+  private key1!: Phaser.Input.Keyboard.Key;
+  private key2!: Phaser.Input.Keyboard.Key;
+  private key3!: Phaser.Input.Keyboard.Key;
+  private shiftKey!: Phaser.Input.Keyboard.Key;
+  private isDashing = false;
+  private lastDashTime = 0;
 
   private playerData: any;
   private currentWaveIndex = 0;
@@ -238,6 +244,10 @@ export class BattleScene extends Phaser.Scene {
     if (this.input.keyboard) {
       this.cursors = this.input.keyboard.createCursorKeys();
       this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      this.key1 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+      this.key2 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+      this.key3 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
+      this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
       this.wasd = {
         w: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
         a: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
@@ -371,6 +381,22 @@ export class BattleScene extends Phaser.Scene {
       this.combatSystem.performMeleeAttack(this.player, this.currentDirection, time);
     }
 
+    // Habilidades com as teclas 1, 2, 3
+    if (this.key1 && Phaser.Input.Keyboard.JustDown(this.key1)) {
+      this.combatSystem.useSkill(this.player, 0, this.currentDirection, time);
+    }
+    if (this.key2 && Phaser.Input.Keyboard.JustDown(this.key2)) {
+      this.combatSystem.useSkill(this.player, 1, this.currentDirection, time);
+    }
+    if (this.key3 && Phaser.Input.Keyboard.JustDown(this.key3)) {
+      this.combatSystem.useSkill(this.player, 2, this.currentDirection, time);
+    }
+
+    // Esquiva/Dash com Shift
+    if (this.shiftKey && Phaser.Input.Keyboard.JustDown(this.shiftKey)) {
+      this.triggerDash(time);
+    }
+
     // Coleta de moedas
     this.combatSystem.updateLootCollection(this.player.x, this.player.y);
 
@@ -390,6 +416,7 @@ export class BattleScene extends Phaser.Scene {
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     if (body) {
+      if (this.isDashing) return; // Mantém velocidade e direção do Dash
       let vx = 0;
       let vy = 0;
 
@@ -409,6 +436,18 @@ export class BattleScene extends Phaser.Scene {
         this.currentDirection = 'down';
       }
 
+      // Adiciona suporte a movimentação pelo joystick virtual mobile
+      const uiScene = this.scene.get('UIScene') as any;
+      if (uiScene && uiScene.joystickVector && (uiScene.joystickVector.x !== 0 || uiScene.joystickVector.y !== 0)) {
+        vx = uiScene.joystickVector.x;
+        vy = uiScene.joystickVector.y;
+        if (Math.abs(vx) > Math.abs(vy)) {
+          this.currentDirection = vx > 0 ? 'right' : 'left';
+        } else {
+          this.currentDirection = vy > 0 ? 'down' : 'up';
+        }
+      }
+
       if (vx !== 0 || vy !== 0) {
         const length = Math.hypot(vx, vy);
         const speed = 130;
@@ -419,6 +458,65 @@ export class BattleScene extends Phaser.Scene {
         this.player.play(`${this.playerClass}-idle-${this.currentDirection}`, true);
       }
     }
+  }
+
+  private triggerDash(time: number): void {
+    const cooldown = 2000;
+    if (time < this.lastDashTime + cooldown) {
+      this.combatSystem.showFloatingText(this.player.x, this.player.y - 20, 'Dash em Recarga!', '#ffcc00');
+      return;
+    }
+
+    this.isDashing = true;
+    this.lastDashTime = time;
+    SoundSynth.playDash();
+
+    let dx = 0; let dy = 0;
+    switch (this.currentDirection) {
+      case 'left': dx = -1; break;
+      case 'right': dx = 1; break;
+      case 'up': dy = -1; break;
+      case 'down': dy = 1; break;
+    }
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.setVelocity(dx * 350, dy * 350);
+
+      this.add.particles(this.player.x, this.player.y, 'particle-gold', {
+        speed: { min: 10, max: 30 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 0.6, end: 0 },
+        lifespan: 300,
+        quantity: 8,
+        tint: 0xd4af37,
+      });
+
+      const ghostTimer = this.time.addEvent({
+        delay: 40,
+        repeat: 3,
+        callback: () => {
+          if (this.player && this.player.active) {
+            const ghost = this.add.sprite(this.player.x, this.player.y, `${this.playerClass}-sheet`, this.player.frame.name);
+            ghost.setScale(2.0);
+            ghost.setOrigin(0.5, 0.85);
+            ghost.setAlpha(0.4);
+            ghost.setTint(0x3a2010);
+            this.tweens.add({
+              targets: ghost,
+              alpha: 0,
+              duration: 200,
+              onComplete: () => ghost.destroy(),
+            });
+          }
+        }
+      });
+    }
+
+    this.time.delayedCall(180, () => {
+      this.isDashing = false;
+      if (body) body.setVelocity(0, 0);
+    });
   }
 
   private applyClassVisuals(): void {

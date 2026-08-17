@@ -1256,33 +1256,45 @@ export class UIScene extends Phaser.Scene {
       }
     });
 
-    // === SEÇÃO DIREITA: GRID DE ITENS (4X4) ===
-    const gridX = px + 236;
+    // === SEÇÃO DIREITA: GRID DE ITENS (5X5 - 25 SLOTS) ===
+    const gridX = px + 216;
     const gridY = py + 54;
-    const slotSize = 48;
-    const gridSpacing = 8;
+    const slotSize = 44;
+    const gridSpacing = 6;
     const inventory = cs.getInventory();
 
-    for (let row = 0; row < 4; row++) {
-      for (let col = 0; col < 4; col++) {
-        const index = row * 4 + col;
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 5; col++) {
+        const index = row * 5 + col;
         const sx = gridX + col * (slotSize + gridSpacing);
         const sy = gridY + row * (slotSize + gridSpacing);
 
         const slotBg = this.add.graphics();
-        slotBg.fillStyle(0x130a24, 0.7);
+        slotBg.fillStyle(0x130a24, 0.85);
         slotBg.fillRoundedRect(sx, sy, slotSize, slotSize, 4);
-        slotBg.lineStyle(1, 0x4a2d6e, 0.5);
-        slotBg.strokeRoundedRect(sx, sy, slotSize, slotSize, 4);
-        this.inventoryContainer.add(slotBg);
 
         if (index < inventory.length) {
           const item = inventory[index];
+          let strokeColor = 0x4a2d6e;
+          if (item.rarity === 'RARE') strokeColor = 0x00aaff;
+          if (item.rarity === 'EPIC') strokeColor = 0xaa33ff;
+          if (item.rarity === 'LEGENDARY') strokeColor = 0xff9900;
+
+          slotBg.lineStyle(1.5, strokeColor, 0.9);
+          slotBg.strokeRoundedRect(sx, sy, slotSize, slotSize, 4);
+          this.inventoryContainer.add(slotBg);
 
           const itemIcon = this.add.text(sx + slotSize / 2, sy + slotSize / 2, item.icon, {
-            fontSize: '20px',
+            fontSize: '18px',
           }).setOrigin(0.5);
           this.inventoryContainer.add(itemIcon);
+
+          if (item.quantity && item.quantity > 1) {
+            const countTxt = this.add.text(sx + slotSize - 4, sy + slotSize - 4, `${item.quantity}`, {
+              fontFamily: 'Inter', fontSize: '9px', fontStyle: 'bold', color: '#ffffff'
+            }).setOrigin(1, 1);
+            this.inventoryContainer.add(countTxt);
+          }
 
           const zone = this.add.zone(sx + slotSize / 2, sy + slotSize / 2, slotSize, slotSize).setInteractive({ useHandCursor: true });
           zone.on('pointerdown', (pointer: any) => {
@@ -1301,24 +1313,28 @@ export class UIScene extends Phaser.Scene {
           this.input.mouse?.disableContextMenu();
           this.addTooltipListeners(zone, item);
           this.inventoryContainer.add(zone);
+        } else {
+          slotBg.lineStyle(1, 0x332244, 0.4);
+          slotBg.strokeRoundedRect(sx, sy, slotSize, slotSize, 4);
+          this.inventoryContainer.add(slotBg);
         }
       }
     }
 
     // === FOOTER DO PAINEL: STATUS DO JOGADOR ===
-    const footerY = py + ph - 36;
-    const footerText = this.add.text(px + 24, footerY, `ATK: ${cs.getAttackPower()}  |  DEF: ${cs.getDefense()}  |  HP: ${cs.getHP()}/${cs.getMaxHP()}`, {
+    const footerY = py + ph - 34;
+    const footerText = this.add.text(px + 20, footerY, `⚡ ATK: ${cs.getAttackPower()}  |  🛡️ DEF: ${cs.getDefense()}  |  ❤️ HP: ${cs.getHP()}/${cs.getMaxHP()}`, {
       fontFamily: 'Cinzel',
-      fontSize: '11px',
+      fontSize: '10.5px',
       fontStyle: 'bold',
       color: '#ffd700',
     });
     this.inventoryContainer.add(footerText);
 
-    const instructionsText = this.add.text(px + pw - 24, footerY + 2, '[Click Esquerdo: Equipar/Desequipar  |  Clique Direito: Lixo]', {
+    const instructionsText = this.add.text(px + pw - 20, footerY, '[Esq: Equipar/Usar  |  Dir: Lixo]', {
       fontFamily: 'Inter',
       fontSize: '8px',
-      color: '#8b8b8b',
+      color: '#888888',
     }).setOrigin(1, 0);
     this.inventoryContainer.add(instructionsText);
 
@@ -2847,5 +2863,116 @@ export class UIScene extends Phaser.Scene {
     modal.add(closeBtn);
 
     this.guildUIModal = modal;
+  }
+
+  private settingsUIModal: Phaser.GameObjects.Container | null = null;
+  private isBGMEnabled = true;
+  private isSFXEnabled = true;
+  private isShakeEnabled = true;
+
+  public toggleSettingsUI(): void {
+    if (this.settingsUIModal) {
+      this.settingsUIModal.destroy();
+      this.settingsUIModal = null;
+      return;
+    }
+
+    const { width, height } = this.scale;
+    const modal = this.add.container(width / 2, height / 2).setDepth(210);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0c0818, 0.96);
+    bg.fillRoundedRect(-250, -200, 500, 400, 10);
+    bg.lineStyle(2, 0xffd700, 0.95);
+    bg.strokeRoundedRect(-250, -200, 500, 400, 10);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(-246, -196, 492, 392, 8);
+    modal.add(bg);
+
+    const title = this.add.text(0, -170, '⚙️ CONFIGURAÇÕES DO JOGO', {
+      fontFamily: 'Cinzel', fontSize: '18px', fontStyle: 'bold', color: '#ffd700',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5);
+    modal.add(title);
+
+    // Seção Áudio
+    const audioLabel = this.add.text(-220, -130, '🔊 ÁUDIO & SOM', {
+      fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: '#00ffcc',
+    });
+    modal.add(audioLabel);
+
+    const bgmBtn = this.add.text(-200, -100, `Música (BGM): ${this.isBGMEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`, {
+      fontFamily: 'MedievalSharp', fontSize: '12px', color: '#ffffff',
+      backgroundColor: '#2a1a3a', padding: { x: 10, y: 6 }
+    }).setInteractive({ useHandCursor: true });
+    bgmBtn.on('pointerdown', () => {
+      this.isBGMEnabled = !this.isBGMEnabled;
+      bgmBtn.setText(`Música (BGM): ${this.isBGMEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`);
+      SoundSynth.playClick();
+    });
+    modal.add(bgmBtn);
+
+    const sfxBtn = this.add.text(20, -100, `Efeitos (SFX): ${this.isSFXEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`, {
+      fontFamily: 'MedievalSharp', fontSize: '12px', color: '#ffffff',
+      backgroundColor: '#2a1a3a', padding: { x: 10, y: 6 }
+    }).setInteractive({ useHandCursor: true });
+    sfxBtn.on('pointerdown', () => {
+      this.isSFXEnabled = !this.isSFXEnabled;
+      sfxBtn.setText(`Efeitos (SFX): ${this.isSFXEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`);
+      SoundSynth.playClick();
+    });
+    modal.add(sfxBtn);
+
+    // Seção Gráficos & Efeitos
+    const gfxLabel = this.add.text(-220, -50, '🎮 GRÁFICOS & GAMEPLAY', {
+      fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: '#00ffcc',
+    });
+    modal.add(gfxLabel);
+
+    const shakeBtn = this.add.text(-200, -20, `Tremor de Tela: ${this.isShakeEnabled ? '✅ LIGADO' : '❌ OCULTO'}`, {
+      fontFamily: 'MedievalSharp', fontSize: '12px', color: '#ffffff',
+      backgroundColor: '#2a1a3a', padding: { x: 10, y: 6 }
+    }).setInteractive({ useHandCursor: true });
+    shakeBtn.on('pointerdown', () => {
+      this.isShakeEnabled = !this.isShakeEnabled;
+      shakeBtn.setText(`Tremor de Tela: ${this.isShakeEnabled ? '✅ LIGADO' : '❌ OCULTO'}`);
+      SoundSynth.playClick();
+    });
+    modal.add(shakeBtn);
+
+    // Seção Guia de Teclas
+    const keysLabel = this.add.text(-220, 30, '⌨️ ATALHOS DO TECLADO', {
+      fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: '#00ffcc',
+    });
+    modal.add(keysLabel);
+
+    const hints = this.add.text(-220, 55,
+      ' [I] Inventário    | [C] Perfil    | [Q] Missões\n' +
+      ' [T] Talentos      | [G] Guilda    | [K] Forja\n' +
+      ' [P] Mascotes      | [L] Ranking   | [ESC] Fechar Modais',
+      { fontFamily: 'Inter', fontSize: '11px', color: '#ffd700', lineSpacing: 6 }
+    );
+    modal.add(hints);
+
+    // Reset de Dados
+    const resetBtn = this.add.text(0, 140, '🗑️ REINICIAR DADOS DE SALVAMENTO', {
+      fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ff4444',
+      backgroundColor: '#4a0000', padding: { x: 14, y: 8 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    resetBtn.on('pointerdown', () => {
+      if (confirm('Tem certeza que deseja apagar os dados salvos e reiniciar?')) {
+        localStorage.clear();
+        window.location.reload();
+      }
+    });
+    modal.add(resetBtn);
+
+    const closeBtn = this.add.text(225, -175, '✖', {
+      fontFamily: 'Cinzel', fontSize: '16px', color: '#ff4444'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleSettingsUI());
+    modal.add(closeBtn);
+
+    this.settingsUIModal = modal;
   }
 }

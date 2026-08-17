@@ -254,6 +254,10 @@ export class SoundSynth {
     }
   }
 
+  public static playClick(): void {
+    this.playBuy();
+  }
+
   public static playBuy(): void {
     try {
       const ctx = this.getContext();

@@ -13,4 +13,5 @@ export interface Item {
   rarity: 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
   upgradeLevel?: number; // Ex: +1, +2, +3...
   rune?: 'FLAME' | 'TEMPEST' | 'VAMPIRISM' | 'SHADOW';
+  quantity?: number;
 }

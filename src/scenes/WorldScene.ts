@@ -9,12 +9,14 @@ import { SoundSynth } from '../utils/SoundSynth';
 import { BaseGameScene } from './BaseGameScene';
 
 import { PetEntity } from '../entities/PetEntity';
+import { RaidBossEntity } from '../entities/RaidBossEntity';
 
 /**
  * WorldScene — Cenário principal do vilarejo com gráficos HD.
  * Usa imagens de fundo HD em vez de tilemaps pixelados.
  */
 export class WorldScene extends BaseGameScene {
+  private raidBoss?: RaidBossEntity;
   private masterAldric!: Phaser.GameObjects.Container;
   private blacksmithBjorn!: Phaser.GameObjects.Container;
   private merchantElise!: Phaser.GameObjects.Container;
@@ -462,6 +464,9 @@ export class WorldScene extends BaseGameScene {
         spawned++;
       }
     }
+
+    // Instanciação do World Boss na borda da zona segura
+    this.raidBoss = new RaidBossEntity(this, 50 * TILE_SIZE, 30 * TILE_SIZE);
   }
 
   private createDungeonPortal(): void {
@@ -582,6 +587,8 @@ export class WorldScene extends BaseGameScene {
   }
 
   update(time: number): void {
+    this.raidBoss?.updateBoss(time, this.player);
+
     // Colisão com muros (wallBodies)
     if (this.wallBodies && this.player) {
       this.physics.collide(this.player, this.wallBodies);

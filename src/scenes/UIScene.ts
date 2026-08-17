@@ -2645,6 +2645,9 @@ export class UIScene extends Phaser.Scene {
       const qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
       qKey.on('down', () => this.toggleQuestUI());
 
+      const pKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+      pKey.on('down', () => this.togglePetMountUI());
+
       const escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
       escKey.on('down', () => this.closeAllModals());
     }

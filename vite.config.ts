@@ -26,6 +26,9 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
+        entryFileNames: 'assets/app-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
         manualChunks(id) {
           if (id.includes('node_modules/phaser/')) {
             return 'phaser';

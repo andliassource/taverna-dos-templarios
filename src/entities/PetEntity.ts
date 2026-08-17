@@ -5,7 +5,7 @@ export class PetEntity extends Phaser.GameObjects.Container {
   private followDistance = 40;
   private moveSpeed = 160;
   private vacuumRadius = 130;
-  private petSprite: Phaser.GameObjects.Text;
+  private petSprite?: Phaser.GameObjects.Text;
   private auraGraphics: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene, x: number, y: number, petType: string = 'dragon') {
@@ -21,15 +21,24 @@ export class PetEntity extends Phaser.GameObjects.Container {
     this.auraGraphics.fillStyle(0xffd700, 0.15);
     this.auraGraphics.fillCircle(0, 0, 18);
 
-    // Ícone do Pet
-    const petIcon = petType === 'dragon' ? '🐉' : petType === 'cat' ? '🐱' : petType === 'wolf' ? '🐺' : '🦅';
-    this.petSprite = scene.add.text(0, -4, petIcon, { fontSize: '18px' }).setOrigin(0.5);
+    // Ícone do Pet / Sprite HD
+    let petVisual: Phaser.GameObjects.GameObject;
+    if (petType === 'dragon' && scene.textures.exists('pet-dragon-img')) {
+      const spr = scene.add.sprite(0, -4, 'pet-dragon-img');
+      spr.setDisplaySize(36, 36);
+      spr.setOrigin(0.5);
+      petVisual = spr;
+    } else {
+      const petIcon = petType === 'dragon' ? '🐉' : petType === 'cat' ? '🐱' : petType === 'wolf' ? '🐺' : '🦅';
+      this.petSprite = scene.add.text(0, -4, petIcon, { fontSize: '18px' }).setOrigin(0.5);
+      petVisual = this.petSprite;
+    }
 
-    this.add([shadow, this.auraGraphics, this.petSprite]);
+    this.add([shadow, this.auraGraphics, petVisual]);
 
     // Animação de flutuação
     scene.tweens.add({
-      targets: this.petSprite,
+      targets: petVisual,
       y: -10,
       duration: 1000,
       ease: 'Sine.easeInOut',
@@ -63,10 +72,12 @@ export class PetEntity extends Phaser.GameObjects.Container {
       }
     }
 
-    if (this.targetPlayer.x < this.x) {
-      this.petSprite.setFlipX(true);
-    } else if (this.targetPlayer.x > this.x) {
-      this.petSprite.setFlipX(false);
+    if (this.petSprite) {
+      if (this.targetPlayer.x < this.x) {
+        this.petSprite.setFlipX(true);
+      } else if (this.targetPlayer.x > this.x) {
+        this.petSprite.setFlipX(false);
+      }
     }
 
     this.setDepth(this.y / 32 + 5);

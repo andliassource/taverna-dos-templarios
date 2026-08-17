@@ -2,6 +2,7 @@ import { PlayerClass } from '../../shared/types';
 import { Item } from './item.types';
 
 export interface PlayerSceneData {
+  name?: string;
   playerClass: PlayerClass;
   hp: number;
   maxHp: number;

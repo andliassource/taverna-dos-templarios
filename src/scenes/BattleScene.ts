@@ -104,6 +104,17 @@ export class BattleScene extends BaseGameScene {
     this.wallLayer.setCollisionByExclusion([-1]);
     this.groundLayer.setDepth(0);
     this.wallLayer.setDepth(1);
+
+    // Círculo Central de Combate em Filigrana de Ouro
+    const arenaEmblem = this.add.graphics();
+    arenaEmblem.setPosition(12 * TILE_SIZE, 9 * TILE_SIZE);
+    arenaEmblem.lineStyle(2.5, 0xffd700, 0.7);
+    arenaEmblem.strokeCircle(0, 0, 72);
+    arenaEmblem.lineStyle(1.5, 0xffaa00, 0.5);
+    arenaEmblem.strokeCircle(0, 0, 80);
+    arenaEmblem.fillStyle(0xffd700, 0.05);
+    arenaEmblem.fillCircle(0, 0, 72);
+    arenaEmblem.setDepth(2);
   }
 
   private createArenaAtmosphere(): void {
@@ -123,6 +134,19 @@ export class BattleScene extends BaseGameScene {
       const torch = this.add.image(corner.x, corner.y, 'light-warm');
       torch.setScale(1.5).setAlpha(0.5).setBlendMode('ADD').setDepth(15);
       this.tweens.add({ targets: torch, alpha: 0.25, scale: 1.3, duration: 1200 + Math.random() * 400, yoyo: true, repeat: -1 });
+
+      // Partículas de Fogo nas Tochas da Arena
+      this.add.particles(corner.x, corner.y, 'particle-gold', {
+        speedY: { min: -15, max: -35 },
+        speedX: { min: -10, max: 10 },
+        scale: { start: 0.7, end: 0 },
+        alpha: { start: 1, end: 0 },
+        lifespan: 400,
+        quantity: 1,
+        frequency: 180,
+        blendMode: 'ADD',
+        tint: [0xff3300, 0xffaa00, 0xffff00],
+      }).setDepth(16);
     });
   }
 
@@ -159,8 +183,14 @@ export class BattleScene extends BaseGameScene {
   private exitToWorld(result: ArenaResult): void {
     this.scene.stop('BattleScene');
     const worldScene = this.scene.get('WorldScene') as any;
-    this.scene.resume('WorldScene');
-    worldScene.resumeFromArena(result);
+    if (worldScene && worldScene.scene.isPaused()) {
+      this.scene.resume('WorldScene');
+      if (worldScene.resumeFromArena) {
+        worldScene.resumeFromArena(result);
+      }
+    } else {
+      this.scene.start('WorldScene', { playerClass: this.playerClass, arenaResult: result });
+    }
   }
 
   private handleVictory(): void {

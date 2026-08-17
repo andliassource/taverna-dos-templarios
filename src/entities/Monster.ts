@@ -81,6 +81,7 @@ export class Monster extends Phaser.GameObjects.Container {
   private sprite!: Phaser.GameObjects.Sprite;
   private hpBarGraphics!: Phaser.GameObjects.Graphics;
   private nameText!: Phaser.GameObjects.Text;
+  private targetReticle!: Phaser.GameObjects.Graphics;
   private target: Phaser.GameObjects.Sprite | null = null;
   private lastAttackTime = 0;
   private homeX: number;
@@ -115,6 +116,12 @@ export class Monster extends Phaser.GameObjects.Container {
   }
 
   private createMonsterVisuals(): void {
+    // Retículo de mira (oculto por padrão)
+    this.targetReticle = this.scene.add.graphics();
+    this.targetReticle.lineStyle(2, 0xff0000, 0.8);
+    this.targetReticle.strokeCircle(0, 10, 22);
+    this.targetReticle.setVisible(false);
+
     // Sombra sob o monstro
     const shadow = this.scene.add.ellipse(0, 10, 20, 8, 0x000000, 0.35);
 
@@ -126,24 +133,26 @@ export class Monster extends Phaser.GameObjects.Container {
     }
 
     this.sprite = this.scene.add.sprite(0, 0, textureKey);
-    this.sprite.setScale(2.0);
+    this.sprite.setDisplaySize(48, 52);
     this.sprite.setOrigin(0.5, 0.75);
     this.sprite.setPipeline('Light2D');
 
     // Nome e Nível acima do monstro
-    this.nameText = this.scene.add.text(0, -26, `Lv.${this.config.level} ${this.config.name}`, {
+    this.nameText = this.scene.add.text(0, -32, `Lv.${this.config.level} ${this.config.name}`, {
       fontFamily: 'MedievalSharp',
-      fontSize: '9px',
+      fontSize: '8px',
       color: '#ff6666',
       stroke: '#000000',
       strokeThickness: 3,
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+      padding: { x: 3, y: 1 }
     }).setOrigin(0.5);
 
     // Barra de Vida flutuante
     this.hpBarGraphics = this.scene.add.graphics();
     this.updateHpBar();
 
-    this.add([shadow, this.sprite, this.nameText, this.hpBarGraphics]);
+    this.add([this.targetReticle, shadow, this.sprite, this.nameText, this.hpBarGraphics]);
   }
 
   // Removido drawMonsterBody corporizado via Sprite procedimental
@@ -152,20 +161,47 @@ export class Monster extends Phaser.GameObjects.Container {
     this.hpBarGraphics.clear();
     if (this.hp <= 0) return;
 
-    const w = 28;
+    const w = 26;
     const h = 4;
     const x = -w / 2;
-    const y = -18;
+    const y = -24;
 
-    // Fundo preto da barra
-    this.hpBarGraphics.fillStyle(0x000000, 0.7);
-    this.hpBarGraphics.fillRect(x - 1, y - 1, w + 2, h + 2);
+    // Moldura de Metal Fundido Escuro
+    this.hpBarGraphics.fillStyle(0x0e0818, 0.95);
+    this.hpBarGraphics.fillRoundedRect(x - 1, y - 1, w + 2, h + 2, 2);
 
-    // Preenchimento vermelho proporcional ao HP
+    // Contorno em Ouro Metálico
+    this.hpBarGraphics.lineStyle(1, 0xd4af37, 0.9);
+    this.hpBarGraphics.strokeRoundedRect(x - 1, y - 1, w + 2, h + 2, 2);
+
+    // Preenchimento de Cristal Rubro proporcional ao HP
     const ratio = Math.max(0, this.hp / this.config.maxHp);
-    const hpColor = ratio > 0.5 ? 0xcc2222 : ratio > 0.25 ? 0xee7700 : 0xff0000;
-    this.hpBarGraphics.fillStyle(hpColor, 1);
-    this.hpBarGraphics.fillRect(x, y, w * ratio, h);
+    if (ratio > 0) {
+      const fillW = Math.max(1, w * ratio);
+      const hpColor = ratio > 0.5 ? 0xdd2222 : ratio > 0.25 ? 0xff7700 : 0xff1111;
+      this.hpBarGraphics.fillStyle(hpColor, 1);
+      this.hpBarGraphics.fillRect(x, y, fillW, h);
+
+      // Reflexo de cristal no topo da barra
+      this.hpBarGraphics.fillStyle(0xffaab3, 0.6);
+      this.hpBarGraphics.fillRect(x, y, fillW, 1);
+    }
+  }
+
+  public setTargeted(isTargeted: boolean): void {
+    if (this.targetReticle) {
+      this.targetReticle.setVisible(isTargeted);
+      if (isTargeted) {
+        this.scene.tweens.add({
+          targets: this.targetReticle,
+          scaleX: 1.2, scaleY: 1.2, alpha: 0.5,
+          duration: 500, yoyo: true, repeat: -1
+        });
+      } else {
+        this.scene.tweens.killTweensOf(this.targetReticle);
+        this.targetReticle.setScale(1).setAlpha(1);
+      }
+    }
   }
 
   public setTarget(player: Phaser.GameObjects.Sprite): void {

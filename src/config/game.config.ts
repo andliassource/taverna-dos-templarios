@@ -3,35 +3,30 @@ import { BootScene } from '../scenes/BootScene';
 import { PreloadScene } from '../scenes/PreloadScene';
 import { MainMenuScene } from '../scenes/MainMenuScene';
 import { WorldScene } from '../scenes/WorldScene';
+import { TavernScene } from '../scenes/TavernScene';
 import { BattleScene } from '../scenes/BattleScene';
 import { DungeonScene } from '../scenes/DungeonScene';
 import { UIScene } from '../scenes/UIScene';
+import { MapScene } from '../scenes/MapScene';
 
 /**
  * Configuração principal do Phaser 3
- * Resolução base: 960x640 (proporção 3:2, ideal para pixel art)
- * Scale Mode: FIT — se adapta a qualquer tela mantendo proporção
+ * Resolução HD: 1280x720 (720p) com anti-aliasing e suavização
+ * Scale Mode: FIT — se adapta a qualquer tela mantendo proporção widescreen
  */
 export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',
-  width: 960,
-  height: 640,
-  pixelArt: true,
-  roundPixels: true,
-  antialias: false,
+  width: 1280,
+  height: 720,
+  pixelArt: false,
+  roundPixels: false,
+  antialias: true,
   backgroundColor: '#0a0612',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    min: {
-      width: 480,
-      height: 320,
-    },
-    max: {
-      width: 1920,
-      height: 1280,
-    },
+    expandParent: true,
   },
   physics: {
     default: 'arcade',
@@ -45,9 +40,11 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
     PreloadScene,
     MainMenuScene,
     WorldScene,
+    TavernScene,
     BattleScene,
     DungeonScene,
     UIScene,
+    MapScene,
   ],
   input: {
     keyboard: true,
@@ -60,9 +57,9 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
     forceSetTimeOut: false,
   },
   render: {
-    pixelArt: true,
-    antialias: false,
-    roundPixels: true,
+    pixelArt: false,
+    antialias: true,
+    roundPixels: false,
   },
 };
 

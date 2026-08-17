@@ -5,95 +5,98 @@ import { FirebaseService } from '../network/FirebaseService';
 import { SaveManager } from '../systems/SaveManager';
 
 /**
- * MainMenuScene — Menu principal com visual premium.
- * Background atmosférico da taverna, partículas e animações.
+ * MainMenuScene — Menu principal 100% responsivo e adaptável.
+ * Funciona perfeitamente em telas de PC (FullHD/4K) e Celulares.
  */
 export class MainMenuScene extends Phaser.Scene {
   private selectedClass: PlayerClass = PlayerClass.PALADIN;
-  private menuContainer!: Phaser.GameObjects.Container;
+
+  private mainContainer!: Phaser.GameObjects.Container;
+  private classSelectContainer!: Phaser.GameObjects.Container;
 
   private classButtons: Phaser.GameObjects.Container[] = [];
   private classDescText!: Phaser.GameObjects.Text;
   private classStatsText!: Phaser.GameObjects.Text;
   private classNameText!: Phaser.GameObjects.Text;
   private previewSprite!: Phaser.GameObjects.Sprite;
+  private continueBtnContainer!: Phaser.GameObjects.Container;
+  private playerName = 'Templário';
+  private nameInputText!: Phaser.GameObjects.Text;
 
   private classData = {
     [PlayerClass.PALADIN]: {
       name: 'Paladino',
       icon: '🛡️',
-      desc: 'Guerreiro sagrado com alta defesa e HP. Ataca com golpes corpo a corpo imbuídos de Fé.',
+      role: '🛡️ TANQUE SAGRADO',
+      primaryStat: 'VITALIDADE & FORÇA',
+      signatureSkill: '✨ Golpe Sagrado & Julgamento',
+      desc: 'Guerreiro sagrado com alta defesa e HP. Ataca com golpes imbuídos de luz e protege aliados com proteção divina.',
       stats: 'HP:  ████████ (Alto)\nMP:  ████ (Baixo)\nATK: ██████ (Médio)\nDEF: ██████████ (Máximo)'
     },
     [PlayerClass.GUARDIAN]: {
       name: 'Guardião',
       icon: '🛡️',
-      desc: 'Baluarte defensivo inabalável. Capaz de absorver imensas quantidades de dano e provocar inimigos.',
+      role: '🛡️ PAREDE DE FERRO',
+      primaryStat: 'VITALIDADE & DEFESA',
+      signatureSkill: '🛡️ Provocação & Barreira',
+      desc: 'Baluarte defensivo inabalável. Capaz de absorver imensas quantidades de dano e proteger a linha de trás.',
       stats: 'HP:  ██████████ (Máximo)\nMP:  ████ (Baixo)\nATK: ████ (Baixo)\nDEF: ██████████ (Máximo)'
     },
     [PlayerClass.WARRIOR]: {
       name: 'Guerreiro',
       icon: '⚔️',
-      desc: 'Mestre no combate de proximidade com armas pesadas. Causa dano físico massivo em área.',
+      role: '⚔️ DANO FÍSICO / MELEE',
+      primaryStat: 'FORÇA',
+      signatureSkill: '🌪️ Tormenta de Aço',
+      desc: 'Mestre do combate pesado. Causa dano físico massivo em área e lidera o avanço contra as hordas.',
       stats: 'HP:  ████████ (Alto)\nMP:  ████ (Baixo)\nATK: ██████████ (Máximo)\nDEF: ██████ (Médio)'
     },
     [PlayerClass.MAGE]: {
       name: 'Mago',
       icon: '🔮',
-      desc: 'Mestre das artes arcanas. Dispara projéteis mágicos de longo alcance que consomem Mana.',
+      role: '🔮 DANO MÁGICO EM ÁREA',
+      primaryStat: 'INTELIGÊNCIA',
+      signatureSkill: '☄️ Meteoro Arcano',
+      desc: 'Mestre das artes arcanas. Dispara projéteis de fogo e evoca tempestades mágicas de longo alcance.',
       stats: 'HP:  ████ (Baixo)\nMP:  ██████████ (Máximo)\nATK: ████████ (Alto)\nDEF: ████ (Baixo)'
     },
     [PlayerClass.NECROMANCER]: {
       name: 'Necromante',
       icon: '💀',
-      desc: 'Invocador das artes sombrias. Evoca esqueletos e explode cadáveres de monstros.',
+      role: '💀 INVOCADOR SOMBRIO',
+      primaryStat: 'INTELIGÊNCIA & MAGIA',
+      signatureSkill: '☠️ Evocar Exército & Explosão',
+      desc: 'Invocador das artes sombrias. Evoca esqueletos e consome a energia dos mortos para devastar o campo.',
       stats: 'HP:  ██████ (Médio)\nMP:  ██████████ (Máximo)\nATK: ████████ (Alto)\nDEF: ████ (Baixo)'
     },
     [PlayerClass.ARCHER]: {
       name: 'Arqueiro',
       icon: '🏹',
-      desc: 'Atirador ágil da floresta. Dispara flechas rápidas e precisas de longa distância.',
+      role: '🏹 DANO FÍSICO À DISTÂNCIA',
+      primaryStat: 'AGILIDADE',
+      signatureSkill: '🎯 Tiro Perfurante & Chuva',
+      desc: 'Atirador ágil da floresta. Dispara flechas rápidas e precisas mantendo distância dos perigos.',
       stats: 'HP:  ██████ (Médio)\nMP:  ████ (Baixo)\nATK: ████████ (Alto)\nDEF: ██████ (Médio)'
     },
     [PlayerClass.ASSASSIN]: {
       name: 'Assassino',
       icon: '🗡️',
-      desc: 'Lutador furtivo e mortal. Avança rapidamente sobre os inimigos causando dano crítico massivo.',
+      role: '🗡️ DANO CRÍTICO RÁPIDO',
+      primaryStat: 'AGILIDADE & FORÇA',
+      signatureSkill: '⚡ Passos Sombrios & Dança de Lâminas',
+      desc: 'Lutador furtivo de altíssima mobilidade. Avança rapidamente sobre os alvos para desferir acertos críticos letais.',
       stats: 'HP:  ██████ (Médio)\nMP:  ████ (Baixo)\nATK: ██████████ (Máximo)\nDEF: ████ (Baixo)'
     },
     [PlayerClass.CLERIC]: {
       name: 'Clérigo',
       icon: '💚',
-      desc: 'Servo divino capaz de regenerar vida e purificar hordas inimigas com luz sagrada.',
+      role: '💚 CURA & SUPORTE DIVINO',
+      primaryStat: 'INTELIGÊNCIA & VITALIDADE',
+      signatureSkill: '✨ Luz Purificadora & Aura Sagrada',
+      desc: 'Servo divino capaz de regenerar a vida do grupo, conceder escudos e purificar monstros com luz sagrada.',
       stats: 'HP:  ████████ (Alto)\nMP:  ████████ (Alto)\nATK: ██████ (Médio)\nDEF: ██████ (Médio)'
     },
-    [PlayerClass.DARK_KNIGHT]: {
-      name: 'Cavaleiro Negro',
-      icon: '🛡️',
-      desc: 'Guerreiro das sombras que absorve a essência vital dos inimigos em cada golpe.',
-      stats: 'HP:  ████████ (Alto)\nMP:  ██████ (Médio)\nATK: ████████ (Alto)\nDEF: ████████ (Alto)'
-    },
-    [PlayerClass.ELEMENTALIST]: {
-      name: 'Elementalista',
-      icon: '🔮',
-      desc: 'Mestre da natureza e elementos. Invoca tempestades de fogo, raio e gelo congelante.',
-      stats: 'HP:  ████ (Baixo)\nMP:  ██████████ (Máximo)\nATK: ██████████ (Máximo)\nDEF: ████ (Baixo)'
-    },
-    [PlayerClass.BARD]: {
-      name: 'Bardo',
-      icon: '💚',
-      desc: 'Poeta de batalha cujos canções fornecem bônus de dano, velocidade e cura para o grupo.',
-      stats: 'HP:  ██████ (Médio)\nMP:  ████████ (Alto)\nATK: ██████ (Médio)\nDEF: ██████ (Médio)'
-    },
-    [PlayerClass.DRUID]: {
-      name: 'Druida',
-      icon: '💚',
-      desc: 'Guardião da floresta capaz de se transformar em urso gigante e invocar vinhas sagradas.',
-      stats: 'HP:  ██████████ (Máximo)\nMP:  ██████ (Médio)\nATK: ██████ (Médio)\nDEF: ████████ (Alto)'
-    }
   };
-
-  private continueBtn!: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: 'MainMenuScene' });
@@ -101,242 +104,401 @@ export class MainMenuScene extends Phaser.Scene {
 
   create(): void {
     SoundSynth.playBGM('menu');
-    const { width, height } = this.cameras.main;
+    const { width, height } = this.scale;
 
-    // Background da taverna (imagem gerada por IA)
-    const bg = this.add.image(width / 2, height / 2, 'menu-bg');
+    // Background da taverna HD adaptável
+    const bgKey = this.textures.exists('menu-bg-hd') ? 'menu-bg-hd' : 'menu-bg';
+    const bg = this.add.image(width / 2, height / 2, bgKey);
     bg.setDisplaySize(width, height);
 
-    // Overlay escuro para legibilidade
+    // Overlay escuro
     const overlay = this.add.graphics();
-    overlay.fillStyle(0x0a0612, 0.45);
+    overlay.fillStyle(0x0a0612, 0.5);
     overlay.fillRect(0, 0, width, height);
 
     // Vinheta
     const vignette = this.add.image(width / 2, height / 2, 'vignette');
-    vignette.setDisplaySize(width, height);
-    vignette.setAlpha(0.6);
+    vignette.setDisplaySize(width, height).setAlpha(0.6);
 
-    // Partículas douradas flutuantes (poeira no ar)
+    // Partículas douradas
     this.add.particles(0, 0, 'particle-gold', {
       x: { min: 0, max: width },
       y: { min: 0, max: height },
-      lifespan: 5000,
-      speed: { min: 5, max: 20 },
+      lifespan: 4500,
+      speed: { min: 10, max: 25 },
       angle: { min: 250, max: 290 },
       scale: { start: 1, end: 0 },
       alpha: { start: 0.7, end: 0 },
-      frequency: 150,
+      frequency: 180,
       blendMode: 'ADD',
     });
 
-    // Fireflies (vaga-lumes)
-    this.add.particles(0, 0, 'particle-firefly', {
-      x: { min: 0, max: width },
-      y: { min: height * 0.3, max: height },
-      lifespan: 3000,
-      speed: { min: 10, max: 40 },
-      angle: { min: 0, max: 360 },
-      scale: { start: 0.5, end: 1.5, ease: 'Sine.easeInOut' },
-      alpha: { start: 0, end: 0.8, ease: 'Sine.easeInOut' },
-      frequency: 800,
-      blendMode: 'ADD',
-    });
+    // 1. TÍTULO FIXO NO TOPO DA TELA
+    this.createHeaderTitle(width, height);
 
-    // Container do menu
-    this.menuContainer = this.add.container(width / 2, 0);
+    // 2. CONTAINER DO MENU PRINCIPAL (ESTADO 1)
+    this.mainContainer = this.add.container(width / 2, height * 0.42);
+    this.createMainMenuButtons();
 
-    // Título com efeito glow
-    this.createTitle(height);
+    // 3. CONTAINER DE SELEÇÃO DE CLASSE (ESTADO 2 - OCULTO INICIALMENTE)
+    this.classSelectContainer = this.add.container(0, 0).setVisible(false);
+    this.createClassSelectionContent(width, height);
 
-    // Subtítulo
-    this.createSubtitle(height);
-
-    // Botões do menu
-    this.createMenuButtons(height);
-
-    // Versão
-    this.add.text(width - 10, height - 10, 'v0.1.0-alpha', {
+    // Versão no rodapé
+    this.add.text(width - 16, height - 16, 'v0.1.0-alpha (Edição Responsiva)', {
       fontFamily: 'Inter',
       fontSize: '12px',
-      color: 'rgba(212, 168, 67, 0.5)',
+      color: 'rgba(212, 168, 67, 0.6)',
     }).setOrigin(1, 1);
 
-    // Decoração: espadas cruzadas (em cima do título)
-    this.createSwordDecoration(width, height);
-
-    // Painel de seleção de classes
-    this.createClassSelectionPanel(width, height);
-
-    // Fade in
-    this.cameras.main.fadeIn(800);
-
-    // Verifica se há save para mostrar botão Continuar
+    this.cameras.main.fadeIn(500);
     this.refreshContinueButton();
-
-    // Escuta mudanças de auth para atualizar o botão de login
     FirebaseService.onAuthChange(() => this.refreshContinueButton());
   }
 
-  private refreshContinueButton(): void {
-    const hasSave = SaveManager.hasSave();
-    if (this.continueBtn) {
-      this.continueBtn.setVisible(hasSave);
-    }
-  }
+  private createHeaderTitle(width: number, height: number): void {
+    const titleY = height * 0.14;
 
-  private createTitle(height: number): void {
-    // Sombra do título
-    const titleShadow = this.add.text(0, height * 0.16 + 3, 'Taverna dos Templários', {
+    // Sombra
+    const titleShadow = this.add.text(width / 2, titleY + 3, 'TAVERNA DOS TEMPLÁRIOS', {
       fontFamily: 'Cinzel',
-      fontSize: '44px',
+      fontSize: '34px',
       fontStyle: 'bold',
       color: '#000000',
-    }).setOrigin(0.5).setAlpha(0.5);
-    this.menuContainer.add(titleShadow);
+    }).setOrigin(0.5).setAlpha(0.7);
 
-    // Título principal
-    const title = this.add.text(0, height * 0.15, 'Taverna dos Templários', {
+    // Título Principal
+    const title = this.add.text(width / 2, titleY, 'TAVERNA DOS TEMPLÁRIOS', {
       fontFamily: 'Cinzel',
-      fontSize: '44px',
+      fontSize: '34px',
       fontStyle: 'bold',
       color: '#ffd700',
-      stroke: '#8b6914',
+      stroke: '#4a2d10',
       strokeThickness: 4,
-      shadow: {
-        offsetX: 0,
-        offsetY: 0,
-        color: '#ffd700',
-        blur: 30,
-        fill: true,
-      },
     }).setOrigin(0.5);
-    this.menuContainer.add(title);
 
-    // Animação pulsante
-    this.tweens.add({
-      targets: title,
-      scaleX: 1.02,
-      scaleY: 1.02,
-      duration: 3000,
-      ease: 'Sine.easeInOut',
-      yoyo: true,
-      repeat: -1,
-    });
-
-    // Linha decorativa abaixo do título
-    const lineY = height * 0.22;
-    const lineGraphics = this.add.graphics();
-    lineGraphics.lineStyle(2, 0xd4a843, 0.6);
-    lineGraphics.lineBetween(-120, 0, 120, 0);
-    lineGraphics.fillStyle(0xd4a843, 0.8);
-    lineGraphics.fillCircle(0, 0, 3);
-    lineGraphics.fillCircle(-120, 0, 2);
-    lineGraphics.fillCircle(120, 0, 2);
-    lineGraphics.setPosition(0, lineY);
-    this.menuContainer.add(lineGraphics);
-  }
-
-  private createSubtitle(height: number): void {
-    const subtitle = this.add.text(0, height * 0.26, 'A Ordem Aguarda Seu Retorno', {
+    // Subtítulo
+    const subtitleY = height * 0.22;
+    const subtitle = this.add.text(width / 2, subtitleY, 'A Ordem Aguarda Seu Retorno', {
       fontFamily: 'MedievalSharp',
-      fontSize: '18px',
+      fontSize: '16px',
       color: '#d4a843',
       stroke: '#000000',
       strokeThickness: 3,
     }).setOrigin(0.5);
-    this.menuContainer.add(subtitle);
+
+    // Linha decorativa abaixo do título
+    const lineGfx = this.add.graphics();
+    lineGfx.lineStyle(2, 0xd4a843, 0.7);
+    lineGfx.lineBetween(width / 2 - 160, subtitleY + 18, width / 2 + 160, subtitleY + 18);
+    lineGfx.fillStyle(0xd4a843, 0.9);
+    lineGfx.fillCircle(width / 2, subtitleY + 18, 3);
 
     this.tweens.add({
       targets: subtitle,
-      alpha: 0.4,
-      duration: 2500,
+      alpha: 0.5,
+      duration: 2000,
       ease: 'Sine.easeInOut',
       yoyo: true,
       repeat: -1,
     });
   }
 
-  private createSwordDecoration(_width: number, height: number): void {
-    const decor = this.add.graphics();
-    const dy = height * 0.10;
-
-    // Espada esquerda
-    decor.fillStyle(0xb0b8c8, 1);
-    decor.fillRect(-65, dy, 2, 25);
-    decor.fillStyle(0xd4a843, 1);
-    decor.fillRect(-69, dy + 20, 10, 3);
-    decor.fillStyle(0x5a3a1e, 1);
-    decor.fillRect(-65, dy + 23, 2, 8);
-
-    // Espada direita (espelhada)
-    decor.fillStyle(0xb0b8c8, 1);
-    decor.fillRect(63, dy, 2, 25);
-    decor.fillStyle(0xd4a843, 1);
-    decor.fillRect(59, dy + 20, 10, 3);
-    decor.fillStyle(0x5a3a1e, 1);
-    decor.fillRect(63, dy + 23, 2, 8);
-
-    this.menuContainer.add(decor);
-  }
-
-  private createMenuButtons(height: number): void {
+  private createMainMenuButtons(): void {
     const hasSave = SaveManager.hasSave();
     const user = FirebaseService.currentUser;
 
     const buttonConfigs = [
-      ...(hasSave ? [{ text: '▶️  CONTINUAR', callback: () => this.onContinue(), primary: true }] : []),
-      { text: '⚔️  NOVA AVENTURA', callback: () => this.onNewGame(), primary: !hasSave },
+      ...(hasSave ? [{ text: '▶️  CONTINUAR JOGO', callback: () => this.onContinue(), primary: true }] : []),
+      { text: '⚔️  NOVA AVENTURA', callback: () => this.showClassSelection(), primary: !hasSave },
       {
         text: user ? `👤  ${user.displayName ?? 'Conta Google'}` : '🔑  ENTRAR COM GOOGLE',
         callback: () => user ? this.onLogout() : this.onGoogleLogin(),
         primary: false,
       },
-      { text: '⚙️  CONFIGURAÇÕES', callback: () => this.onSettings(), primary: false },
     ];
 
-    const startY = height * 0.42;
-    const spacing = 60;
-
-    buttonConfigs.forEach((config, index) => {
-      const btn = this.createMenuButton(
-        0,
-        startY + index * spacing,
-        config.text,
-        config.callback,
-        config.primary,
-      );
-      if (config.text.startsWith('▶️')) this.continueBtn = btn;
-      this.menuContainer.add(btn);
+    let currentY = 0;
+    buttonConfigs.forEach((config) => {
+      const btn = this.createButton(0, currentY, 300, 48, config.text, config.callback, config.primary);
+      if (config.text.startsWith('▶️')) this.continueBtnContainer = btn;
+      this.mainContainer.add(btn);
+      currentY += 64;
     });
   }
 
-  private createMenuButton(
-    x: number, y: number, text: string,
+  private showClassSelection(): void {
+    SoundSynth.playLoot();
+    this.mainContainer.setVisible(false);
+    this.classSelectContainer.setVisible(true);
+  }
+
+  private hideClassSelection(): void {
+    SoundSynth.playLoot();
+    this.classSelectContainer.setVisible(false);
+    this.mainContainer.setVisible(true);
+  }
+
+  private createClassSelectionContent(width: number, height: number): void {
+    const startY = height * 0.28;
+    const panelH = height * 0.65;
+    const leftX = width * 0.08;
+    const leftW = width * 0.38;
+
+    // === PAINEL ESQUERDO: LISTA DE CLASSES ===
+    const leftBg = this.add.graphics();
+    leftBg.fillStyle(0x0a0614, 0.9);
+    leftBg.fillRoundedRect(leftX, startY, leftW, panelH, 8);
+    leftBg.lineStyle(1.5, 0xd4a843, 0.7);
+    leftBg.strokeRoundedRect(leftX, startY, leftW, panelH, 8);
+    this.classSelectContainer.add(leftBg);
+
+    const leftTitle = this.add.text(leftX + leftW / 2, startY + 20, 'ESCOLHA SUA CLASSE', {
+      fontFamily: 'Cinzel',
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+    }).setOrigin(0.5);
+    this.classSelectContainer.add(leftTitle);
+
+    const classes = [
+      PlayerClass.PALADIN,
+      PlayerClass.GUARDIAN,
+      PlayerClass.WARRIOR,
+      PlayerClass.MAGE,
+      PlayerClass.NECROMANCER,
+      PlayerClass.ARCHER,
+      PlayerClass.ASSASSIN,
+      PlayerClass.CLERIC,
+    ];
+
+    const btnSpacing = 36;
+    classes.forEach((pClass, idx) => {
+      const cy = startY + 50 + idx * btnSpacing;
+      const btn = this.createClassSelectButton(leftX + leftW / 2, cy, leftW - 24, 30, pClass);
+      this.classButtons.push(btn);
+      this.classSelectContainer.add(btn);
+    });
+
+    // === PAINEL DIREITO: DETALHES E PREVIEW DA CLASSE ===
+    const rightX = leftX + leftW + width * 0.04;
+    const rightW = width * 0.42;
+
+    const rightBg = this.add.graphics();
+    rightBg.fillStyle(0x0a0614, 0.9);
+    rightBg.fillRoundedRect(rightX, startY, rightW, panelH, 8);
+    rightBg.lineStyle(1.5, 0xd4a843, 0.7);
+    rightBg.strokeRoundedRect(rightX, startY, rightW, panelH, 8);
+    this.classSelectContainer.add(rightBg);
+
+    // Botão Voltar [◀ VOLTAR]
+    const backBtn = this.createButton(rightX + 60, startY + 24, 90, 28, '◀ VOLTAR', () => this.hideClassSelection(), false);
+    this.classSelectContainer.add(backBtn);
+
+    // Nome da Classe
+    this.classNameText = this.add.text(rightX + rightW / 2 + 40, startY + 24, '', {
+      fontFamily: 'Cinzel',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+    }).setOrigin(0.5);
+    this.classSelectContainer.add(this.classNameText);
+
+    // Preview Sprite do Jogador
+    const spriteBg = this.add.graphics();
+    spriteBg.fillStyle(0x130a24, 0.9);
+    spriteBg.fillRoundedRect(rightX + rightW / 2 - 45, startY + 54, 90, 90, 6);
+    spriteBg.lineStyle(1.5, 0x5a3d8c, 0.8);
+    spriteBg.strokeRoundedRect(rightX + rightW / 2 - 45, startY + 54, 90, 90, 6);
+    this.classSelectContainer.add(spriteBg);
+
+    this.previewSprite = this.add.sprite(rightX + rightW / 2, startY + 104, `${PlayerClass.PALADIN}-sheet`, 0);
+    this.previewSprite.setScale(0.8).setOrigin(0.5, 0.8);
+    this.classSelectContainer.add(this.previewSprite);
+
+    // Descrição
+    this.classDescText = this.add.text(rightX + 20, startY + 158, '', {
+      fontFamily: 'Inter',
+      fontSize: '12px',
+      color: '#d0c5b0',
+      wordWrap: { width: rightW - 40 },
+      lineSpacing: 4,
+    });
+    this.classSelectContainer.add(this.classDescText);
+
+    // Status (Barras)
+    this.classStatsText = this.add.text(rightX + 20, startY + 295, '', {
+      fontFamily: 'Courier New',
+      fontSize: '11px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      lineSpacing: 4,
+    });
+    this.classSelectContainer.add(this.classStatsText);
+
+    // Campo de Entrada do Nome do Jogador
+    const nameLabel = this.add.text(rightX + 20, startY + panelH - 95, '⚔️ NOME DO SEU TEMPLÁRIO:', {
+      fontFamily: 'Cinzel', fontSize: '10px', fontStyle: 'bold', color: '#ffd700'
+    });
+    this.classSelectContainer.add(nameLabel);
+
+    const nameBg = this.add.graphics();
+    nameBg.fillStyle(0x0e0818, 0.95);
+    nameBg.fillRoundedRect(rightX + 20, startY + panelH - 80, rightW - 40, 28, 4);
+    nameBg.lineStyle(1.5, 0xd4af37, 0.9);
+    nameBg.strokeRoundedRect(rightX + 20, startY + panelH - 80, rightW - 40, 28, 4);
+    this.classSelectContainer.add(nameBg);
+
+    this.nameInputText = this.add.text(rightX + 30, startY + panelH - 66, 'Sir Lancelot', {
+      fontFamily: 'MedievalSharp', fontSize: '13px', color: '#ffffff'
+    }).setOrigin(0, 0.5);
+    this.classSelectContainer.add(this.nameInputText);
+
+    // Permite digitação interativa do nome
+    this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
+      if (!this.classSelectContainer.visible) return;
+      if (event.key === 'Backspace') {
+        this.playerName = this.playerName.slice(0, -1);
+      } else if (event.key.length === 1 && this.playerName.length < 16 && /[a-zA-Z0-9 Á-ú]/.test(event.key)) {
+        this.playerName += event.key;
+      }
+      this.nameInputText.setText(this.playerName || 'Templário');
+    });
+
+    // Botão Iniciar Aventura [⚔️ COMEÇAR JOGO]
+    const startBtn = this.createButton(
+      rightX + rightW / 2,
+      startY + panelH - 26,
+      rightW - 36,
+      38,
+      '⚔️ COMEÇAR JOGO',
+      () => this.onStartGame(),
+      true
+    );
+    this.classSelectContainer.add(startBtn);
+
+    this.selectClass(PlayerClass.PALADIN);
+  }
+
+  private createClassSelectButton(x: number, y: number, w: number, h: number, pClass: PlayerClass): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    const info = (this.classData as any)[pClass];
+
+    const bg = this.add.graphics();
+    const label = this.add.text(0, 0, `${info.icon}  ${info.name.toUpperCase()}`, {
+      fontFamily: 'Cinzel',
+      fontSize: '12px',
+      fontStyle: 'bold',
+      color: '#d4a843',
+    }).setOrigin(0.5);
+
+    container.add([bg, label]);
+
+    const hit = this.add.zone(0, 0, w, h).setInteractive({ useHandCursor: true });
+    container.add(hit);
+
+    const updateVisual = (isSelected: boolean) => {
+      bg.clear();
+      if (isSelected) {
+        bg.fillStyle(0x3a2010, 0.95);
+        bg.lineStyle(1.5, 0xffd700, 1);
+        label.setColor('#ffffff');
+      } else {
+        bg.fillStyle(0x130822, 0.7);
+        bg.lineStyle(1, 0x3a225e, 0.6);
+        label.setColor('#d4a843');
+      }
+      bg.fillRoundedRect(-w / 2, -h / 2, w, h, 4);
+      bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 4);
+    };
+
+    hit.on('pointerdown', () => {
+      SoundSynth.playLoot();
+      this.selectClass(pClass);
+    });
+
+    container.setData('updateVisual', updateVisual);
+    container.setData('pClass', pClass);
+
+    return container;
+  }
+
+  private selectClass(pClass: PlayerClass): void {
+    this.selectedClass = pClass;
+    
+    this.classButtons.forEach((btn) => {
+      const updateFn = btn.getData('updateVisual');
+      if (updateFn) {
+        updateFn(btn.getData('pClass') === pClass);
+      }
+    });
+
+    const info = (this.classData as any)[pClass];
+    if (this.classNameText) this.classNameText.setText(`${info.icon} ${info.name.toUpperCase()}`);
+    if (this.classDescText) {
+      this.classDescText.setText(
+        `Função: ${info.role}\n` +
+        `Atributos: ${info.primaryStat}\n` +
+        `Assinatura: ${info.signatureSkill}\n\n` +
+        `${info.desc}`
+      );
+    }
+    if (this.classStatsText) this.classStatsText.setText(info.stats);
+
+    if (this.previewSprite) {
+      const sheetKey = `${pClass}-sheet`;
+      if (this.textures.exists(sheetKey)) {
+        this.previewSprite.setTexture(sheetKey, 0);
+        this.previewSprite.setScale(1.35);
+        const animKey = `${pClass}-walk-down`;
+        if (this.anims.exists(animKey)) {
+          this.previewSprite.play(animKey, true);
+        }
+      }
+    }
+  }
+
+  private createButton(
+    x: number, y: number, btnWidth: number, btnHeight: number, text: string,
     callback: () => void, primary: boolean
   ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
-    const btnWidth = 300;
-    const btnHeight = 46;
 
     const bg = this.add.graphics();
     const drawNormal = () => {
       bg.clear();
-      if (primary) {
-        bg.fillGradientStyle(0x3a2010, 0x3a2010, 0x1a0a05, 0x1a0a05, 0.9);
-      } else {
-        bg.fillGradientStyle(0x1a0a2e, 0x1a0a2e, 0x0d0518, 0x0d0518, 0.85);
-      }
-      bg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 6);
-      bg.lineStyle(primary ? 2 : 1, primary ? 0xffd700 : 0xd4a843, primary ? 1 : 0.6);
-      bg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 6);
+      bg.fillStyle(primary ? 0x180d28 : 0x0e0818, 0.96);
+      bg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      bg.lineStyle(2, primary ? 0xffd700 : 0xd4af37, 0.95);
+      bg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      bg.lineStyle(1, 0x5a3e10, 0.7);
+      bg.strokeRoundedRect(-btnWidth / 2 + 3, -btnHeight / 2 + 3, btnWidth - 6, btnHeight - 6, 6);
+
+      const bCorners = [
+        [-btnWidth / 2 + 6, -btnHeight / 2 + 6], [btnWidth / 2 - 6, -btnHeight / 2 + 6],
+        [-btnWidth / 2 + 6, btnHeight / 2 - 6], [btnWidth / 2 - 6, btnHeight / 2 - 6]
+      ];
+      bCorners.forEach(([cx, cy]) => {
+        bg.fillStyle(0xffd700, 1);
+        bg.fillCircle(cx, cy, 2);
+      });
+    };
+
+    const drawHover = () => {
+      bg.clear();
+      bg.fillStyle(primary ? 0x2d1848 : 0x180c28, 0.98);
+      bg.lineStyle(2.5, 0x00ffcc, 1);
+      bg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      bg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      bg.lineStyle(1, 0x00ffcc, 0.5);
+      bg.strokeRoundedRect(-btnWidth / 2 + 3, -btnHeight / 2 + 3, btnWidth - 6, btnHeight - 6, 6);
     };
 
     drawNormal();
 
     const label = this.add.text(0, 0, text, {
       fontFamily: 'Cinzel',
-      fontSize: primary ? '17px' : '15px',
+      fontSize: primary ? '15px' : '13px',
       fontStyle: 'bold',
       color: primary ? '#ffd700' : '#d4a843',
       stroke: '#000000',
@@ -350,12 +512,12 @@ export class MainMenuScene extends Phaser.Scene {
 
     hitZone.on('pointerover', () => {
       bg.clear();
-      bg.fillGradientStyle(0x4a3020, 0x4a3020, 0x2a1510, 0x2a1510, 0.95);
+      bg.fillGradientStyle(0x5a381a, 0x5a381a, 0x321a0a, 0x321a0a, 0.95);
       bg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 6);
       bg.lineStyle(2, 0xffd700, 1);
       bg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 6);
       label.setColor('#ffffff');
-      container.setScale(1.04);
+      container.setScale(1.03);
     });
 
     hitZone.on('pointerout', () => {
@@ -364,17 +526,25 @@ export class MainMenuScene extends Phaser.Scene {
       container.setScale(1);
     });
 
-    hitZone.on('pointerdown', () => container.setScale(0.96));
+    hitZone.on('pointerdown', () => container.setScale(0.97));
     hitZone.on('pointerup', () => {
-      container.setScale(1.04);
+      container.setScale(1.03);
       callback();
     });
 
     return container;
   }
 
+  private refreshContinueButton(): void {
+    const hasSave = SaveManager.hasSave();
+    if (this.continueBtnContainer) {
+      this.continueBtnContainer.setVisible(hasSave);
+    }
+  }
+
   private onContinue(): void {
-    this.cameras.main.fadeOut(800, 0, 0, 0);
+    SoundSynth.playLoot();
+    this.cameras.main.fadeOut(500, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       const save = SaveManager.load();
       this.scene.start('WorldScene', {
@@ -385,11 +555,12 @@ export class MainMenuScene extends Phaser.Scene {
     });
   }
 
-  private onNewGame(): void {
+  private onStartGame(): void {
+    SoundSynth.playLoot();
     SaveManager.clear();
-    this.cameras.main.fadeOut(800, 0, 0, 0);
+    this.cameras.main.fadeOut(500, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
-      this.scene.start('WorldScene', { isNewGame: true, playerClass: this.selectedClass });
+      this.scene.start('WorldScene', { isNewGame: true, playerClass: this.selectedClass, name: this.playerName || 'Templário' });
       this.scene.launch('UIScene');
     });
   }
@@ -404,157 +575,5 @@ export class MainMenuScene extends Phaser.Scene {
   private async onLogout(): Promise<void> {
     await FirebaseService.logout();
     this.refreshContinueButton();
-  }
-
-  private createClassSelectionPanel(width: number, height: number): void {
-    const startX = 60;
-    const startY = height * 0.38;
-    const panelWidth = 240;
-    const panelHeight = 330;
-
-    // Fundo do painel de seleção
-    const selectBg = this.add.graphics();
-    selectBg.fillStyle(0x0a0612, 0.75);
-    selectBg.fillRoundedRect(startX, startY, panelWidth, panelHeight, 8);
-    selectBg.lineStyle(1, 0xd4a843, 0.5);
-    selectBg.strokeRoundedRect(startX, startY, panelWidth, panelHeight, 8);
-
-    // Título do painel de seleção
-    this.add.text(startX + panelWidth / 2, startY + 16, 'CLASSES DISPONÍVEIS', {
-      fontFamily: 'Cinzel',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffd700',
-    }).setOrigin(0.5);
-
-    const classes = [
-      PlayerClass.PALADIN,
-      PlayerClass.GUARDIAN,
-      PlayerClass.WARRIOR,
-      PlayerClass.MAGE,
-      PlayerClass.NECROMANCER,
-      PlayerClass.ARCHER,
-      PlayerClass.ASSASSIN,
-      PlayerClass.CLERIC,
-    ];
-    const spacing = 34;
-
-    classes.forEach((pClass, index) => {
-      const cy = startY + 44 + index * spacing;
-      const btn = this.createClassButton(startX + panelWidth / 2, cy, pClass);
-      this.classButtons.push(btn);
-    });
-
-    // Fundo do painel de descrição (Lado Direito)
-    const descX = width - panelWidth - startX;
-    const descBg = this.add.graphics();
-    descBg.fillStyle(0x0a0612, 0.75);
-    descBg.fillRoundedRect(descX, startY, panelWidth, panelHeight, 8);
-    descBg.lineStyle(1, 0xd4a843, 0.5);
-    descBg.strokeRoundedRect(descX, startY, panelWidth, panelHeight, 8);
-
-    // Componentes de texto da descrição
-    this.classNameText = this.add.text(descX + panelWidth / 2, startY + 18, '', {
-      fontFamily: 'Cinzel',
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: '#ffd700',
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(0.5);
-
-    this.classDescText = this.add.text(descX + 16, startY + 46, '', {
-      fontFamily: 'Inter',
-      fontSize: '11px',
-      color: '#e0d5c0',
-      wordWrap: { width: panelWidth - 32 },
-      lineSpacing: 4,
-    });
-
-    this.classStatsText = this.add.text(descX + 16, startY + 180, '', {
-      fontFamily: 'Courier New',
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#ffd700',
-      lineSpacing: 6,
-    });
-
-    // Preview do sprite 16-bit animado no centro
-    this.previewSprite = this.add.sprite(descX + panelWidth / 2, startY + 130, `${PlayerClass.PALADIN}-sheet`, 0);
-    this.previewSprite.setScale(4.5);
-    this.previewSprite.setDepth(20);
-
-    this.selectClass(PlayerClass.PALADIN);
-  }
-
-  private createClassButton(x: number, y: number, pClass: PlayerClass): Phaser.GameObjects.Container {
-    const container = this.add.container(x, y);
-    const w = 210;
-    const h = 28;
-    const info = (this.classData as any)[pClass];
-
-    const bg = this.add.graphics();
-    const label = this.add.text(0, 0, `${info.icon}  ${info.name.toUpperCase()}`, {
-      fontFamily: 'Cinzel',
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#d4a843',
-    }).setOrigin(0.5);
-
-    container.add([bg, label]);
-
-    const hit = this.add.zone(0, 0, w, h).setInteractive({ useHandCursor: true });
-    container.add(hit);
-
-    const updateVisual = (isSelected: boolean) => {
-      bg.clear();
-      if (isSelected) {
-        bg.fillStyle(0x3a2010, 0.85);
-        bg.lineStyle(1.5, 0xffd700, 1);
-        label.setColor('#ffffff');
-      } else {
-        bg.fillStyle(0x1a0a2e, 0.6);
-        bg.lineStyle(1, 0x4a2d6e, 0.5);
-        label.setColor('#d4a843');
-      }
-      bg.fillRoundedRect(-w / 2, -h / 2, w, h, 4);
-      bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 4);
-    };
-
-    hit.on('pointerdown', () => {
-      this.selectClass(pClass);
-    });
-
-    container.setData('updateVisual', updateVisual);
-    container.setData('pClass', pClass);
-
-    return container;
-  }
-
-  private selectClass(pClass: PlayerClass): void {
-    this.selectedClass = pClass;
-    
-    // Atualiza botões
-    this.classButtons.forEach((btn) => {
-      const updateFn = btn.getData('updateVisual');
-      if (updateFn) {
-        updateFn(btn.getData('pClass') === pClass);
-      }
-    });
-
-    // Atualiza descrição
-    const info = (this.classData as any)[pClass];
-    if (this.classNameText) this.classNameText.setText(`${info.icon} ${info.name.toUpperCase()}`);
-    if (this.classDescText) this.classDescText.setText(info.desc);
-    if (this.classStatsText) this.classStatsText.setText(info.stats);
-
-    if (this.previewSprite) {
-      this.previewSprite.setTexture(`${pClass}-sheet`, 0);
-      this.previewSprite.play(`${pClass}-idle-down`, true);
-    }
-  }
-
-  private onSettings(): void {
-    console.log('[MainMenuScene] Configurações');
   }
 }

@@ -56,10 +56,11 @@ export class BossEntity extends Phaser.GameObjects.Container {
     this.auraGraphics = this.scene.add.graphics();
     this.updateAuraVisual();
 
-    this.sprite = this.scene.add.sprite(0, 0, 'monster-demon_imp');
-    this.sprite.setScale(3.5);
-    this.sprite.setOrigin(0.5, 0.8);
-    this.sprite.setTint(0x8b0000);
+    const textureKey = this.scene.textures.exists('boss-malakor-img') ? 'boss-malakor-img' : 'monster-demon_imp';
+    this.sprite = this.scene.add.sprite(0, 0, textureKey);
+    this.sprite.setDisplaySize(80, 85);
+    this.sprite.setOrigin(0.5, 0.85);
+    this.sprite.clearTint();
 
     const nameText = this.scene.add.text(0, -52, `👑 Lv.${this.config.level} ${this.config.name}`, {
       fontFamily: 'Cinzel',
@@ -199,15 +200,16 @@ export class BossEntity extends Phaser.GameObjects.Container {
     if (body) body.setVelocity(0, 0);
 
     // Efeito de explosão de luz sagrada
-    this.scene.add.particles(this.x, this.y, 'particle-gold', {
+    const bossDeathEmitter = this.scene.add.particles(this.x, this.y, 'particle-gold', {
       speed: { min: 60, max: 180 },
       angle: { min: 0, max: 360 },
       scale: { start: 1.5, end: 0 },
       lifespan: 1200,
       quantity: 50,
-      tint: 0xffd700,
+      tint: [0xff0000, 0x8a2be2, 0xffaa00],
+      blendMode: 'ADD'
     });
-
+    this.scene.time.delayedCall(1300, () => bossDeathEmitter.destroy());
     this.scene.events.emit('boss-defeated', this.config);
 
     this.scene.tweens.add({

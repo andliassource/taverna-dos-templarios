@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SoundSynth } from '../utils/SoundSynth';
 
 /**
  * BootScene — Primeira cena carregada.
@@ -14,11 +15,12 @@ export class BootScene extends Phaser.Scene {
 
   preload(): void {
     // Carrega apenas o mínimo necessário para o loading screen
-    // (logo, loading bar background, etc.)
-    // Por enquanto, criamos placeholders via graphics
   }
 
   create(): void {
+    // Inicializa suporte a áudio no primeiro gesto do usuário
+    SoundSynth.initAudioOnUserGesture();
+
     // Configuração de input global
     if (this.input.keyboard) {
       this.input.keyboard.removeCapture(Phaser.Input.Keyboard.KeyCodes.SPACE);

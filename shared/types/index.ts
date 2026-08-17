@@ -271,3 +271,26 @@ export interface ServerResponse {
   data?: Record<string, unknown>;
   error?: string;
 }
+
+/** Tipo de Skill Ativa */
+export enum SkillType {
+  PROJECTILE = 'PROJECTILE',
+  AOE = 'AOE',
+  BUFF = 'BUFF',
+  DASH = 'DASH',
+}
+
+/** Estrutura de uma Magia / Habilidade Ativa */
+export interface ActiveSkill {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;        // Emoji ou chave do ícone
+  costMp: number;
+  cooldownMs: number;
+  damageMultiplier: number; // Multiplica o dano base do personagem
+  type: SkillType;
+  range: number;       // Distância máxima (para projétil ou teleporte)
+  unlockedAtLevel: number; // Em qual level essa skill se torna disponível
+  color?: number;      // Cor da magia (hex)
+}

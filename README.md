@@ -1,100 +1,93 @@
 # ⚔️ Taverna dos Templários
 
-> RPG Arcade Medieval — Cross-Platform (Web / Mobile / Steam)
+> RPG Action Arcade Medieval — Cross-Platform (Web / Mobile / Steam)
+
+[![Firebase Hosting](https://img.shields.io/badge/Deploy-Firebase_Hosting-ffca28?style=flat-square&logo=firebase)](https://taverna-dos-templarios.web.app/)
+[![Phaser 3](https://img.shields.io/badge/Engine-Phaser_3-904600?style=flat-square&logo=phaser)](https://phaser.io/)
+[![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+
+---
 
 ## 🎮 Sobre o Projeto
 
-**Taverna dos Templários** é um RPG arcade com tema medieval templário, inspirado em jogos como Eudemons Online, Solo Leveling, Divinity 2 e Final Fantasy clássico. O jogo combina mecânicas profundas de RPG (12 classes, sistema de despertar, atributos, pets, runas, gemas, síntese, forja) com jogabilidade arcade acessível e visual pixel art HD.
+**Taverna dos Templários** é um Action-RPG com estética visual inspirada em *The Legend of Zelda: The Minish Cap* e *Oceanhorn*. O jogo combina mecânicas profundas de RPG (12 classes jogáveis, recipientes de corações de vida, sistema de atributos, mascotes, forja, inventário e arena) com jogabilidade responsiva e iluminação dinâmica `Light2D`.
+
+Acesse e jogue no navegador: **[https://taverna-dos-templarios.web.app/](https://taverna-dos-templarios.web.app/)**
+
+---
+
+## 🎮 Modos de Controle
+
+| Comando / Ação | Teclado & Mouse | Celular (Touch) |
+|:---|:---|:---|
+| **Caminhar até o Ponto** | Clique Esquerdo no Terreno (*Point-and-Click*) | Joystick Virtual Esquerdo |
+| **Movimentação Direta** | Teclas `W` `A` `S` `D` / Setas | Joystick Virtual Esquerdo |
+| **Ataque Básico** | `Espaço` ou Clique Próximo ao Inimigo | Botão `Ⓑ Atacar` |
+| **Habilidades Ativas** | Teclas `1`, `2`, `3` | Botões `1`, `2`, `3` |
+| **Dash / Esquiva** | Tecla `Shift` | Botão `Ⓧ Esquiva` |
+| **Interagir com NPCs** | Tecla `E` / `ENTER` / Clique no NPC | Botão `Ⓐ Interagir` |
+| **Perfil & Atributos** | Tecla `C` | Menu da UI |
+| **Inventário & Equipar** | Tecla `I` | Menu da UI |
+| **Alternar Controles Touch** | Botão `📱 Touch` (Canto Sup. Direito) | Botão `📱 Touch` |
+
+---
+
+## 🛡️ As 12 Classes Jogáveis
+
+Todas as 12 classes possuem spritesheets 16-bit completas e animações procedimentais:
+
+| Classe | Arquétipo | Recurso | Habilidades Principais |
+|:---|:---|:---|:---|
+| 🛡️ **Paladino** | Tank / DPS | Fé Sagrada | Escudo Divino, Cura Divina, Impacto da Justiça |
+| 🛡️ **Guardião** | Tank Puro | Determinação | Muralha Inabalável, Provocar, Investida de Escudo |
+| ⚔️ **Guerreiro** | DPS Melee | Fúria | Corte Giratório, Grito de Guerra, Impacto Devastador |
+| 🔮 **Mago** | DPS Mágico | Mana | Bola de Fogo Arcana, Barreira de Gelo, Teletransporte |
+| 💀 **Necromante** | Summoner | Essência Vital | Orbe Sombrio, Servo Esqueleto, Explosão Cadavérica |
+| 🏹 **Arqueiro** | DPS Ranged | Concentração | Disparo Triplo, Armadilha de Caça, Chuva de Flechas |
+| 🗡️ **Assassino** | DPS Burst | Furtividade | Corte Sombrio, Faca Envenenada, Invisibilidade |
+| 💚 **Clérigo** | Healer / Suporte | Preces | Luz Sagrada, Punição Divina, Aura de Proteção |
+| 🛡️ **Cavaleiro Negro** | Off-Tank Sombrio | Sangue | Dreno de Vida, Marca Sombria, Aura de Ruína |
+| 🔮 **Elementalista** | Controle Mágico | Elementos | Meteoro Devastador, Tempestade Elétrica, Onda de Gelo |
+| 🎶 **Bardo** | Buffer | Melodias | Hino da Coragem, Balada da Regeneração, Eco Dissonante |
+| 🐻 **Druida** | Shapeshifter | Natureza | Forma de Urso, Vinhas Asfixiantes, Semente da Vida |
+
+---
+
+## 🏛️ Sistema de Interface (System UI)
+
+- ❤️ **Recipientes de Coração Zelda (`❤️ ❤️ ❤️ ❤️ ❤️`)**: Indicador de HP dinâmico no topo esquerdo.
+- 🪙 **Badges em Pílulas**: Exibição de Ouro, Gemas e Recursos com bordas metálicas douradas.
+- 🎮 **GBA Action Hints**: Pílulas coloridas para atalhos `Ⓐ Interagir`, `Ⓑ Atacar` e `Ⓧ Esquiva`.
+- 🎒 **Inventário Reativo**: Equipar armas, armaduras, elmos e escudos com atualização imediata da UI.
+
+---
 
 ## 🛠️ Stack Tecnológico
 
 | Tecnologia | Uso |
 |:---|:---|
-| **Phaser 3** | Engine de jogo 2D |
-| **TypeScript** | Linguagem principal |
-| **Vite** | Build tool & dev server |
-| **Firebase** | Auth (Google), Firestore (Save na Nuvem), Hosting |
-| **Capacitor** | Empacotamento Mobile (iOS/Android) |
-| **Electron** | Empacotamento Steam/Desktop |
+| **Phaser 3** | Engine de jogo 2D com Shaders `Light2D` |
+| **TypeScript** | Linguagem principal com tipagem estrita |
+| **Vite** | Build tool & Dev Server de alta performance |
+| **Firebase** | Cloud Auth, Firestore Save & Hosting |
 
-## 🎮 Controles do Jogo
+---
 
-| Tecla / Botão | Ação |
-|:---|:---|
-| `W A S D` / `Setas` | Movimentação do Templário |
-| `Espaço` / `Clique` | Ataque Básico corpo a corpo / disparo |
-| `1`, `2`, `3` | Usar Habilidades Ativas da Classe |
-| `Shift` | Dash / Esquiva Rápida |
-| `C` | Abrir / Fechar Painel de Perfil & Atributos |
-| `I` | Abrir / Fechar Inventário & Equipamentos |
-| `ENTER` | Interagir com NPCs (Ferreiro, Mercadora, Mestre da Arena) |
-| `ESC` | Fechar Diálogos e Janelas |
-
-## 🌟 Funcionalidades Implementadas
-
-- 🏋️ **Sistema de Atributos & Perfil (`Tecla C`)**: Distribuição de pontos a cada Level Up (FOR, AGI, INT, VIT) afetando Dano, Crítico, Mana e HP.
-- 🐉 **Pets & Auto-Loot Magnético**: Mascote acompanhante com vácuo de atração automática de Ouro, Gemas e Equipamentos.
-- 🔨 **Forja do Ferreiro Bjorn**: Aprimoramento de equipamentos com Ouro e Gemas (+1 a +10).
-- 🛒 **Mercadora Elise**: Compra e venda de poções e suprimentos mágicos.
-- ⚔️ **Arena de Combate (Mestre Aldric)**: Sistema de desafios em ondas de monstros com recompensas volumosas.
-- ☁️ **Sistema de Save Dual**: Salvamento automático local (`localStorage`) sincronizado com a nuvem (`Firebase Firestore`).
-- 📱 **Interface Cross-Platform**: HUD responsivo com suporte a Touch Joystick e botões na tela para mobile.
-
-## 🚀 Como Rodar
+## 🚀 Execução Local
 
 ```bash
 # Instalar dependências
 npm install
 
-# Rodar em modo desenvolvimento
+# Executar em modo desenvolvimento
 npm run dev
 
-# Build de produção
+# Gerar build de produção
 npm run build
-
-# Preview do build
-npm run preview
 ```
 
-## 📂 Estrutura do Projeto
-
-```
-taverna-dos-templarios/
-├── src/
-│   ├── scenes/          # Cenas do Phaser (Boot, Menu, World, Battle, UI)
-│   ├── entities/        # Sprites, players, monsters, PetEntity
-│   ├── systems/         # Combate, atributos, inventário, SaveManager
-│   ├── ui/              # HUD, menus, perfil, diálogos, mobile controls
-│   ├── config/          # Configurações (Phaser, Firebase)
-│   ├── network/         # FirebaseService (Auth & Cloud Save)
-│   ├── utils/           # Utilitários e gerador de som (SoundSynth)
-│   └── styles/          # CSS global
-├── server/              # Backend (Cloud Functions + Game Server)
-├── shared/              # Tipos (item, scene, stats) compartilhados
-└── index.html           # Entry point HTML
-```
-
-## ⚔️ Classes Jogáveis
-
-| Classe | Status no Jogo | Arquétipo | Recurso | Habilidades |
-|:---|:---|:---|:---|:---|
-| 🛡️ Paladino | ✅ Jogável | Tank/DPS | Fé Sagrada | Escudo Divino, Cura, Impacto da Justiça |
-| 🛡️ Guardião | ✅ Jogável | Tank Puro | Determinação | Muralha Inabalável, Provocar, Investida |
-| ⚔️ Guerreiro | ✅ Jogável | DPS Melee | Fúria | Corte Giratório, Grito de Guerra, Impacto Devastador |
-| 🔮 Mago | ✅ Jogável | DPS Mágico | Mana | Bola de Fogo Arcana, Barreira de Gelo, Teletransporte |
-| 💀 Necromante | ✅ Jogável | Summoner | Essência Vital | Orbe Sombrio, Servo Esqueleto, Explosão Cadavérica |
-| 🏹 Arqueiro | ✅ Jogável | DPS Ranged | Concentração | Disparo Triplo, Armadilha, Chuva de Flechas |
-| 🗡️ Assassino | ✅ Jogável | DPS Burst | Sigilo | Corte Sombrio, Faca Envenenada, Invisibilidade |
-| 💚 Clérigo | ✅ Jogável | Healer | Preces | Luz Sagrada, Punição Divina, Aura de Proteção |
-| 🛡️ Cavaleiro Negro | 🚧 Em breve | Off-Tank | Sombra | Dreno de Vida, Marca Sombria |
-| 🔮 Elementalist | 🚧 Em breve | Controle | Harmonia | Meteoro, Tempestade Elétrica |
-| 💚 Bardo | 🚧 Em breve | Buffer | Melodia | Hino da Coragem, Balada da Regeneração |
-| 💚 Druida | 🚧 Em breve | Healer/Tank | Natureza | Forma de Urso, Vinhas Asfixiantes |
+---
 
 ## 📝 Licença
 
 Proprietário — Todos os direitos reservados.
-
----
-
-*Feito com ⚔️ e ☕ por um Templário do código.*

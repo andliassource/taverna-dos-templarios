@@ -1,12 +1,33 @@
 import Phaser from 'phaser';
 
+// Assets HD importados
 import tilesetImg from '../assets/tilesets/tileset.png';
-import tavernImg from '../assets/sprites/tavern.png';
-import menuBgImg from '../assets/sprites/menu_bg.png';
+import treeImg from '../assets/sprites/tree.png';
+import bushImg from '../assets/sprites/bush.png';
+import tavernBuildingImg from '../assets/sprites/tavern_building.png';
+import forgeBuildingImg from '../assets/sprites/forge_building.png';
+import heroPaladinImg from '../assets/sprites/hero_paladin_hd.png';
+import heroMageImg from '../assets/sprites/hero_mage.png';
+import heroArcherImg from '../assets/sprites/hero_archer.png';
+import heroWarriorImg from '../assets/sprites/hero_warrior.png';
+import heroClericImg from '../assets/sprites/hero_cleric.png';
+import heroNecromancerImg from '../assets/sprites/hero_necromancer.png';
+import heroAssassinImg from '../assets/sprites/hero_assassin.png';
+import heroGuardianImg from '../assets/sprites/hero_guardian.png';
+import menuBgHdImg from '../assets/sprites/menu_bg_hd.jpg';
+import npcBlacksmithImg from '../assets/sprites/npc_blacksmith.png';
+import npcMerchantImg from '../assets/sprites/npc_merchant.png';
+import npcMasterImg from '../assets/sprites/npc_master.png';
+import monsterGoblinImg from '../assets/sprites/monster_goblin.png';
+import monsterImpImg from '../assets/sprites/monster_imp.png';
+import monsterSkeletonImg from '../assets/sprites/monster_skeleton.png';
+import monsterWolfImg from '../assets/sprites/monster_wolf.png';
+import bossMalakorImg from '../assets/sprites/boss_malakor.png';
+import petDragonImg from '../assets/sprites/pet_dragon.png';
 
 /**
- * PreloadScene — Carrega e processa assets de alta qualidade para o jogo.
- * Gera procedimentalmente todos os sprites de personagens, NPCs, retratos e decorações retrô.
+ * PreloadScene — Carrega assets HD e gera sprites de alta resolução.
+ * NENHUM pixel art de 16-bit. Tudo é renderizado com anti-aliasing e gradientes suaves.
  */
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -29,29 +50,66 @@ export class PreloadScene extends Phaser.Scene {
       if (loadingText) loadingText.textContent = 'A Taverna aguarda...';
     });
 
-    this.load.image('menu-bg', menuBgImg);
-    this.load.image('tavern-building', tavernImg);
+    console.log('[PreloadScene] Initializing clean assets...');
     this.load.image('tileset-raw', tilesetImg);
+    this.load.image('deco-tree', treeImg);
+    this.load.image('deco-bush', bushImg);
+    this.load.image('tavern-building', tavernBuildingImg);
+    this.load.image('forge-building', forgeBuildingImg);
+
+    // Carrega heróis HD
+    this.load.image('hero-paladin-img', heroPaladinImg);
+    this.load.image('hero-mage-img', heroMageImg);
+    this.load.image('hero-archer-img', heroArcherImg);
+    this.load.image('hero-warrior-img', heroWarriorImg);
+    this.load.image('hero-cleric-img', heroClericImg);
+    this.load.image('hero-necromancer-img', heroNecromancerImg);
+    this.load.image('hero-assassin-img', heroAssassinImg);
+    this.load.image('hero-guardian-img', heroGuardianImg);
+    this.load.image('menu-bg-hd', menuBgHdImg);
+
+    this.load.image('npc-blacksmith-img', npcBlacksmithImg);
+    this.load.image('npc-merchant-img', npcMerchantImg);
+    this.load.image('npc-master-img', npcMasterImg);
+    this.load.image('boss-malakor-img', bossMalakorImg);
+    this.load.image('pet-dragon-img', petDragonImg);
+
+    // Carrega imagens HD de monstros diretamente na pré-carga
+    this.load.image('monster-goblin', monsterGoblinImg);
+    this.load.image('monster-skeleton', monsterSkeletonImg);
+    this.load.image('monster-wolf', monsterWolfImg);
+    this.load.image('monster-shadow_wolf', monsterWolfImg);
+    this.load.image('monster-demon_imp', monsterImpImg);
+    this.load.image('monster-imp', monsterImpImg);
   }
 
   create(): void {
+    // 1. Tileset para camadas de colisão (mínimo necessário)
     this.processTilesetClean();
 
-    // Cria as spritesheets procedimentais retrô 16-bit de cada classe e NPCs
-    this.createClassSpritesheets();
+    // 2. Sprites HD de personagens (64x64 com anti-aliasing e transparência real)
+    this.createHDCharacterSprites();
 
-    // Cria os retratos (portraits) procedimentais 128x128 para diálogos de alta fidelidade
-    this.createPortraits();
+    // 3. Retratos HD para diálogos (128x128 com gradientes e iluminação)
+    this.createHDPortraits();
 
-    // Cria texturas decorativas do mapa
-    this.createDecorationTextures();
+    // 4. Sprites HD de monstros (64x64 com anti-aliasing)
+    this.createHDMonsterSprites();
 
-    // Cria texturas de partículas e iluminação
+    // 5. Decorações HD (árvores, arbustos em alta resolução)
+    this.createHDDecorations();
+
+    // 6. Sprites de edifícios extras procedimentais
+    this.createBuildingSprites();
+
+    // 7. Partículas e atmosfera
     this.createParticleTextures();
     this.createAtmosphericTextures();
-    this.createMonsterTextures();
 
-    // Cria animações das classes
+    // 8. Solos Procedurais HD
+    this.createProceduralGrounds();
+
+    // 9. Animações
     this.createClassAnimations();
 
     // Fade out do loading screen
@@ -61,17 +119,8 @@ export class PreloadScene extends Phaser.Scene {
       setTimeout(() => loadingScreen.classList.add('hidden'), 800);
     }
 
-    console.log('[PreloadScene] ✅ Sprites, portraits e texturas 16-bit procedimentais criados');
+    console.log('[PreloadScene] ✅ Assets HD carregados e sprites de alta resolução gerados');
     this.scene.start('MainMenuScene');
-  }
-
-  private adjustColorBrightness(hex: string, percent: number): string {
-    const num = parseInt(hex.replace("#",""), 16),
-      amt = Math.round(2.55 * percent),
-      R = (num >> 16) + amt,
-      G = (num >> 8 & 0x00FF) + amt,
-      B = (num & 0x0000FF) + amt;
-    return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
   }
 
   private processTilesetClean(): void {
@@ -87,503 +136,1271 @@ export class PreloadScene extends Phaser.Scene {
     const canvas = this.textures.createCanvas('tileset', targetW, targetH);
     const ctx = canvas!.getContext();
 
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(rawImg, 0, 0, rawImg.width, rawImg.height, 0, 0, targetW, targetH);
     canvas!.refresh();
   }
 
-  private createClassSpritesheets(): void {
-    // 1. PALADIN (Azul real / Aço / Escudo Dourado)
-    this.generateClassSpritesheet('PALADIN-sheet', '#2b4ca3', '#7b9cb8', '#d4af37', '#ffd1a9', false, false);
-    // 2. MAGE (Roxo / Detalhes Rosa / Cajado de Cristal Azul)
-    this.generateClassSpritesheet('MAGE-sheet', '#58137b', '#e066ff', '#4488ff', '#ffd1a9', false, true);
-    // 3. ARCHER (Verde / Couro / Cabelo Laranja)
-    this.generateClassSpritesheet('ARCHER-sheet', '#135c13', '#7a4f2b', '#ff8c00', '#ffd1a9', false, false);
-    // 4. ASSASSIN (Cinzento-Escuro / Máscara / Adagas)
-    this.generateClassSpritesheet('ASSASSIN-sheet', '#1f2421', '#333333', '#708090', '#ffd1a9', true, false);
+  // =====================================================
+  // SPRITES HD DE PERSONAGENS — 64x64 com anti-aliasing e transparência real
+  // =====================================================
 
-    // 5. NPCs (Ferreiro, Mercadora, Mestre)
-    this.generateClassSpritesheet('npc-blacksmith', '#5c3317', '#444444', '#cc3333', '#e0b080', false, false);
-    this.generateClassSpritesheet('npc-merchant', '#a020f0', '#ffb6c1', '#32cd32', '#ffd1a9', false, false);
-    this.generateClassSpritesheet('npc-master', '#d4af37', '#4b0082', '#ffffff', '#e0b080', false, false);
+  private createHDCharacterSprites(): void {
+    const classes = [
+      { key: 'PALADIN-sheet', primary: '#2b4ca3', secondary: '#7b9cb8', accent: '#d4af37', skin: '#ffd1a9', type: 'heavy' },
+      { key: 'GUARDIAN-sheet', primary: '#2d4d2d', secondary: '#5a7a5a', accent: '#a0b0c0', skin: '#ffd1a9', type: 'heavy' },
+      { key: 'WARRIOR-sheet', primary: '#7b1e1e', secondary: '#a33b3b', accent: '#c0c0c0', skin: '#ffd1a9', type: 'heavy' },
+      { key: 'MAGE-sheet', primary: '#58137b', secondary: '#e066ff', accent: '#4488ff', skin: '#ffd1a9', type: 'robe' },
+      { key: 'NECROMANCER-sheet', primary: '#11111a', secondary: '#332244', accent: '#9900ee', skin: '#e0b080', type: 'robe' },
+      { key: 'ARCHER-sheet', primary: '#135c13', secondary: '#7a4f2b', accent: '#ff8c00', skin: '#ffd1a9', type: 'light' },
+      { key: 'ASSASSIN-sheet', primary: '#1f2421', secondary: '#333333', accent: '#708090', skin: '#ffd1a9', type: 'light' },
+      { key: 'CLERIC-sheet', primary: '#e6e6fa', secondary: '#ffd700', accent: '#00e5ff', skin: '#ffd1a9', type: 'robe' },
+      { key: 'DARK_KNIGHT-sheet', primary: '#3b0000', secondary: '#5c1414', accent: '#cc0000', skin: '#e0b080', type: 'heavy' },
+      { key: 'ELEMENTALIST-sheet', primary: '#004466', secondary: '#0099cc', accent: '#00ffff', skin: '#ffd1a9', type: 'robe' },
+      { key: 'BARD-sheet', primary: '#996600', secondary: '#cc9900', accent: '#0099ff', skin: '#ffd1a9', type: 'light' },
+      { key: 'DRUID-sheet', primary: '#1a3300', secondary: '#4d2600', accent: '#33cc33', skin: '#ffd1a9', type: 'robe' },
+    ];
+
+    classes.forEach(c => this.generateHDSpritesheet(c.key, c.primary, c.secondary, c.accent, c.skin, c.type));
+
+    // NPCs
+    this.generateHDSpritesheet('npc-blacksmith', '#5c3317', '#444444', '#cc3333', '#e0b080', 'heavy');
+    this.generateHDSpritesheet('npc-merchant', '#a020f0', '#ffb6c1', '#32cd32', '#ffd1a9', 'robe');
+    this.generateHDSpritesheet('npc-master', '#d4af37', '#4b0082', '#ffffff', '#e0b080', 'robe');
   }
 
-  private generateClassSpritesheet(
+  private generateHDSpritesheet(
     key: string,
     primaryColor: string,
     secondaryColor: string,
-    accessoryColor: string,
-    headColor: string,
-    hasHood: boolean,
-    hasHat: boolean
+    accentColor: string,
+    skinColor: string,
+    armorType: string,
   ): void {
     if (this.textures.exists(key)) return;
 
-    const frameW = 16;
-    const frameH = 20;
-    const canvas = this.textures.createCanvas(key, frameW * 4, frameH * 4);
+    const frameW = 64;
+    const frameH = 64;
+    const canvas = this.textures.createCanvas(key, 256, 256);
     const ctx = canvas!.getContext();
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
-    // Cores de luz e sombra dinâmicas (sombreamento direcional HSL simulado)
-    const primDark = this.adjustColorBrightness(primaryColor, -25);
-    const primLight = this.adjustColorBrightness(primaryColor, 20);
-    const secDark = this.adjustColorBrightness(secondaryColor, -20);
-    const secLight = this.adjustColorBrightness(secondaryColor, 20);
-    const headDark = this.adjustColorBrightness(headColor, -15);
-    const hairDark = this.adjustColorBrightness(accessoryColor, -25);
-    const hairLight = this.adjustColorBrightness(accessoryColor, 20);
+    // Checa se existe imagem HD personalizada para este personagem/NPC
+    let customImgKey = '';
+    if (key === 'PALADIN-sheet') customImgKey = 'hero-paladin-img';
+    else if (key === 'MAGE-sheet') customImgKey = 'hero-mage-img';
+    else if (key === 'ARCHER-sheet') customImgKey = 'hero-archer-img';
+    else if (key === 'WARRIOR-sheet') customImgKey = 'hero-warrior-img';
+    else if (key === 'CLERIC-sheet') customImgKey = 'hero-cleric-img';
+    else if (key === 'NECROMANCER-sheet') customImgKey = 'hero-necromancer-img';
+    else if (key === 'ASSASSIN-sheet') customImgKey = 'hero-assassin-img';
+    else if (key === 'GUARDIAN-sheet') customImgKey = 'hero-guardian-img';
+    else if (key === 'npc-blacksmith') customImgKey = 'npc-blacksmith-img';
+    else if (key === 'npc-merchant') customImgKey = 'npc-merchant-img';
+    else if (key === 'npc-master') customImgKey = 'npc-master-img';
 
-    // Direções: 0 = Down, 1 = Left, 2 = Right, 3 = Up
-    // Frames: 0 = Idle, 1 = Passo A, 2 = Idle, 3 = Passo B
-    for (let dir = 0; dir < 4; dir++) {
-      for (let frame = 0; frame < 4; frame++) {
-        const offsetX = frame * frameW;
-        const offsetY = dir * frameH;
+    if (customImgKey && this.textures.exists(customImgKey)) {
+      const imgObj = this.textures.get(customImgKey).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+      if (imgObj) {
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < 4; col++) {
+            const isIdle = col % 2 === 0;
+            const legOffset = isIdle ? 0 : (col === 1 ? 2 : -2);
 
-        // Sombra nos pés
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.fillRect(offsetX + 3, offsetY + 18, 10, 2);
+            const dx = col * frameW + 10;
+            const dy = row * frameH + 4 + legOffset;
 
-        const legOffset = (frame === 1) ? 1 : (frame === 3) ? -1 : 0;
-        const armOffset = (frame === 1) ? -1 : (frame === 3) ? 1 : 0;
+            // Sombra
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(col * frameW + 32, row * frameH + 58, 16, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
 
-        // 1. Pernas (Y=14 a 17)
-        ctx.fillStyle = secDark;
-        if (dir === 0 || dir === 3) {
-          ctx.fillRect(offsetX + 4, offsetY + 14 + legOffset, 3, 3);
-          ctx.fillStyle = secondaryColor;
-          ctx.fillRect(offsetX + 9, offsetY + 14 - legOffset, 3, 3);
-        } else {
-          ctx.fillRect(offsetX + 5 + legOffset, offsetY + 14, 3, 3);
-          ctx.fillStyle = secondaryColor;
-          ctx.fillRect(offsetX + 8 - legOffset, offsetY + 14, 3, 3);
+            // Desenha a imagem HD de alta qualidade no frame 64x64
+            ctx.drawImage(imgObj, dx, dy, 44, 52);
+          }
         }
 
-        // 2. Corpo/Capa/Armadura (Y=8 a 13)
+        canvas!.refresh();
+        const tex = this.textures.get(key);
+        for (let r = 0; r < 4; r++) {
+          for (let c = 0; c < 4; c++) {
+            const idx = r * 4 + c;
+            tex.add(idx, 0, c * frameW, r * frameH, frameW, frameH);
+          }
+        }
+        return;
+      }
+    }
+
+    const shadeColor = (hex: string, pct: number): string => {
+      const n = parseInt(hex.replace('#', ''), 16);
+      const r = (n >> 16) & 0xff, g = (n >> 8) & 0xff, b = n & 0xff;
+      const t = pct < 0 ? 0 : 255;
+      const p = Math.abs(pct);
+      return `rgb(${Math.round((t - r) * p + r)}, ${Math.round((t - g) * p + g)}, ${Math.round((t - b) * p + b)})`;
+    };
+
+    // 4 Rows: 0=Down, 1=Left, 2=Right, 3=Up
+    // 4 Cols: Walk cycle (0=idle, 1=step1, 2=idle, 3=step2)
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 4; col++) {
+        const cx = col * frameW + 32;
+        const cy = row * frameH + 32;
+
+        const isIdle = col % 2 === 0;
+        const legOffset = isIdle ? 0 : (col === 1 ? 3 : -3);
+        const armSwing = isIdle ? 0 : (col === 1 ? 4 : -4);
+
+        // 1. Sombra nos pés
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 24, 12, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Pernas / Pés
+        ctx.fillStyle = shadeColor(secondaryColor, -0.3);
+        ctx.fillRect(cx - 7 - legOffset, cy + 14, 5, 10);
+        ctx.fillRect(cx + 2 + legOffset, cy + 14, 5, 10);
+
+        // Pés
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(cx - 8 - legOffset, cy + 22, 6, 3);
+        ctx.fillRect(cx + 2 + legOffset, cy + 22, 6, 3);
+
+        // 3. Torso / Armadura / Manto
         ctx.fillStyle = primaryColor;
-        ctx.fillRect(offsetX + 5, offsetY + 8, 6, 6);
-        ctx.fillStyle = primLight; // Destaque na esquerda
-        ctx.fillRect(offsetX + 5, offsetY + 8, 2, 6);
-        ctx.fillStyle = primDark; // Sombra na direita
-        ctx.fillRect(offsetX + 9, offsetY + 8, 2, 6);
+        this.drawRoundedRect(ctx, cx - 10, cy - 2, 20, 18, 3);
 
-        // Manto longo para Mago e Mestre
-        if (key.includes('MAGE') || key.includes('master')) {
-          ctx.fillStyle = primaryColor;
-          ctx.fillRect(offsetX + 4, offsetY + 11, 8, 4);
-          ctx.fillStyle = primLight;
-          ctx.fillRect(offsetX + 4, offsetY + 11, 2, 4);
-          ctx.fillStyle = primDark;
-          ctx.fillRect(offsetX + 10, offsetY + 11, 2, 4);
+        // Detalhes da armadura / cinto
+        ctx.fillStyle = accentColor;
+        ctx.fillRect(cx - 10, cy + 10, 20, 4); // Cinto
+
+        if (armorType === 'heavy') {
+          // Peitoral metálico
+          ctx.fillStyle = secondaryColor;
+          ctx.beginPath();
+          ctx.moveTo(cx - 8, cy);
+          ctx.lineTo(cx, cy + 8);
+          ctx.lineTo(cx + 8, cy);
+          ctx.fill();
+        } else if (armorType === 'robe') {
+          // Aba do manto
+          ctx.fillStyle = shadeColor(primaryColor, -0.2);
+          ctx.fillRect(cx - 9, cy + 12, 18, 8);
         }
 
-        // Hombreiras de aço para Paladino
-        if (key.includes('PALADIN')) {
-          ctx.fillStyle = '#a0b0c0'; // Ombreira esquerda
-          ctx.fillRect(offsetX + 3, offsetY + 8, 2, 3);
-          ctx.fillStyle = '#708090'; // Ombreira direita sombreada
-          ctx.fillRect(offsetX + 11, offsetY + 8, 2, 3);
-        }
-
-        // Braços
+        // 4. Braços
         ctx.fillStyle = secondaryColor;
-        if (dir === 0) {
-          ctx.fillStyle = secLight;
-          ctx.fillRect(offsetX + 3, offsetY + 9 + armOffset, 2, 4);
-          ctx.fillStyle = secDark;
-          ctx.fillRect(offsetX + 11, offsetY + 9 - armOffset, 2, 4);
-        } else if (dir === 3) {
-          ctx.fillStyle = secDark;
-          ctx.fillRect(offsetX + 3, offsetY + 9 - armOffset, 2, 4);
-          ctx.fillStyle = secLight;
-          ctx.fillRect(offsetX + 11, offsetY + 9 + armOffset, 2, 4);
-        } else if (dir === 1) {
-          ctx.fillStyle = secLight;
-          ctx.fillRect(offsetX + 4 - armOffset, offsetY + 9, 2, 4);
+        if (row === 1) { // Left
+          ctx.fillRect(cx - 12, cy + 2 - armSwing, 5, 12);
+        } else if (row === 2) { // Right
+          ctx.fillRect(cx + 7, cy + 2 + armSwing, 5, 12);
+        } else { // Down / Up
+          ctx.fillRect(cx - 13, cy + 2 + armSwing, 4, 11);
+          ctx.fillRect(cx + 9, cy + 2 - armSwing, 4, 11);
+        }
+
+        // 5. Cabeça e Pele
+        ctx.fillStyle = skinColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 12, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 6. Rosto / Olhos / Elmo / Capuz conforme a direção
+        if (row === 3) {
+          // Facing UP (trás da cabeça)
+          ctx.fillStyle = shadeColor(primaryColor, -0.1);
+          ctx.beginPath();
+          ctx.arc(cx, cy - 13, 11, 0, Math.PI * 2);
+          ctx.fill();
         } else {
-          ctx.fillStyle = secDark;
-          ctx.fillRect(offsetX + 10 + armOffset, offsetY + 9, 2, 4);
-        }
-
-        // 3. Cabeça/Rosto (Y=3 a 7)
-        ctx.fillStyle = headColor;
-        ctx.fillRect(offsetX + 5, offsetY + 3, 6, 5);
-        ctx.fillStyle = headDark;
-        ctx.fillRect(offsetX + 9, offsetY + 3, 2, 5);
-
-        // Cabelo / Capuz / Chapéu
-        if (hasHood) {
-          ctx.fillStyle = primaryColor;
-          ctx.fillRect(offsetX + 4, offsetY + 2, 8, 2);
-          ctx.fillRect(offsetX + 4, offsetY + 4, 1, 4);
-          ctx.fillStyle = primDark;
-          ctx.fillRect(offsetX + 11, offsetY + 4, 1, 4);
-          ctx.fillStyle = primLight;
-          ctx.fillRect(offsetX + 4, offsetY + 2, 3, 1);
-        } else if (hasHat) {
-          ctx.fillStyle = primaryColor;
-          ctx.fillRect(offsetX + 3, offsetY + 2, 10, 2);
-          ctx.fillStyle = primLight;
-          ctx.fillRect(offsetX + 3, offsetY + 2, 3, 1);
-          ctx.fillStyle = primaryColor;
-          ctx.fillRect(offsetX + 5, offsetY + 0, 6, 2);
-          ctx.fillStyle = '#ffcc00';
-          ctx.fillRect(offsetX + 5, offsetY + 2, 6, 1);
-        } else {
-          ctx.fillStyle = accessoryColor;
-          ctx.fillRect(offsetX + 5, offsetY + 2, 6, 2);
-          ctx.fillStyle = hairLight;
-          ctx.fillRect(offsetX + 5, offsetY + 2, 2, 1);
-          ctx.fillStyle = hairDark;
-          ctx.fillRect(offsetX + 9, offsetY + 2, 2, 1);
-        }
-
-        // Olhos
-        ctx.fillStyle = '#111111';
-        if (dir === 0) {
-          ctx.fillRect(offsetX + 6, offsetY + 5, 1, 1);
-          ctx.fillRect(offsetX + 9, offsetY + 5, 1, 1);
-        } else if (dir === 1) {
-          ctx.fillRect(offsetX + 6, offsetY + 5, 1, 1);
-        } else if (dir === 2) {
-          ctx.fillRect(offsetX + 9, offsetY + 5, 1, 1);
-        }
-
-        // Arma / Acessórios nas mãos
-        if (key.includes('PALADIN') || key.includes('blacksmith')) {
-          ctx.fillStyle = '#c0c0c0'; // Lâmina de metal
-          if (dir === 0 || dir === 2) {
-            ctx.fillRect(offsetX + 12, offsetY + 8, 2, 6);
-            ctx.fillStyle = '#8b5a2b'; // Cabo
-            ctx.fillRect(offsetX + 11, offsetY + 12, 3, 1);
-          } else if (dir === 1) {
-            ctx.fillStyle = '#7a7a7a'; // Escudo
-            ctx.fillRect(offsetX + 2, offsetY + 8, 2, 5);
-            ctx.fillStyle = '#d4af37';
-            ctx.fillRect(offsetX + 2, offsetY + 10, 2, 1);
+          // Facing Down (0), Left (1), Right (2)
+          if (armorType === 'heavy') {
+            // Elmo
+            ctx.fillStyle = secondaryColor;
+            ctx.beginPath();
+            ctx.arc(cx, cy - 13, 11, Math.PI, 0);
+            ctx.fill();
+            // Viseira
+            ctx.fillStyle = '#111';
+            const eyeX = row === 1 ? cx - 6 : (row === 2 ? cx + 2 : cx - 5);
+            ctx.fillRect(eyeX, cy - 14, 8, 3);
+            // Olho brilhante
+            ctx.fillStyle = accentColor;
+            ctx.fillRect(eyeX + (row === 1 ? 1 : 4), cy - 14, 2, 2);
+          } else if (armorType === 'robe') {
+            // Capuz / Chapéu
+            ctx.fillStyle = primaryColor;
+            ctx.beginPath();
+            ctx.arc(cx, cy - 14, 12, Math.PI * 0.8, Math.PI * 0.2);
+            ctx.fill();
+            // Olhos
+            ctx.fillStyle = '#222';
+            const ex1 = row === 1 ? cx - 6 : (row === 2 ? cx + 2 : cx - 5);
+            const ex2 = row === 1 ? cx - 2 : (row === 2 ? cx + 6 : cx + 2);
+            if (row !== 1) ctx.fillRect(ex1, cy - 12, 2, 3);
+            if (row !== 2) ctx.fillRect(ex2, cy - 12, 2, 3);
+          } else {
+            // Cabelo / Bandana
+            ctx.fillStyle = accentColor;
+            ctx.beginPath();
+            ctx.arc(cx, cy - 15, 11, Math.PI * 0.7, Math.PI * 0.3);
+            ctx.fill();
+            // Olhos
+            ctx.fillStyle = '#222';
+            const ex1 = row === 1 ? cx - 6 : (row === 2 ? cx + 2 : cx - 5);
+            const ex2 = row === 1 ? cx - 2 : (row === 2 ? cx + 6 : cx + 2);
+            if (row !== 1) ctx.fillRect(ex1, cy - 12, 2, 3);
+            if (row !== 2) ctx.fillRect(ex2, cy - 12, 2, 3);
           }
-        } else if (key.includes('MAGE')) {
-          ctx.fillStyle = '#8b5a2b';
-          if (dir === 0 || dir === 2) {
-            ctx.fillRect(offsetX + 12, offsetY + 5, 1, 10);
-            ctx.fillStyle = '#4488ff';
-            ctx.fillRect(offsetX + 12, offsetY + 4, 1, 1);
-          }
-        } else if (key.includes('ARCHER')) {
-          ctx.fillStyle = '#8b5a2b';
-          if (dir === 0 || dir === 2) {
-            ctx.fillRect(offsetX + 12, offsetY + 7, 1, 6);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(offsetX + 11, offsetY + 8, 1, 4);
-          }
-        } else if (key.includes('ASSASSIN')) {
-          ctx.fillStyle = '#c0c0c0';
-          if (dir === 0 || dir === 2) {
-            ctx.fillRect(offsetX + 12, offsetY + 11, 2, 3);
-          } else if (dir === 1) {
-            ctx.fillRect(offsetX + 2, offsetY + 11, 2, 3);
-          }
-        } else if (key.includes('merchant')) {
-          ctx.fillStyle = '#ff4444';
-          ctx.fillRect(offsetX + 11, offsetY + 11, 2, 2);
         }
       }
     }
 
     canvas!.refresh();
 
+    // Registrar frames (4x4, 64x64 frame size)
     const tex = this.textures.get(key);
-    for (let row = 0; row < 4; row++) {
-      for (let col = 0; col < 4; col++) {
-        const idx = row * 4 + col;
-        tex.add(idx, 0, col * frameW, row * frameH, frameW, frameH);
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        const idx = r * 4 + c;
+        tex.add(idx, 0, c * frameW, r * frameH, frameW, frameH);
       }
     }
   }
 
-  private createPortraits(): void {
-    const drawPortrait = (
-      key: string,
-      primaryColor: string,
-      secondaryColor: string,
-      accessoryColor: string,
-      headColor: string,
-      hasHood: boolean,
-      hasHat: boolean,
-      details: (ctx: CanvasRenderingContext2D) => void
-    ) => {
-      if (this.textures.exists(key)) return;
-      const size = 64;
-      const canvas = this.textures.createCanvas(key, size, size);
-      const ctx = canvas!.getContext();
-      ctx.imageSmoothingEnabled = false;
+  private drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    ctx.fill();
+  }
 
-      // 1. Moldura medieval decorativa
-      ctx.fillStyle = '#1a0a2a'; // Borda preta
-      ctx.fillRect(0, 0, size, size);
-      ctx.fillStyle = '#d4af37'; // Borda dourada
-      ctx.fillRect(2, 2, size - 4, size - 4);
-      ctx.fillStyle = '#0a0612'; // Fundo do retrato
-      ctx.fillRect(4, 4, size - 8, size - 8);
+  // =====================================================
+  // RETRATOS HD — 128x128 com gradientes e iluminação dramática
+  // =====================================================
 
-      // Fundo em gradiente suave radial
-      const grad = ctx.createRadialGradient(size / 2, size / 2, 5, size / 2, size / 2, size - 10);
-      grad.addColorStop(0, '#22143b');
-      grad.addColorStop(1, '#050208');
-      ctx.fillStyle = grad;
-      ctx.fillRect(4, 4, size - 8, size - 8);
+  private createHDPortraits(): void {
+    this.drawHDPortrait('portrait-PALADIN', '#2b4ca3', '#d4af37', '#ffd1a9', 'knight', 'Elmo Templário com olhos brilhantes azuis');
+    this.drawHDPortrait('portrait-GUARDIAN', '#2d4d2d', '#a0b0c0', '#ffd1a9', 'knight', '');
+    this.drawHDPortrait('portrait-WARRIOR', '#7b1e1e', '#c0c0c0', '#ffd1a9', 'knight', '');
+    this.drawHDPortrait('portrait-MAGE', '#58137b', '#4488ff', '#ffd1a9', 'wizard', '');
+    this.drawHDPortrait('portrait-NECROMANCER', '#11111a', '#9900ee', '#e0b080', 'hood', '');
+    this.drawHDPortrait('portrait-ARCHER', '#135c13', '#ff8c00', '#ffd1a9', 'hood', '');
+    this.drawHDPortrait('portrait-ASSASSIN', '#1f2421', '#708090', '#ffd1a9', 'mask', '');
+    this.drawHDPortrait('portrait-CLERIC', '#e6e6fa', '#00e5ff', '#ffd1a9', 'hood', '');
+    this.drawHDPortrait('portrait-DARK_KNIGHT', '#3b0000', '#cc0000', '#e0b080', 'knight', '');
+    this.drawHDPortrait('portrait-ELEMENTALIST', '#004466', '#00ffff', '#ffd1a9', 'wizard', '');
+    this.drawHDPortrait('portrait-BARD', '#996600', '#0099ff', '#ffd1a9', 'hair', '');
+    this.drawHDPortrait('portrait-DRUID', '#1a3300', '#33cc33', '#ffd1a9', 'hood', '');
 
-      // 2. Ombros e Peito (Y=38 a 58)
-      ctx.fillStyle = this.adjustColorBrightness(primaryColor, -15);
-      ctx.fillRect(14, 38, 36, 20);
-      ctx.fillStyle = primaryColor;
-      ctx.fillRect(14, 38, 18, 20); // Destaque esquerdo
+    // NPCs
+    this.drawHDPortrait('portrait-blacksmith', '#5c3317', '#cc3333', '#e0b080', 'hair', 'Barba ruiva');
+    this.drawHDPortrait('portrait-merchant', '#a020f0', '#32cd32', '#ffd1a9', 'hood', 'Cabelo prateado');
+    this.drawHDPortrait('portrait-master', '#d4af37', '#ffffff', '#e0b080', 'hood', 'Barba branca longa');
+  }
 
-      // 3. Cabeça (Y=18 a 38)
-      ctx.fillStyle = this.adjustColorBrightness(headColor, -15);
-      ctx.fillRect(20, 18, 24, 20);
-      ctx.fillStyle = headColor;
-      ctx.fillRect(20, 18, 12, 20); // Destaque esquerdo
+  private drawHDPortrait(
+    key: string,
+    primaryColor: string,
+    accentColor: string,
+    skinColor: string,
+    headType: string,
+    _details: string,
+  ): void {
+    if (this.textures.exists(key)) return;
+    const size = 128;
+    const canvas = this.textures.createCanvas(key, size, size);
+    const ctx = canvas!.getContext();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
-      // Olhos básicos
-      ctx.fillStyle = '#111111';
-      ctx.fillRect(26, 26, 2, 2);
-      ctx.fillRect(36, 26, 2, 2);
-
-      // Cabelo / Capuz / Chapéu
-      if (hasHood) {
-        ctx.fillStyle = primaryColor;
-        ctx.fillRect(16, 14, 32, 6);
-        ctx.fillRect(16, 20, 4, 18);
-        ctx.fillStyle = this.adjustColorBrightness(primaryColor, -25);
-        ctx.fillRect(44, 20, 4, 18);
-      } else if (hasHat) {
-        ctx.fillStyle = primaryColor;
-        ctx.fillRect(12, 14, 40, 4); // Aba do chapéu
-        ctx.fillRect(22, 4, 20, 10);  // Ponta
-        ctx.fillStyle = '#ffcc00';    // Faixa amarela
-        ctx.fillRect(22, 12, 20, 2);
-      } else {
-        ctx.fillStyle = accessoryColor;
-        ctx.fillRect(18, 12, 28, 6);
-        ctx.fillRect(18, 18, 4, 14);
-        ctx.fillStyle = this.adjustColorBrightness(accessoryColor, -25);
-        ctx.fillRect(42, 18, 4, 14);
-      }
-
-      // Detalhes únicos via callback
-      details(ctx);
-
-      canvas!.refresh();
+    const shadeColor = (hex: string, pct: number): string => {
+      const n = parseInt(hex.replace('#', ''), 16);
+      const r = (n >> 16) & 0xff, g = (n >> 8) & 0xff, b = n & 0xff;
+      const t = pct < 0 ? 0 : 255;
+      const p = Math.abs(pct);
+      return `rgb(${Math.round((t - r) * p + r)}, ${Math.round((t - g) * p + g)}, ${Math.round((t - b) * p + b)})`;
     };
 
-    // 1. PALADIN (Elmo com visor brilhante e cruz de ouro)
-    drawPortrait('portrait-PALADIN', '#2b4ca3', '#7b9cb8', '#d4af37', '#ffd1a9', false, false, (ctx) => {
-      ctx.fillStyle = '#a0b0c0'; // Elmo metálico
-      ctx.fillRect(18, 14, 28, 24);
-      ctx.fillStyle = '#708090'; // Sombra
-      ctx.fillRect(32, 14, 14, 24);
-      // Cruz dourada no elmo
-      ctx.fillStyle = '#d4af37';
-      ctx.fillRect(30, 14, 4, 24);
-      ctx.fillRect(22, 22, 20, 4);
-      // Slits brilhantes dos olhos
-      ctx.fillStyle = '#4488ff';
-      ctx.fillRect(24, 23, 5, 2);
-      ctx.fillRect(35, 23, 5, 2);
-    });
+    // Moldura medieval ornamentada
+    // Fundo escuro
+    const bgGrad = ctx.createRadialGradient(64, 64, 10, 64, 64, 80);
+    bgGrad.addColorStop(0, '#1a0e2e');
+    bgGrad.addColorStop(1, '#05020a');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, size, size);
 
-    // 2. MAGE (Chapéu de mago roxo e barba branca ancestral)
-    drawPortrait('portrait-MAGE', '#58137b', '#e066ff', '#4488ff', '#ffd1a9', false, true, (ctx) => {
-      ctx.fillStyle = '#eeeeee'; // Barba branca
-      ctx.fillRect(24, 32, 16, 12);
-      ctx.fillStyle = '#cccccc'; // Sombra da barba
-      ctx.fillRect(32, 32, 8, 12);
-    });
+    // Borda ornamentada dourada
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(4, 4, size - 8, size - 8, 8);
+    ctx.stroke();
+    ctx.strokeStyle = '#8b6914';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(8, 8, size - 16, size - 16, 6);
+    ctx.stroke();
 
-    // 3. ARCHER (Capuz verde, cabelo ruivo)
-    drawPortrait('portrait-ARCHER', '#135c13', '#7a4f2b', '#ff8c00', '#ffd1a9', true, false, (ctx) => {
-      ctx.fillStyle = '#ff8c00'; // Cabelo laranja
-      ctx.fillRect(22, 19, 20, 4);
-      ctx.fillStyle = '#e06600';
-      ctx.fillRect(32, 19, 10, 4);
-    });
+    // Ombros e torso
+    const torsoGrad = ctx.createLinearGradient(30, 80, 98, 120);
+    torsoGrad.addColorStop(0, shadeColor(primaryColor, 0.15));
+    torsoGrad.addColorStop(0.5, primaryColor);
+    torsoGrad.addColorStop(1, shadeColor(primaryColor, -0.35));
+    ctx.fillStyle = torsoGrad;
+    ctx.beginPath();
+    ctx.ellipse(64, 110, 40, 30, 0, Math.PI, 0, true);
+    ctx.fill();
 
-    // 4. ASSASSIN (Máscara ninja, olhos verdes brilhantes na escuridão)
-    drawPortrait('portrait-ASSASSIN', '#1f2421', '#333333', '#708090', '#ffd1a9', true, false, (ctx) => {
-      ctx.fillStyle = '#111111'; // Máscara preta
-      ctx.fillRect(20, 28, 24, 10);
-      // Olhos verdes brilhantes
+    // Pescoço
+    ctx.fillStyle = shadeColor(skinColor, -0.1);
+    ctx.fillRect(56, 70, 16, 18);
+
+    // Cabeça
+    const headGrad = ctx.createRadialGradient(60, 44, 4, 64, 48, 28);
+    headGrad.addColorStop(0, shadeColor(skinColor, 0.2));
+    headGrad.addColorStop(0.6, skinColor);
+    headGrad.addColorStop(1, shadeColor(skinColor, -0.25));
+    ctx.fillStyle = headGrad;
+    ctx.beginPath();
+    ctx.ellipse(64, 48, 26, 30, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (headType === 'knight') {
+      // Elmo de cavaleiro com gradiente metálico
+      const helmGrad = ctx.createLinearGradient(38, 16, 90, 68);
+      helmGrad.addColorStop(0, '#d0d0d0');
+      helmGrad.addColorStop(0.3, '#a0a0a0');
+      helmGrad.addColorStop(0.7, '#707070');
+      helmGrad.addColorStop(1, '#404040');
+      ctx.fillStyle = helmGrad;
+      ctx.beginPath();
+      ctx.ellipse(64, 42, 28, 32, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Viseira horizontal
+      ctx.fillStyle = '#0a0a0a';
+      ctx.beginPath();
+      ctx.roundRect(40, 40, 48, 8, 4);
+      ctx.fill();
+
+      // Olhos brilhantes na viseira
+      ctx.fillStyle = accentColor;
+      ctx.beginPath();
+      ctx.arc(52, 44, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(76, 44, 3, 0, Math.PI * 2);
+      ctx.fill();
+      // Brilho
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(53, 43, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(77, 43, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Rosto / Elmo base
+      ctx.fillStyle = primaryColor;
+      ctx.beginPath();
+      ctx.ellipse(64, 32, 22, 26, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#000000';
+      ctx.stroke();
+
+      // Pluma
+      ctx.fillStyle = accentColor;
+      ctx.beginPath();
+      ctx.ellipse(64, 12, 6, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else if (headType === 'wizard') {
+      // Chapéu de mago pontiagudo
+      ctx.fillStyle = shadeColor(primaryColor, -0.1);
+      ctx.beginPath();
+      ctx.moveTo(64, 2);
+      ctx.lineTo(38, 40);
+      ctx.lineTo(90, 40);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      // Faixa
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(36, 36, 56, 6);
+      ctx.strokeRect(36, 36, 56, 6);
+
+      // Olhos
+      ctx.fillStyle = '#222222';
+      ctx.beginPath();
+      ctx.ellipse(54, 48, 4, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(74, 48, 4, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(55, 47, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(75, 47, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Barba
+      if (key.includes('MAGE') || key.includes('master')) {
+        ctx.fillStyle = '#dddddd';
+        ctx.beginPath();
+        ctx.ellipse(64, 72, 14, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    } else if (headType === 'hood') {
+      // Capuz
+      const hoodGrad = ctx.createLinearGradient(36, 14, 92, 56);
+      hoodGrad.addColorStop(0, shadeColor(primaryColor, 0.1));
+      hoodGrad.addColorStop(1, shadeColor(primaryColor, -0.35));
+      ctx.fillStyle = hoodGrad;
+      ctx.beginPath();
+      ctx.ellipse(64, 38, 30, 34, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Rosto visível dentro do capuz
+      ctx.fillStyle = skinColor;
+      ctx.beginPath();
+      ctx.ellipse(64, 48, 20, 22, 0, 0, Math.PI);
+      ctx.fill();
+      ctx.stroke();
+
+      // Olhos
+      ctx.fillStyle = '#222222';
+      ctx.beginPath();
+      ctx.ellipse(54, 46, 3, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(74, 46, 3, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Barba do mestre
+      if (key.includes('master')) {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(64, 68, 12, 16, 0, 0, Math.PI);
+        ctx.fill();
+        ctx.stroke();
+      }
+      // Barba do ferreiro
+      if (key.includes('blacksmith')) {
+        ctx.fillStyle = '#cc3333';
+        ctx.beginPath();
+        ctx.ellipse(64, 66, 12, 14, 0, 0, Math.PI);
+        ctx.fill();
+        ctx.stroke();
+      }
+    } else if (headType === 'mask') {
+      // Máscara de assassino
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.ellipse(64, 42, 28, 32, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Apenas olhos brilhantes
       ctx.fillStyle = '#00ff66';
-      ctx.fillRect(25, 25, 3, 2);
-      ctx.fillRect(36, 25, 3, 2);
-    });
+      ctx.beginPath();
+      ctx.ellipse(52, 42, 4, 3, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(76, 42, 4, 3, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      // Cabelo natural
+      const hairGrad = ctx.createLinearGradient(36, 14, 92, 48);
+      hairGrad.addColorStop(0, shadeColor(accentColor, 0.2));
+      hairGrad.addColorStop(1, shadeColor(accentColor, -0.3));
+      ctx.fillStyle = hairGrad;
+      ctx.beginPath();
+      ctx.ellipse(64, 34, 28, 22, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
 
-    // 5. NPC FERREIRO (Cabelo ruivo arrepiado, barba e fuligem no rosto)
-    drawPortrait('portrait-blacksmith', '#5c3317', '#444444', '#cc3333', '#e0b080', false, false, (ctx) => {
-      ctx.fillStyle = '#cc3333'; // Barba ruiva
-      ctx.fillRect(22, 30, 20, 14);
-      ctx.fillStyle = '#aa2222';
-      ctx.fillRect(32, 30, 10, 14);
-      ctx.fillStyle = '#222222'; // Manchas de carvão
-      ctx.fillRect(23, 22, 3, 2);
-      ctx.fillRect(38, 24, 2, 2);
-    });
+      // Olhos
+      ctx.fillStyle = '#222222';
+      ctx.beginPath();
+      ctx.ellipse(54, 48, 3, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(74, 48, 3, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
 
-    // 6. NPC MERCADORA (Capuz roxo, cabelo prateado comprido)
-    drawPortrait('portrait-merchant', '#a020f0', '#ffb6c1', '#32cd32', '#ffd1a9', true, false, (ctx) => {
-      ctx.fillStyle = '#e0e0e0'; // Cabelo prata nas laterais
-      ctx.fillRect(20, 22, 3, 10);
-      ctx.fillRect(41, 22, 3, 10);
-    });
+    // Detalhes na armadura do ombro
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(40, 90, 12, Math.PI * 0.8, Math.PI * 1.6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(88, 90, 12, Math.PI * 1.4, Math.PI * 0.2);
+    ctx.stroke();
 
-    // 7. NPC MESTRE (Manto dourado real, capuz e uma longa barba branca)
-    drawPortrait('portrait-master', '#d4af37', '#4b0082', '#ffffff', '#e0b080', true, false, (ctx) => {
-      ctx.fillStyle = '#ffffff'; // Longa barba ancestral
-      ctx.fillRect(22, 32, 20, 22);
-      ctx.fillStyle = '#dddddd';
-      ctx.fillRect(32, 32, 10, 22);
-    });
+    canvas!.refresh();
   }
 
-  private createDecorationTextures(): void {
-    // 1. Árvores (deco-tree, 16x24 pixels)
+  // =====================================================
+  // MONSTROS HD — 64x64 com anti-aliasing
+  // =====================================================
+
+  private createHDMonsterSprites(): void {
+    this.drawHDMonster('monster-goblin', '#44aa44', '#225522', '#ffff44', 'goblin');
+    this.drawHDMonster('monster-skeleton', '#eeeeee', '#888888', '#ff0000', 'skeleton');
+    this.drawHDMonster('monster-shadow_wolf', '#444455', '#222233', '#ff4444', 'wolf');
+    this.drawHDMonster('monster-wolf', '#555566', '#333344', '#ff4444', 'wolf');
+    this.drawHDMonster('monster-demon_imp', '#cc2222', '#440000', '#ffff00', 'demon');
+    this.drawHDMonster('monster-imp', '#cc3333', '#551111', '#ffdd00', 'demon');
+  }
+
+  private drawHDMonster(key: string, primaryColor: string, darkColor: string, eyeColor: string, type: string): void {
+    if (this.textures.exists(key)) return;
+    const size = 64;
+    const canvas = this.textures.createCanvas(key, size, size);
+    const ctx = canvas!.getContext();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    const shadeColor = (hex: string, pct: number): string => {
+      const n = parseInt(hex.replace('#', ''), 16);
+      const r = (n >> 16) & 0xff, g = (n >> 8) & 0xff, b = n & 0xff;
+      const t = pct < 0 ? 0 : 255;
+      const p = Math.abs(pct);
+      return `rgb(${Math.round((t - r) * p + r)}, ${Math.round((t - g) * p + g)}, ${Math.round((t - b) * p + b)})`;
+    };
+
+    // Sombra
+    const shadowGrad = ctx.createRadialGradient(32, 58, 2, 32, 58, 20);
+    shadowGrad.addColorStop(0, 'rgba(0,0,0,0.5)');
+    shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = shadowGrad;
+    ctx.beginPath();
+    ctx.ellipse(32, 58, 20, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (type === 'goblin') {
+      // Corpo redondo verde
+      const bodyGrad = ctx.createRadialGradient(30, 30, 4, 32, 34, 20);
+      bodyGrad.addColorStop(0, shadeColor(primaryColor, 0.2));
+      bodyGrad.addColorStop(0.7, primaryColor);
+      bodyGrad.addColorStop(1, darkColor);
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      ctx.ellipse(32, 34, 18, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Cabeça grande
+      ctx.fillStyle = shadeColor(primaryColor, 0.1);
+      ctx.beginPath();
+      ctx.ellipse(32, 18, 16, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Orelhas pontudas
+      ctx.fillStyle = primaryColor;
+      ctx.beginPath();
+      ctx.moveTo(14, 14);
+      ctx.lineTo(18, 6);
+      ctx.lineTo(22, 16);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(50, 14);
+      ctx.lineTo(46, 6);
+      ctx.lineTo(42, 16);
+      ctx.fill();
+      ctx.stroke();
+
+      // Olhos amarelos malignos
+      ctx.fillStyle = eyeColor;
+      ctx.beginPath();
+      ctx.ellipse(26, 18, 4, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(38, 18, 4, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Pupilas
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.arc(27, 18, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(39, 18, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Boca com dentes
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.ellipse(32, 26, 8, 4, 0, 0, Math.PI);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(28, 25, 3, 3);
+      ctx.strokeRect(28, 25, 3, 3);
+      ctx.fillRect(33, 25, 3, 3);
+      ctx.strokeRect(33, 25, 3, 3);
+
+      // Pernas
+      ctx.fillStyle = darkColor;
+      this.drawRoundedRect(ctx, 22, 48, 6, 12, 2);
+      this.drawRoundedRect(ctx, 36, 48, 6, 12, 2);
+    } else if (type === 'skeleton') {
+      // Crânio
+      ctx.fillStyle = primaryColor;
+      ctx.beginPath();
+      ctx.ellipse(32, 16, 14, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Mandíbula
+      ctx.fillStyle = shadeColor(primaryColor, -0.15);
+      ctx.beginPath();
+      ctx.ellipse(32, 26, 10, 6, 0, 0, Math.PI);
+      ctx.fill();
+      ctx.stroke();
+
+      // Órbitas dos olhos
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.ellipse(26, 14, 5, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(38, 14, 5, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      // Olhos flamejantes
+      ctx.fillStyle = eyeColor;
+      ctx.beginPath();
+      ctx.arc(26, 14, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(38, 14, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Nariz
+      ctx.fillStyle = '#333333';
+      ctx.beginPath();
+      ctx.moveTo(32, 18);
+      ctx.lineTo(30, 22);
+      ctx.lineTo(34, 22);
+      ctx.fill();
+
+      // Caixa torácica
+      ctx.strokeStyle = darkColor;
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.ellipse(32, 32 + i * 5, 12 - i, 3, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Braços ósseos
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(20, 30);
+      ctx.lineTo(10, 46);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(44, 30);
+      ctx.lineTo(54, 46);
+      ctx.stroke();
+
+      // Pernas ósseas
+      ctx.beginPath();
+      ctx.moveTo(26, 48);
+      ctx.lineTo(22, 60);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(38, 48);
+      ctx.lineTo(42, 60);
+      ctx.stroke();
+    } else if (type === 'wolf') {
+      // Corpo alongado de lobo
+      const bodyGrad = ctx.createLinearGradient(10, 24, 54, 48);
+      bodyGrad.addColorStop(0, shadeColor(primaryColor, 0.1));
+      bodyGrad.addColorStop(0.5, primaryColor);
+      bodyGrad.addColorStop(1, darkColor);
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      ctx.ellipse(32, 36, 22, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cabeça
+      ctx.fillStyle = shadeColor(primaryColor, 0.1);
+      ctx.beginPath();
+      ctx.ellipse(50, 26, 12, 10, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      // Focinho
+      ctx.fillStyle = darkColor;
+      ctx.beginPath();
+      ctx.ellipse(58, 28, 6, 4, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Orelhas
+      ctx.fillStyle = primaryColor;
+      ctx.beginPath();
+      ctx.moveTo(44, 20);
+      ctx.lineTo(46, 10);
+      ctx.lineTo(50, 18);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(52, 18);
+      ctx.lineTo(56, 10);
+      ctx.lineTo(56, 20);
+      ctx.fill();
+
+      // Olhos vermelhos
+      ctx.fillStyle = eyeColor;
+      ctx.beginPath();
+      ctx.ellipse(52, 24, 3, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.arc(52, 24, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Patas
+      ctx.fillStyle = darkColor;
+      this.drawRoundedRect(ctx, 16, 46, 6, 10, 2);
+      this.drawRoundedRect(ctx, 24, 46, 6, 10, 2);
+      this.drawRoundedRect(ctx, 36, 46, 6, 10, 2);
+      this.drawRoundedRect(ctx, 44, 46, 6, 10, 2);
+
+      // Cauda
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(10, 34);
+      ctx.quadraticCurveTo(4, 20, 8, 16);
+      ctx.stroke();
+    } else if (type === 'demon') {
+      // Corpo demoníaco
+      const bodyGrad = ctx.createRadialGradient(30, 30, 4, 32, 34, 20);
+      bodyGrad.addColorStop(0, shadeColor(primaryColor, 0.2));
+      bodyGrad.addColorStop(0.7, primaryColor);
+      bodyGrad.addColorStop(1, darkColor);
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      ctx.ellipse(32, 36, 16, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cabeça
+      ctx.fillStyle = shadeColor(primaryColor, 0.1);
+      ctx.beginPath();
+      ctx.ellipse(32, 18, 14, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Chifres
+      ctx.fillStyle = darkColor;
+      ctx.beginPath();
+      ctx.moveTo(20, 12);
+      ctx.lineTo(16, 0);
+      ctx.lineTo(24, 10);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(44, 12);
+      ctx.lineTo(48, 0);
+      ctx.lineTo(40, 10);
+      ctx.fill();
+
+      // Olhos ardentes
+      ctx.fillStyle = eyeColor;
+      ctx.beginPath();
+      ctx.ellipse(26, 16, 4, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(38, 16, 4, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.arc(27, 16, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(39, 16, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Boca maligna
+      ctx.fillStyle = '#220000';
+      ctx.beginPath();
+      ctx.ellipse(32, 26, 8, 4, 0, 0, Math.PI);
+      ctx.fill();
+
+      // Asas pequenas
+      ctx.fillStyle = shadeColor(primaryColor, -0.3);
+      ctx.beginPath();
+      ctx.moveTo(16, 28);
+      ctx.quadraticCurveTo(4, 16, 8, 34);
+      ctx.lineTo(16, 36);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(48, 28);
+      ctx.quadraticCurveTo(60, 16, 56, 34);
+      ctx.lineTo(48, 36);
+      ctx.fill();
+
+      // Pernas
+      ctx.fillStyle = darkColor;
+      this.drawRoundedRect(ctx, 22, 48, 6, 12, 2);
+      this.drawRoundedRect(ctx, 36, 48, 6, 12, 2);
+
+      // Cauda
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(32, 52);
+      ctx.quadraticCurveTo(12, 56, 10, 48);
+      ctx.stroke();
+      // Ponta da cauda
+      ctx.fillStyle = primaryColor;
+      ctx.beginPath();
+      ctx.moveTo(10, 48);
+      ctx.lineTo(6, 44);
+      ctx.lineTo(14, 46);
+      ctx.fill();
+    }
+
+    canvas!.refresh();
+  }
+
+  // =====================================================
+  // DECORAÇÕES HD — Árvores e arbustos em alta resolução
+  // =====================================================
+
+  private createHDDecorations(): void {
+    // 1. Árvore HD (64x80)
     if (!this.textures.exists('deco-tree')) {
-      const treeCanvas = this.textures.createCanvas('deco-tree', 16, 24);
-      const ctx = treeCanvas!.getContext();
-      ctx.imageSmoothingEnabled = false;
+      const canvas = this.textures.createCanvas('deco-tree', 64, 80);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
 
-      const matrix = [
-        "......GG......",
-        "....GGGGGG....",
-        "...GGGGGGGG...",
-        "..GGGGGGGGGG..",
-        "..GGGGGGGGGG..",
-        "..GGGGGGGGGG..",
-        "...GGGGGGGG...",
-        "....GGGGGG....",
-        ".....WWWW.....",
-        ".....WWWW.....",
-        ".....WWWW.....",
-        ".....WWWW....."
-      ];
-      for (let y = 0; y < 12; y++) {
-        for (let x = 0; x < 14; x++) {
-          const char = matrix[y][x];
-          if (char === 'G') {
-            ctx.fillStyle = '#225511';
-            ctx.fillRect(x + 1, y, 1, 1);
-          } else if (char === 'W') {
-            ctx.fillStyle = '#5c3a21';
-            ctx.fillRect(x + 1, y + 12, 1, 1);
-          }
-        }
-      }
-      treeCanvas!.refresh();
+      // Tronco
+      ctx.fillStyle = '#4a2c11';
+      this.drawRoundedRect(ctx, 26, 44, 12, 36, 4);
+      ctx.fillStyle = '#321c08';
+      ctx.fillRect(26, 44, 4, 36);
+
+      // Copas da árvore
+      const drawFoliageLayer = (cx: number, cy: number, rx: number, ry: number, color: string) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+      };
+
+      drawFoliageLayer(32, 45, 28, 22, '#1b4a1b');
+      drawFoliageLayer(32, 32, 24, 18, '#266926');
+      drawFoliageLayer(32, 20, 18, 15, '#358a35');
+
+      ctx.fillStyle = '#4caf50';
+      ctx.beginPath(); ctx.ellipse(26, 16, 8, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(36, 26, 10, 7, 0, 0, Math.PI * 2); ctx.fill();
+
+      canvas!.refresh();
     }
 
-    // 2. Arbustos (deco-bush, 16x16 pixels)
+    // 2. Arbusto HD (48x40)
     if (!this.textures.exists('deco-bush')) {
-      const bushCanvas = this.textures.createCanvas('deco-bush', 16, 16);
-      const ctx = bushCanvas!.getContext();
-      ctx.imageSmoothingEnabled = false;
+      const canvas = this.textures.createCanvas('deco-bush', 48, 40);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
 
-      const matrix = [
-        "......GGGG......",
-        "....GGGGGGGG....",
-        "...GGGGGGGGGG...",
-        "..GGGGGGGGGGGG..",
-        ".GGGGGGGGGGGGGG.",
-        "GGGGGGGGGGGGGGGG",
-        "GGGGGGGGGGGGGGGG",
-        ".GGGGGGGGGGGGGG.",
-        "..GGGGGGGGGGGG.."
-      ];
-      for (let y = 0; y < 9; y++) {
-        for (let x = 0; x < 16; x++) {
-          const char = matrix[y][x];
-          if (char === 'G') {
-            ctx.fillStyle = '#2d6a1e';
-            ctx.fillRect(x, y + 4, 1, 1);
-          }
-        }
-      }
-      bushCanvas!.refresh();
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.beginPath(); ctx.ellipse(24, 34, 20, 6, 0, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#1e4620';
+      ctx.beginPath(); ctx.ellipse(24, 24, 20, 14, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2d6830';
+      ctx.beginPath(); ctx.ellipse(18, 20, 14, 11, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(30, 20, 14, 11, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3e8e42';
+      ctx.beginPath(); ctx.ellipse(24, 14, 11, 8, 0, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#ff4444';
+      ctx.beginPath(); ctx.arc(16, 18, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(32, 16, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(24, 24, 2, 0, Math.PI * 2); ctx.fill();
+
+      canvas!.refresh();
     }
 
-    // 3. Flores (deco-flower, 8x8 pixels)
-    if (!this.textures.exists('deco-flower')) {
-      const flowerCanvas = this.textures.createCanvas('deco-flower', 8, 8);
-      const ctx = flowerCanvas!.getContext();
-      ctx.imageSmoothingEnabled = false;
+    // 3. Balcão da Taverna (96x32)
+    if (!this.textures.exists('tavern-counter')) {
+      const canvas = this.textures.createCanvas('tavern-counter', 96, 32);
+      const ctx = canvas!.getContext();
+      ctx.fillStyle = '#3e2723';
+      this.drawRoundedRect(ctx, 0, 0, 96, 32, 4);
+      ctx.fillStyle = '#5d4037';
+      this.drawRoundedRect(ctx, 2, 2, 92, 24, 3);
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(4, 4, 88, 20);
+      canvas!.refresh();
+    }
 
-      const matrix = [
-        "...YY...",
-        "..YRRY..",
-        ".YRRRRY.",
-        ".YRRRRY.",
-        "..YRRY..",
-        "...YY..."
-      ];
-      for (let y = 0; y < 6; y++) {
-        for (let x = 0; x < 8; x++) {
-          const char = matrix[y][x];
-          if (char === 'Y') {
-            ctx.fillStyle = '#ffd700';
-            ctx.fillRect(x, y + 1, 1, 1);
-          } else if (char === 'R') {
-            ctx.fillStyle = '#ff3333';
-            ctx.fillRect(x, y + 1, 1, 1);
-          }
-        }
+    // 4. Mesa da Taverna (48x36)
+    if (!this.textures.exists('tavern-table')) {
+      const canvas = this.textures.createCanvas('tavern-table', 48, 36);
+      const ctx = canvas!.getContext();
+      ctx.fillStyle = '#3e2723';
+      ctx.beginPath(); ctx.ellipse(24, 18, 22, 16, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#5d4037';
+      ctx.beginPath(); ctx.ellipse(24, 18, 19, 13, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#8d6e63';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      canvas!.refresh();
+    }
+
+    // 5. Flores HD (16x16)
+    if (!this.textures.exists('deco-flower')) {
+      const canvas = this.textures.createCanvas('deco-flower', 16, 16);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
+
+      const petalColors = ['#ff4466', '#ff6688', '#ff88aa'];
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5;
+        ctx.fillStyle = petalColors[i % petalColors.length];
+        ctx.beginPath();
+        ctx.ellipse(
+          8 + Math.cos(angle) * 4,
+          8 + Math.sin(angle) * 4,
+          3, 2, angle, 0, Math.PI * 2
+        );
+        ctx.fill();
       }
-      flowerCanvas!.refresh();
+      ctx.fillStyle = '#ffdd00';
+      ctx.beginPath();
+      ctx.arc(8, 8, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      canvas!.refresh();
     }
   }
+
+  // =====================================================
+  // EDIFÍCIOS PROCEDIMENTAIS (Forja e Mercado)
+  // =====================================================
+
+  private createBuildingSprites(): void {
+    // Taverna dos Templários (anime style) (192x144)
+    if (!this.textures.exists('tavern-building')) {
+      const canvas = this.textures.createCanvas('tavern-building', 192, 144);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
+
+      // Base da Taverna
+      ctx.fillStyle = '#c1a68d';
+      this.drawRoundedRect(ctx, 16, 40, 160, 96, 4);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#000000';
+      ctx.stroke();
+
+      // Madeiras cruzadas (estilo enxaimel medieval anime)
+      ctx.fillStyle = '#4a3525';
+      ctx.fillRect(16, 40, 160, 8); // Viga superior
+      ctx.fillRect(16, 128, 160, 8); // Viga inferior
+      ctx.fillRect(16, 40, 8, 96); // Pilar esq
+      ctx.fillRect(168, 40, 8, 96); // Pilar dir
+      ctx.fillRect(92, 40, 8, 96); // Pilar central
+      
+      ctx.beginPath(); // Diagonal esq
+      ctx.moveTo(16, 48); ctx.lineTo(92, 128);
+      ctx.lineTo(100, 128); ctx.lineTo(24, 48);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      ctx.beginPath(); // Diagonal dir
+      ctx.moveTo(168, 48); ctx.lineTo(92, 128);
+      ctx.lineTo(84, 128); ctx.lineTo(160, 48);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      // Telhado gigante
+      ctx.fillStyle = '#8b2500';
+      ctx.beginPath();
+      ctx.moveTo(8, 50);
+      ctx.lineTo(96, 10);
+      ctx.lineTo(184, 50);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Porta com contorno
+      ctx.fillStyle = '#3e2723';
+      this.drawRoundedRect(ctx, 76, 96, 40, 40, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      // Cruz templária iluminada
+      ctx.fillStyle = '#ff3333';
+      ctx.fillRect(90, 60, 12, 30);
+      ctx.fillRect(80, 70, 32, 10);
+      // Brilho da cruz
+      ctx.fillStyle = 'rgba(255, 50, 50, 0.5)';
+      ctx.beginPath();
+      ctx.ellipse(96, 75, 24, 24, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Chaminé com fumaça
+      ctx.fillStyle = '#555555';
+      ctx.fillRect(140, 10, 16, 30);
+      ctx.strokeRect(140, 10, 16, 30);
+      ctx.fillStyle = 'rgba(200, 200, 200, 0.4)';
+      ctx.beginPath(); ctx.arc(148, 0, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(156, -10, 12, 0, Math.PI * 2); ctx.fill();
+
+      canvas!.refresh();
+    }
+
+    // Forja do Ferreiro (128x96)
+    if (!this.textures.exists('forge-building')) {
+      const canvas = this.textures.createCanvas('forge-building', 128, 96);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Base de pedra
+      const wallGrad = ctx.createLinearGradient(0, 0, 128, 96);
+      wallGrad.addColorStop(0, '#6b5b4a');
+      wallGrad.addColorStop(0.5, '#5a4a3a');
+      wallGrad.addColorStop(1, '#3a2a1a');
+      ctx.fillStyle = wallGrad;
+      this.drawRoundedRect(ctx, 8, 20, 112, 68, 6);
+
+      // Telhado escuro
+      const roofGrad = ctx.createLinearGradient(0, 0, 128, 24);
+      roofGrad.addColorStop(0, '#4a3528');
+      roofGrad.addColorStop(0.5, '#3a2518');
+      roofGrad.addColorStop(1, '#2a1508');
+      ctx.fillStyle = roofGrad;
+      ctx.beginPath();
+      ctx.moveTo(4, 24);
+      ctx.lineTo(64, 2);
+      ctx.lineTo(124, 24);
+      ctx.closePath();
+      ctx.fill();
+
+      // Porta
+      ctx.fillStyle = '#3a2010';
+      this.drawRoundedRect(ctx, 50, 56, 28, 32, 6);
+
+      // Bigorna à frente
+      ctx.fillStyle = '#555555';
+      this.drawRoundedRect(ctx, 94, 62, 20, 14, 3);
+      ctx.fillStyle = '#777777';
+      this.drawRoundedRect(ctx, 90, 60, 28, 6, 3);
+
+      // Chaminé com fumaça (indicador visual)
+      ctx.fillStyle = '#555555';
+      this.drawRoundedRect(ctx, 100, 4, 14, 20, 3);
+
+      // Janela com brilho de fogo
+      const fireGlow = ctx.createRadialGradient(30, 46, 2, 30, 46, 12);
+      fireGlow.addColorStop(0, 'rgba(255, 150, 50, 0.8)');
+      fireGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
+      ctx.fillStyle = fireGlow;
+      ctx.fillRect(22, 38, 16, 16);
+
+      canvas!.refresh();
+    }
+
+    // Barraca do Mercado (128x80)
+    if (!this.textures.exists('shop-building')) {
+      const canvas = this.textures.createCanvas('shop-building', 128, 80);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Toldo listrado (azul e branco)
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = i % 2 === 0 ? '#0066cc' : '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(i * 16, 16);
+        ctx.lineTo(i * 16 + 8, 0);
+        ctx.lineTo(i * 16 + 16, 16);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Base de madeira do balcão
+      const woodGrad = ctx.createLinearGradient(0, 16, 0, 80);
+      woodGrad.addColorStop(0, '#8B6914');
+      woodGrad.addColorStop(0.5, '#6b4914');
+      woodGrad.addColorStop(1, '#4a3010');
+      ctx.fillStyle = woodGrad;
+      this.drawRoundedRect(ctx, 8, 16, 112, 56, 4);
+
+      // Balcão frontal
+      ctx.fillStyle = '#9a7934';
+      this.drawRoundedRect(ctx, 12, 48, 104, 12, 3);
+      
+      // Itens na barraca
+      // Poção vermelha
+      ctx.fillStyle = '#cc0033';
+      this.drawRoundedRect(ctx, 24, 24, 10, 16, 4);
+      ctx.fillStyle = '#eeeeee';
+      this.drawRoundedRect(ctx, 27, 20, 4, 6, 2);
+      // Poção azul
+      ctx.fillStyle = '#2266cc';
+      this.drawRoundedRect(ctx, 42, 24, 10, 16, 4);
+      ctx.fillStyle = '#eeeeee';
+      this.drawRoundedRect(ctx, 45, 20, 4, 6, 2);
+      // Poção verde
+      ctx.fillStyle = '#22aa44';
+      this.drawRoundedRect(ctx, 60, 24, 10, 16, 4);
+      ctx.fillStyle = '#eeeeee';
+      this.drawRoundedRect(ctx, 63, 20, 4, 6, 2);
+
+      // Saco de moedas
+      ctx.fillStyle = '#8B6914';
+      ctx.beginPath();
+      ctx.ellipse(90, 32, 10, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath();
+      ctx.arc(88, 28, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(93, 30, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      canvas!.refresh();
+    }
+
+    // Fundo Procedural Dark Fantasy + Hades (Pedras Escuras com Neon)
+    if (!this.textures.exists('dark-stone-ground')) {
+      const canvas = this.textures.createCanvas('dark-stone-ground', 256, 256);
+      const ctx = canvas!.getContext();
+
+      // Fundo Base (Pedra Obsidiana / Carvão)
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(0, 0, 256, 256);
+
+      // Desenhando blocos de pedra irregulares (estilo Dark Souls)
+      for (let i = 0; i < 40; i++) {
+        const px = Math.random() * 256;
+        const py = Math.random() * 256;
+        const w = 30 + Math.random() * 40;
+        const h = 20 + Math.random() * 30;
+
+        ctx.fillStyle = `rgba(${20 + Math.random()*15}, ${20 + Math.random()*15}, ${20 + Math.random()*20}, 0.8)`;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + w, py + Math.random() * 10);
+        ctx.lineTo(px + w - Math.random() * 10, py + h);
+        ctx.lineTo(px - Math.random() * 10, py + h - Math.random() * 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#050505'; // Contorno muito escuro
+        ctx.stroke();
+      }
+
+      // Veios de energia brilhante (Estilo Hades - Neon Magenta / Ciano)
+      ctx.globalCompositeOperation = 'screen';
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        let sx = Math.random() * 256;
+        let sy = Math.random() * 256;
+        ctx.moveTo(sx, sy);
+        
+        for (let j = 0; j < 4; j++) {
+          sx += (Math.random() - 0.5) * 60;
+          sy += (Math.random() - 0.5) * 60;
+          ctx.lineTo(sx, sy);
+        }
+        
+        ctx.lineWidth = Math.random() * 3 + 1;
+        // Cores vibrantes
+        const neonColors = ['#ff0055', '#00ffcc', '#bf00ff'];
+        ctx.strokeStyle = neonColors[Math.floor(Math.random() * neonColors.length)];
+        // Efeito de brilho "Glow"
+        ctx.shadowColor = ctx.strokeStyle;
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        
+        // Reset shadow
+        ctx.shadowBlur = 0;
+      }
+      ctx.globalCompositeOperation = 'source-over';
+
+      canvas!.refresh();
+    }
+  }
+
+  // =====================================================
+  // PARTÍCULAS E ATMOSFERA
+  // =====================================================
 
   private createParticleTextures(): void {
-    const goldPart = this.textures.createCanvas('particle-gold', 8, 8);
+    const goldPart = this.textures.createCanvas('particle-gold', 12, 12);
     const gCtx = goldPart!.getContext();
-    const gradient = gCtx.createRadialGradient(4, 4, 0, 4, 4, 4);
+    const gradient = gCtx.createRadialGradient(6, 6, 0, 6, 6, 6);
     gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(0.4, '#ffd700');
-    gradient.addColorStop(0.8, '#b8860b');
+    gradient.addColorStop(0.3, '#ffd700');
+    gradient.addColorStop(0.7, '#b8860b');
     gradient.addColorStop(1, 'rgba(184, 134, 11, 0)');
     gCtx.fillStyle = gradient;
-    gCtx.fillRect(0, 0, 8, 8);
+    gCtx.fillRect(0, 0, 12, 12);
     goldPart!.refresh();
 
-    const leafPart = this.textures.createCanvas('particle-leaf', 8, 8);
+    const leafPart = this.textures.createCanvas('particle-leaf', 12, 12);
     const lCtx = leafPart!.getContext();
     lCtx.fillStyle = '#4a9a32';
     lCtx.beginPath();
-    lCtx.ellipse(4, 4, 3, 2, 0.4, 0, Math.PI * 2);
+    lCtx.ellipse(6, 6, 5, 3, 0.4, 0, Math.PI * 2);
     lCtx.fill();
     lCtx.fillStyle = '#2d6a1e';
-    lCtx.fillRect(4, 3, 1, 3);
+    lCtx.fillRect(6, 4, 1, 5);
     leafPart!.refresh();
 
-    const ffPart = this.textures.createCanvas('particle-firefly', 10, 10);
+    const ffPart = this.textures.createCanvas('particle-firefly', 14, 14);
     const ffCtx = ffPart!.getContext();
-    const ffGrad = ffCtx.createRadialGradient(5, 5, 0, 5, 5, 5);
+    const ffGrad = ffCtx.createRadialGradient(7, 7, 0, 7, 7, 7);
     ffGrad.addColorStop(0, '#ffffff');
     ffGrad.addColorStop(0.3, '#adff2f');
     ffGrad.addColorStop(0.7, 'rgba(173, 255, 47, 0.4)');
     ffGrad.addColorStop(1, 'rgba(173, 255, 47, 0)');
     ffCtx.fillStyle = ffGrad;
-    ffCtx.fillRect(0, 0, 10, 10);
+    ffCtx.fillRect(0, 0, 14, 14);
     ffPart!.refresh();
   }
 
   private createAtmosphericTextures(): void {
-    const vw = 960;
-    const vh = 640;
+    const vw = 1280;
+    const vh = 720;
     const vignette = this.textures.createCanvas('vignette', vw, vh);
     const vCtx = vignette!.getContext();
     const vGrad = vCtx.createRadialGradient(vw / 2, vh / 2, vw * 0.25, vw / 2, vh / 2, vw * 0.65);
     vGrad.addColorStop(0, 'rgba(0,0,0,0)');
-    vGrad.addColorStop(1, 'rgba(5,2,10,0.65)');
+    vGrad.addColorStop(1, 'rgba(5,2,10,0.6)');
     vCtx.fillStyle = vGrad;
     vCtx.fillRect(0, 0, vw, vh);
     vignette!.refresh();
@@ -600,209 +1417,179 @@ export class PreloadScene extends Phaser.Scene {
     light!.refresh();
   }
 
-  private createMonsterTextures(): void {
-    const makeTexture = (key: string, matrix: string[], colors: Record<string, string>) => {
-      if (this.textures.exists(key)) return;
-      const canvas = this.textures.createCanvas(key, 16, 16);
+  // =====================================================
+  // SOLOS PROCEDURAIS HD
+  // =====================================================
+
+  private createProceduralGrounds(): void {
+    // 1. Chão do Vilarejo (Grama, Terra e Pedrinhas) - 1024x1024 tilável
+    if (!this.textures.exists('procedural-village')) {
+      const canvas = this.textures.createCanvas('procedural-village', 1024, 1024);
       const ctx = canvas!.getContext();
-      ctx.imageSmoothingEnabled = false;
-      for (let y = 0; y < 16; y++) {
-        for (let x = 0; x < 16; x++) {
-          const char = matrix[y][x];
-          if (char && char !== '.') {
-            ctx.fillStyle = colors[char];
-            ctx.fillRect(x, y, 1, 1);
+      ctx.imageSmoothingEnabled = true;
+
+      // Fundo Base de Grama
+      ctx.fillStyle = '#1d4218';
+      ctx.fillRect(0, 0, 1024, 1024);
+
+      // Manchas de grama mais clara/escura (Noise fake)
+      for (let i = 0; i < 2000; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 1024;
+        const r = Math.random() * 8 + 4;
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(35, 90, 28, 0.4)' : 'rgba(15, 45, 12, 0.4)';
+        ctx.beginPath();
+        ctx.ellipse(x, y, r * 1.5, r, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Caminhos de terra esfumaçados
+      ctx.fillStyle = 'rgba(70, 50, 30, 0.15)';
+      for (let i = 0; i < 50; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 1024;
+        ctx.beginPath();
+        ctx.ellipse(x, y, 150, 100, Math.random() * Math.PI, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Detalhes: Pedrinhas
+      for (let i = 0; i < 300; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 1024;
+        const s = Math.random() * 3 + 1;
+        ctx.fillStyle = '#666666';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#999999';
+        ctx.fillRect(x, y, s - 1, s - 1);
+      }
+      canvas!.refresh();
+    }
+
+    // 2. Chão da Taverna (Tábuas de Madeira) - 512x512 tilável
+    if (!this.textures.exists('procedural-tavern')) {
+      const canvas = this.textures.createCanvas('procedural-tavern', 512, 512);
+      const ctx = canvas!.getContext();
+      
+      ctx.fillStyle = '#2b1b10';
+      ctx.fillRect(0, 0, 512, 512);
+
+      const boardHeight = 64;
+      for (let y = 0; y < 512; y += boardHeight) {
+        let x = 0;
+        while (x < 512) {
+          const boardWidth = 128 + Math.random() * 128; // tábuas de tamanhos diferentes
+          
+          // Gradiente da tábua
+          const grad = ctx.createLinearGradient(x, y, x, y + boardHeight);
+          grad.addColorStop(0, '#4a3018');
+          grad.addColorStop(0.5, '#3a2412');
+          grad.addColorStop(1, '#251508');
+          ctx.fillStyle = grad;
+          ctx.fillRect(x, y, boardWidth, boardHeight - 2);
+
+          // Ranhuras da madeira
+          ctx.strokeStyle = 'rgba(20, 10, 5, 0.3)';
+          ctx.lineWidth = 1;
+          for (let l = 0; l < 5; l++) {
+            ctx.beginPath();
+            ctx.moveTo(x, y + Math.random() * boardHeight);
+            ctx.lineTo(x + boardWidth, y + Math.random() * boardHeight);
+            ctx.stroke();
+          }
+
+          // Pregos
+          ctx.fillStyle = '#111';
+          ctx.beginPath(); ctx.arc(x + 10, y + 10, 2, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x + 10, y + boardHeight - 12, 2, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x + boardWidth - 10, y + 10, 2, 0, Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(x + boardWidth - 10, y + boardHeight - 12, 2, 0, Math.PI*2); ctx.fill();
+
+          x += boardWidth + 2;
+        }
+      }
+      canvas!.refresh();
+    }
+
+    // 3. Chão da Masmorra (Pedras Escuras e Lodo) - 512x512 tilável
+    if (!this.textures.exists('procedural-dungeon')) {
+      const canvas = this.textures.createCanvas('procedural-dungeon', 512, 512);
+      const ctx = canvas!.getContext();
+      
+      ctx.fillStyle = '#111115';
+      ctx.fillRect(0, 0, 512, 512);
+
+      const blockSize = 64;
+      for (let y = 0; y < 512; y += blockSize) {
+        for (let x = 0; x < 512; x += blockSize) {
+          const offsetX = (y / blockSize) % 2 === 0 ? 0 : blockSize / 2;
+          const drawX = x - offsetX;
+
+          const grad = ctx.createRadialGradient(drawX + 32, y + 32, 5, drawX + 32, y + 32, 40);
+          grad.addColorStop(0, '#2a2a30');
+          grad.addColorStop(1, '#1a1a20');
+          ctx.fillStyle = grad;
+          ctx.fillRect(drawX + 2, y + 2, blockSize - 4, blockSize - 4);
+
+          // Detalhes da pedra (rachaduras)
+          if (Math.random() > 0.7) {
+            ctx.strokeStyle = '#0a0a0c';
+            ctx.beginPath();
+            ctx.moveTo(drawX + Math.random() * 64, y);
+            ctx.lineTo(drawX + Math.random() * 64, y + 64);
+            ctx.stroke();
+          }
+
+          // Lodo verde nos cantos
+          if (Math.random() > 0.8) {
+            ctx.fillStyle = 'rgba(20, 60, 20, 0.4)';
+            ctx.beginPath();
+            ctx.arc(drawX + 10, y + 10, Math.random() * 15 + 5, 0, Math.PI * 2);
+            ctx.fill();
           }
         }
       }
       canvas!.refresh();
-    };
-
-    // 1. GOBLIN
-    makeTexture('monster-goblin', [
-      "....GGGGGG......",
-      "...GGGGGGGG.....",
-      "..GGGGGGGGGG....",
-      "..GGDGGGDGGG....",
-      "..GDYGDYGDGG....",
-      "..GGGGGGGGGG....",
-      "...GGGGGGGG.....",
-      "....BBBBBB......",
-      "...BBBBBBBB.....",
-      "..BBBBBBBBBB....",
-      "..BBBBBBBBBB....",
-      "..BBBBBBBBBB....",
-      "...B......B.....",
-      "...GG....GG.....",
-      "...GG....GG.....",
-      "................"
-    ], {
-      'G': '#44aa44',
-      'D': '#225522',
-      'Y': '#ffff44',
-      'B': '#8b5a2b'
-    });
-
-    // 2. SKELETON
-    makeTexture('monster-skeleton', [
-      ".....WWWWWW.....",
-      "....WWWWWWWW....",
-      "...WWWWWWWWWW...",
-      "...WWBRWWRBWW...",
-      "...WWWWWWWWWW...",
-      "....WWWWWWWW....",
-      ".....W.WW.W.....",
-      "....SSSSSSSS....",
-      "...SSSSSSSSSS...",
-      "..SSSSSSSSSSSS..",
-      "..SSSWWWWWWSSS..",
-      "..SSSWWWWWWSSS..",
-      "....WW....WW....",
-      "....WW....WW....",
-        ".....WWWWWW.....",
-        "....WWWWWWWW....",
-        "...WWWWWWWWWW...",
-        "...WWBRWWRBWW...",
-        "...WWWWWWWWWW...",
-        "....WWWWWWWW....",
-        ".....W.WW.W.....",
-        "....SSSSSSSS....",
-        "...SSSSSSSSSS...",
-        "..SSSSSSSSSSSS..",
-        "..SSSWWWWWWSSS..",
-        "..SSSWWWWWWSSS..",
-        "....WW....WW....",
-        "....WW....WW....",
-        "....WW....WW....",
-        "................"
-      ], {
-        'W': '#eeeeee',
-        'S': '#888888',
-        'B': '#222222',
-        'R': '#ff0000'
-      });
-
-    // 3. SHADOW WOLF
-    makeTexture('monster-shadow_wolf', [
-      "................",
-      "......AA........",
-      ".....AAAA.......",
-      "....AAAAAA......",
-      "....AARAAW......",
-      "...AAAAAAWW.....",
-      "...AAAAAA.......",
-      "..AAAAAAAA......",
-      ".AAAAAAAAAA.....",
-      "AAAAAAAAAAAA....",
-      "AAAAAAAAAAAA....",
-      "AAAAAAAAAAAA....",
-      ".AA.AA..AA.AA...",
-      ".AA.AA..AA.AA...",
-      ".AA.AA..AA.AA...",
-      "................"
-    ], {
-      'A': '#444455',
-      'W': '#ffffff',
-      'R': '#ff4444'
-    });
-
-    makeTexture('monster-wolf', [
-      "................",
-      "......AA........",
-      ".....AAAA.......",
-      "....AAAAAA......",
-      "....AARAAW......",
-      "...AAAAAAWW.....",
-      "...AAAAAA.......",
-      "..AAAAAAAA......",
-      ".AAAAAAAAAA.....",
-      "AAAAAAAAAAAA....",
-      "AAAAAAAAAAAA....",
-      "AAAAAAAAAAAA....",
-      ".AA.AA..AA.AA...",
-      ".AA.AA..AA.AA...",
-      ".AA.AA..AA.AA...",
-      "................"
-    ], {
-      'A': '#444455',
-      'W': '#ffffff',
-      'R': '#ff4444'
-    });
-
-    // 4. DEMON IMP
-    makeTexture('monster-demon_imp', [
-      "....B......B....",
-      "....BB....BB....",
-      ".....RRRRRR.....",
-      "....RRRRRRRR....",
-      "...RRRRRRRRRR...",
-      "...RRDYYDYYDR...",
-      "...RRRRRRRRRR...",
-      "....RRRRRRRR....",
-      ".....RRRRRR.....",
-      "....RRRRRRRR....",
-      "...RRRRRRRRRR...",
-      "..RRRRRRRRRRRR..",
-      "..R.R.R..R.R.R..",
-      "..R.R......R.R..",
-      "..R.R......R.R..",
-      "................"
-    ], {
-      'R': '#cc2222',
-      'B': '#440000',
-      'Y': '#ffff00',
-      'D': '#330000'
-    });
-
-    makeTexture('monster-imp', [
-      "....B......B....",
-      "....BB....BB....",
-      ".....RRRRRR.....",
-      "....RRRRRRRR....",
-      "...RRRRRRRRRR...",
-      "...RRDYYDYYDR...",
-      "...RRRRRRRRRR...",
-      "....RRRRRRRR....",
-      ".....RRRRRR.....",
-      "....RRRRRRRR....",
-      "...RRRRRRRRRR...",
-      "..RRRRRRRRRRRR..",
-      "..R.R.R..R.R.R..",
-      "..R.R......R.R..",
-      "..R.R......R.R..",
-      "................"
-    ], {
-      'B': '#221111',
-      'R': '#cc3333',
-      'D': '#771111',
-      'Y': '#ffdd00'
-    });
+    }
   }
 
+  // =====================================================
+  // ANIMAÇÕES
+  // =====================================================
+
   private createClassAnimations(): void {
-    const classes = ['PALADIN', 'MAGE', 'ARCHER', 'ASSASSIN'];
+    const classes = [
+      'PALADIN', 'GUARDIAN', 'WARRIOR', 'MAGE', 'NECROMANCER',
+      'ARCHER', 'ASSASSIN', 'CLERIC', 'DARK_KNIGHT', 'ELEMENTALIST',
+      'BARD', 'DRUID', 'npc-blacksmith', 'npc-merchant', 'npc-master'
+    ];
     const directions = ['down', 'left', 'right', 'up'];
     classes.forEach((cls) => {
       directions.forEach((dir, index) => {
-        this.anims.create({
-          key: `${cls}-idle-${dir}`,
-          frames: this.anims.generateFrameNumbers(`${cls}-sheet`, {
-            start: index * 4,
-            end: index * 4,
-          }),
-          frameRate: 1,
-          repeat: -1,
-        });
+        const sheetKey = cls.startsWith('npc-') ? cls : `${cls}-sheet`;
+        if (!this.anims.exists(`${cls}-idle-${dir}`)) {
+          this.anims.create({
+            key: `${cls}-idle-${dir}`,
+            frames: this.anims.generateFrameNumbers(sheetKey, {
+              start: index * 4,
+              end: index * 4,
+            }),
+            frameRate: 1,
+            repeat: -1,
+          });
+        }
 
-        this.anims.create({
-          key: `${cls}-walk-${dir}`,
-          frames: this.anims.generateFrameNumbers(`${cls}-sheet`, {
-            start: index * 4,
-            end: index * 4 + 3,
-          }),
-          frameRate: 7,
-          repeat: -1,
-        });
+        if (!this.anims.exists(`${cls}-walk-${dir}`)) {
+          this.anims.create({
+            key: `${cls}-walk-${dir}`,
+            frames: this.anims.generateFrameNumbers(sheetKey, {
+              start: index * 4,
+              end: index * 4 + 3,
+            }),
+            frameRate: 7,
+            repeat: -1,
+          });
+        }
       });
     });
   }

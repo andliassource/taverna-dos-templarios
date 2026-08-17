@@ -9,6 +9,7 @@ import { FishingSystem } from '../systems/FishingSystem';
 import { PetSystem, PetItem } from '../systems/PetSystem';
 import { FactionSystem, Faction } from '../systems/FactionSystem';
 import { LeaderboardSystem, LeaderboardEntry } from '../systems/LeaderboardSystem';
+import { CraftingSystem } from '../systems/CraftingSystem';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -17,6 +18,7 @@ import { LeaderboardSystem, LeaderboardEntry } from '../systems/LeaderboardSyste
  */
 export class UIScene extends Phaser.Scene {
   private hpBar!: Phaser.GameObjects.Graphics;
+  private hpText!: Phaser.GameObjects.Text;
   private mpBar!: Phaser.GameObjects.Graphics;
   private expBar!: Phaser.GameObjects.Graphics;
   private levelText!: Phaser.GameObjects.Text;
@@ -25,6 +27,7 @@ export class UIScene extends Phaser.Scene {
   private classText!: Phaser.GameObjects.Text;
   private mapNameText!: Phaser.GameObjects.Text;
   private fpsText!: Phaser.GameObjects.Text;
+  private heartsSprites: Phaser.GameObjects.Sprite[] = [];
 
   private skillSlots: {
     container: Phaser.GameObjects.Container;
@@ -48,6 +51,7 @@ export class UIScene extends Phaser.Scene {
   private inventoryKey!: Phaser.Input.Keyboard.Key;
   private talentKey!: Phaser.Input.Keyboard.Key;
   private petKey!: Phaser.Input.Keyboard.Key;
+  private mapKey!: Phaser.Input.Keyboard.Key;
   private leaderboardKey!: Phaser.Input.Keyboard.Key;
   private inventoryContainer!: Phaser.GameObjects.Container;
   private isInventoryOpen = false;
@@ -127,7 +131,8 @@ export class UIScene extends Phaser.Scene {
       this.inventoryKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
       this.profileKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
       this.talentKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T);
-      this.petKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+      this.petKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+      this.mapKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
       this.leaderboardKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
     }
 
@@ -141,6 +146,13 @@ export class UIScene extends Phaser.Scene {
       }
       if (this.isForgeOpen) {
         this.createBlacksmithForgeUI();
+      }
+    });
+
+    // Esconde controles mobile automaticamente ao usar o mouse
+    this.input.on('pointerdown', () => {
+      if (this.mobileControlsContainer && this.mobileControlsContainer.visible) {
+        this.mobileControlsContainer.setVisible(false);
       }
     });
 
@@ -281,30 +293,28 @@ export class UIScene extends Phaser.Scene {
   }
 
   private updateHUDVisuals(): void {
-    const barWidth = 180;
-    const barHeight = 14;
     const x = 16;
     const hpY = 40;
-    const mpY = 58;
-    const expY = 76;
+    const mpY = 56;
 
-    // Atualiza Level
     if (this.levelText) this.levelText.setText(`Lv.${this.playerData.level}`);
 
-    // Redesenha barra de HP
-    this.hpBar.clear();
-    this.drawBar(this.hpBar, x + 24, hpY, barWidth, barHeight,
-      this.playerData.hp / this.playerData.maxHp, 0x8b0000, 0xdc143c);
+    // Redesenha Barra de Vida Rubi
+    if (this.hpBar) {
+      this.hpBar.clear();
+      this.drawBar(this.hpBar, x + 22, hpY, 130, 12,
+        Math.max(0, this.playerData.hp / this.playerData.maxHp), 0x8b0000, 0xe74c3c);
+    }
+    if (this.hpText) {
+      this.hpText.setText(`HP: ${this.playerData.hp}/${this.playerData.maxHp}`);
+    }
 
     // Redesenha barra de MP
-    this.mpBar.clear();
-    this.drawBar(this.mpBar, x + 24, mpY, barWidth, barHeight,
-      this.playerData.mp / this.playerData.maxMp, 0x00008b, 0x3498db);
-
-    // Redesenha barra de EXP
-    this.expBar.clear();
-    this.drawBar(this.expBar, x + 24, expY, barWidth, barHeight - 4,
-      this.playerData.exp / this.playerData.expToNext, 0x006400, 0x27ae60);
+    if (this.mpBar) {
+      this.mpBar.clear();
+      this.drawBar(this.mpBar, x + 22, mpY, 130, 9,
+        this.playerData.mp / this.playerData.maxMp, 0x00008b, 0x3498db);
+    }
 
     // Atualiza textos de Moedas
     if (this.goldText) this.goldText.setText(`🪙 ${this.playerData.gold.toLocaleString()}`);
@@ -359,31 +369,11 @@ export class UIScene extends Phaser.Scene {
   private createHUD(_width: number, _height: number): void {
     const x = 16;
     const y = 16;
-    const barWidth = 180;
-    const barHeight = 14;
-    const spacing = 4;
 
-    // Fundo do HUD
-    const hudBg = this.add.graphics();
-    hudBg.fillStyle(0x0a0612, 0.85);
-    hudBg.fillRoundedRect(x - 8, y - 8, barWidth + 90, 110, 8);
-    hudBg.lineStyle(1, 0xd4a843, 0.6);
-    hudBg.strokeRoundedRect(x - 8, y - 8, barWidth + 90, 110, 8);
-
-    // Nome + Classe
+    // Nome + Classe + Level
     const displayName = FirebaseService.currentUser?.displayName ?? 'Templário';
     this.classText = this.add.text(x, y, `⚔️ ${displayName}`, {
       fontFamily: 'Cinzel',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffd700',
-      stroke: '#000000',
-      strokeThickness: 2,
-    });
-
-    // Level
-    this.levelText = this.add.text(x + barWidth + 40, y, `Lv.${this.playerData.level}`, {
-      fontFamily: 'Inter',
       fontSize: '13px',
       fontStyle: 'bold',
       color: '#ffd700',
@@ -391,54 +381,57 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 2,
     });
 
-    // HP Bar
+    this.levelText = this.add.text(x + 130, y, `Lv.${this.playerData.level}`, {
+      fontFamily: 'Inter',
+      fontSize: '12px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 2,
+    });
+
+    // === BARRA DE VIDA RUBI ÉPICO ===
     const hpY = y + 24;
-    this.add.text(x, hpY, 'HP', {
-      fontFamily: 'Inter', fontSize: '10px', fontStyle: 'bold',
+    this.add.text(x, hpY + 2, 'HP', {
+      fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold',
       color: '#ff4444', stroke: '#000', strokeThickness: 2,
     });
 
     this.hpBar = this.add.graphics();
-    this.drawBar(this.hpBar, x + 24, hpY, barWidth, barHeight,
-      this.playerData.hp / this.playerData.maxHp, 0x8b0000, 0xdc143c);
+    this.drawBar(this.hpBar, x + 22, hpY, 130, 12,
+      Math.max(0, this.playerData.hp / this.playerData.maxHp), 0x8b0000, 0xe74c3c);
 
-    this.add.text(x + 24 + barWidth / 2, hpY + barHeight / 2,
-      `${this.playerData.hp}/${this.playerData.maxHp}`, {
-        fontFamily: 'Inter', fontSize: '9px', fontStyle: 'bold',
-        color: '#ffffff', stroke: '#000', strokeThickness: 2,
+    this.hpText = this.add.text(x + 22 + 65, hpY + 6,
+      `HP: ${this.playerData.hp}/${this.playerData.maxHp}`, {
+        fontFamily: 'Cinzel', fontSize: '8px', fontStyle: 'bold',
+        color: '#ffffff', stroke: '#000000', strokeThickness: 2.5,
       }).setOrigin(0.5);
 
-    // MP Bar
-    const mpY = hpY + barHeight + spacing;
-    this.add.text(x, mpY, 'MP', {
-      fontFamily: 'Inter', fontSize: '10px', fontStyle: 'bold',
+    // MP / Mana Bar
+    const mpY = hpY + 16;
+    this.add.text(x, mpY + 1, 'MP', {
+      fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold',
       color: '#4488ff', stroke: '#000', strokeThickness: 2,
     });
 
     this.mpBar = this.add.graphics();
-    this.drawBar(this.mpBar, x + 24, mpY, barWidth, barHeight,
+    this.drawBar(this.mpBar, x + 22, mpY, 130, 9,
       this.playerData.mp / this.playerData.maxMp, 0x00008b, 0x3498db);
 
-    this.add.text(x + 24 + barWidth / 2, mpY + barHeight / 2,
-      `${this.playerData.mp}/${this.playerData.maxMp}`, {
-        fontFamily: 'Inter', fontSize: '9px', fontStyle: 'bold',
-        color: '#ffffff', stroke: '#000', strokeThickness: 2,
-      }).setOrigin(0.5);
-
     // EXP Bar
-    const expY = mpY + barHeight + spacing;
+    const expY = mpY + 14;
     this.add.text(x, expY, 'XP', {
-      fontFamily: 'Inter', fontSize: '10px', fontStyle: 'bold',
-      color: '#44dd44', stroke: '#000', strokeThickness: 2,
+      fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold',
+      color: '#ffd700', stroke: '#000', strokeThickness: 2,
     });
 
     this.expBar = this.add.graphics();
-    this.drawBar(this.expBar, x + 24, expY, barWidth, barHeight - 4,
-      this.playerData.exp / this.playerData.expToNext, 0x006400, 0x27ae60);
+    this.drawBar(this.expBar, x + 22, expY, 130, 8,
+      this.playerData.exp / this.playerData.expToNext, 0x5a3e10, 0xffd700);
 
-    this.add.text(x + 24 + barWidth / 2, expY + (barHeight - 4) / 2,
+    this.add.text(x + 22 + 65, expY + 4,
       `${this.playerData.exp}/${this.playerData.expToNext}`, {
-        fontFamily: 'Inter', fontSize: '8px', fontStyle: 'bold',
+        fontFamily: 'Cinzel', fontSize: '7.5px', fontStyle: 'bold',
         color: '#ffffff', stroke: '#000', strokeThickness: 2,
       }).setOrigin(0.5);
   }
@@ -450,48 +443,63 @@ export class UIScene extends Phaser.Scene {
     percent: number,
     darkColor: number, brightColor: number
   ): void {
-    // Fundo
-    graphics.fillStyle(0x111111, 0.8);
-    graphics.fillRoundedRect(x, y, width, height, 3);
+    // Fundo da barra em metal fundido escuro
+    graphics.fillStyle(0x0e0818, 0.95);
+    graphics.fillRoundedRect(x, y, width, height, 4);
 
-    // Barra preenchida
+    // Moldura chanfrada em ouro metálico
+    graphics.lineStyle(1.5, 0xd4af37, 0.9);
+    graphics.strokeRoundedRect(x, y, width, height, 4);
+
+    // Barra de Vidro/Gema Preenchida com Brilho Superior
     if (percent > 0) {
+      const fillW = Math.max(2, (width - 4) * percent);
       graphics.fillStyle(darkColor, 1);
-      graphics.fillRoundedRect(x + 1, y + 1, (width - 2) * percent, height - 2, 2);
-      graphics.fillStyle(brightColor, 0.5);
-      graphics.fillRoundedRect(x + 1, y + 1, (width - 2) * percent, (height - 2) / 2, 2);
-    }
+      graphics.fillRoundedRect(x + 2, y + 2, fillW, height - 4, 3);
 
-    // Borda
-    graphics.lineStyle(1, 0x666666, 0.5);
-    graphics.strokeRoundedRect(x, y, width, height, 3);
+      // Reflexo de cristal no topo da barra
+      graphics.fillStyle(brightColor, 0.7);
+      graphics.fillRoundedRect(x + 2, y + 2, fillW, (height - 4) / 2, 2);
+    }
   }
 
   private createMiniMap(width: number): void {
-    const mapSize = 100;
-    const x = width - mapSize - 16;
-    const y = 16;
+    const mapSize = 64;
+    const x = width - mapSize - 20;
+    const y = 44;
 
-    // Fundo do mini-mapa
+    // Fundo do mini-mapa em Placa de Ferro e Ouro Medieval
     const mmBg = this.add.graphics();
-    mmBg.fillStyle(0x0a0612, 0.85);
-    mmBg.fillRoundedRect(x - 4, y - 4, mapSize + 8, mapSize + 24, 8);
-    mmBg.lineStyle(1, 0xd4a843, 0.6);
-    mmBg.strokeRoundedRect(x - 4, y - 4, mapSize + 8, mapSize + 24, 8);
+    mmBg.fillStyle(0x0e0818, 0.95);
+    mmBg.fillRoundedRect(x - 6, y - 6, mapSize + 12, mapSize + 24, 8);
+    mmBg.lineStyle(2, 0xd4af37, 0.95);
+    mmBg.strokeRoundedRect(x - 6, y - 6, mapSize + 12, mapSize + 24, 8);
+    mmBg.lineStyle(1, 0x5a3e10, 0.7);
+    mmBg.strokeRoundedRect(x - 4, y - 4, mapSize + 8, mapSize + 20, 6);
 
-    // Placeholder do mini-mapa
-    mmBg.fillStyle(0x1a3a1a, 0.6);
-    mmBg.fillRect(x, y, mapSize, mapSize);
-    mmBg.lineStyle(1, 0xd4a843, 0.3);
-    mmBg.strokeRect(x, y, mapSize, mapSize);
+    // Rebites de Ouro nos 4 cantos
+    const mmCorners = [
+      [x - 3, y - 3], [x + mapSize + 3, y - 3],
+      [x - 3, y + mapSize + 16], [x + mapSize + 3, y + mapSize + 16]
+    ];
+    mmCorners.forEach(([cx, cy]) => {
+      mmBg.fillStyle(0xffd700, 1);
+      mmBg.fillCircle(cx, cy, 2);
+    });
 
-    // Ponto do jogador
+    // Mapa de Terreno com Borda Interna
+    mmBg.fillStyle(0x1a3a1a, 0.75);
+    mmBg.fillRoundedRect(x, y, mapSize, mapSize, 4);
+    mmBg.lineStyle(1, 0xd4af37, 0.5);
+    mmBg.strokeRoundedRect(x, y, mapSize, mapSize, 4);
+
+    // Ponto do jogador reluzente
     mmBg.fillStyle(0xffd700, 1);
     mmBg.fillCircle(x + mapSize / 2, y + mapSize / 2, 3);
 
-    // Label
-    this.add.text(x + mapSize / 2, y + mapSize + 8, 'Mini-Mapa', {
-      fontFamily: 'Inter', fontSize: '9px', color: '#888',
+    // Rótulo Medieval do Minimapa
+    this.add.text(x + mapSize / 2, y + mapSize + 6, 'MINIMAPA', {
+      fontFamily: 'Cinzel', fontSize: '8px', fontStyle: 'bold', color: '#ffd700',
     }).setOrigin(0.5);
   }
 
@@ -501,29 +509,60 @@ export class UIScene extends Phaser.Scene {
     this.skillSlots = [];
 
     const slotSize = 42;
-    const slotCount = 4;
+    const slotCount = 5;
     const gap = 8;
     const totalWidth = slotCount * (slotSize + gap) - gap;
     const startX = (width - totalWidth) / 2;
-    const y = height - slotSize - 38;
+    const y = height - slotSize - 16;
 
-    // Fundo do hotbar
+    // Fundo da Hotbar Medieval Esculpida em Metal e Ouro
     const hotbarBg = this.add.graphics();
-    hotbarBg.fillStyle(0x0a0612, 0.85);
-    hotbarBg.fillRoundedRect(startX - 8, y - 8, totalWidth + 16, slotSize + 16, 8);
-    hotbarBg.lineStyle(1, 0xd4a843, 0.6);
-    hotbarBg.strokeRoundedRect(startX - 8, y - 8, totalWidth + 16, slotSize + 16, 8);
+    // Placa de ferro escuro com gradiente metálico
+    hotbarBg.fillGradientStyle(0x3a3a4a, 0x1e1e28, 0x0a0612, 0x05020a, 0.95, 0.95, 0.95, 0.95);
+    hotbarBg.fillRoundedRect(startX - 10, y - 10, totalWidth + 20, slotSize + 20, 10);
+    
+    // Sombra interna e externa projetada
+    hotbarBg.lineStyle(3, 0x000000, 0.8);
+    hotbarBg.strokeRoundedRect(startX - 9, y - 9, totalWidth + 18, slotSize + 18, 10);
+    
+    // Borda metálica dourada dupla reflexiva
+    hotbarBg.lineStyle(2, 0xd4af37, 1);
+    hotbarBg.strokeRoundedRect(startX - 10, y - 10, totalWidth + 20, slotSize + 20, 10);
+    hotbarBg.lineStyle(1, 0x5a3e10, 0.9);
+    hotbarBg.strokeRoundedRect(startX - 7, y - 7, totalWidth + 14, slotSize + 14, 8);
+
+    // Rebites de ferro nos cantos da moldura
+    const corners = [
+      [startX - 6, y - 6], [startX + totalWidth + 6, y - 6],
+      [startX - 6, y + slotSize + 6], [startX + totalWidth + 6, y + slotSize + 6]
+    ];
+    corners.forEach(([cx, cy]) => {
+      hotbarBg.fillStyle(0xffd700, 1);
+      hotbarBg.fillCircle(cx, cy, 2);
+    });
 
     for (let i = 0; i < slotCount; i++) {
       const sx = startX + i * (slotSize + gap);
       const container = this.add.container(sx, y);
 
-      // Slot background
+      // Moldura de slot metálica chanfrada com profundidade
       const slotBg = this.add.graphics();
-      slotBg.fillStyle(0x1a0a2e, 0.95);
-      slotBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
-      slotBg.lineStyle(1.5, 0x4a2d6e, 0.8);
-      slotBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+      
+      // Sombra projetada do botão
+      slotBg.fillStyle(0x000000, 0.6);
+      slotBg.fillRoundedRect(2, 2, slotSize, slotSize, 6);
+      
+      // Corpo do botão chanfrado
+      slotBg.fillGradientStyle(0x332544, 0x221830, 0x110b1a, 0x08040d, 1, 1, 1, 1);
+      slotBg.fillRoundedRect(0, 0, slotSize, slotSize, 6);
+      
+      // Borda dourada reflexiva
+      slotBg.lineStyle(1.5, 0xd4af37, 1);
+      slotBg.strokeRoundedRect(0, 0, slotSize, slotSize, 6);
+      
+      // Brilho forte no topo (reflexo especular)
+      slotBg.fillGradientStyle(0xffffff, 0xffffff, 0xffd700, 0xffd700, 0.4, 0.4, 0, 0);
+      slotBg.fillRoundedRect(2, 2, slotSize - 4, 6, 2);
       container.add(slotBg);
 
       // Icon Text (emoji)
@@ -579,90 +618,45 @@ export class UIScene extends Phaser.Scene {
   }
 
   private updateHotbarSkills(): void {
-    const SKILL_MAP: Record<string, { name: string; icon: string; key: string }[]> = {
-      PALADIN: [
-        { name: 'Escudo', icon: '🛡️', key: '1' },
-        { name: 'Cura', icon: '💚', key: '2' },
-        { name: 'Impacto', icon: '⚡', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      GUARDIAN: [
-        { name: 'Muralha', icon: '🛡️', key: '1' },
-        { name: 'Provocar', icon: '🗣️', key: '2' },
-        { name: 'Investida', icon: '💥', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      WARRIOR: [
-        { name: 'Giratório', icon: '⚔️', key: '1' },
-        { name: 'Grito G.', icon: '📢', key: '2' },
-        { name: 'Impacto', icon: '🌋', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      MAGE: [
-        { name: 'Bola Fogo', icon: '🔥', key: '1' },
-        { name: 'Gelo', icon: '❄️', key: '2' },
-        { name: 'Teleporte', icon: '🔮', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      NECROMANCER: [
-        { name: 'Orbe Sombr', icon: '💀', key: '1' },
-        { name: 'Servo', icon: '🦴', key: '2' },
-        { name: 'Explosão', icon: '💥', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      ARCHER: [
-        { name: 'Tiro Trip', icon: '🏹', key: '1' },
-        { name: 'Trap', icon: '💣', key: '2' },
-        { name: 'Chuva Fl', icon: '⛈️', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      ASSASSIN: [
-        { name: 'Golpe Ft', icon: '🗡️', key: '1' },
-        { name: 'Faca Ven', icon: '🧪', key: '2' },
-        { name: 'Furtivo', icon: '👤', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      CLERIC: [
-        { name: 'Luz Sagr', icon: '✨', key: '1' },
-        { name: 'Punição', icon: '⚡', key: '2' },
-        { name: 'Aura Prot', icon: '🌟', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      DARK_KNIGHT: [
-        { name: 'Dreno HP', icon: '🩸', key: '1' },
-        { name: 'Marca Som', icon: '👁️', key: '2' },
-        { name: 'Aura Somb', icon: '🌑', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      ELEMENTALIST: [
-        { name: 'Meteoro', icon: '☄️', key: '1' },
-        { name: 'Tempestade', icon: '⚡', key: '2' },
-        { name: 'Onda Gelo', icon: '❄️', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      BARD: [
-        { name: 'Hino Corag', icon: '🎶', key: '1' },
-        { name: 'Balada Reg', icon: '🎵', key: '2' },
-        { name: 'Eco Disson', icon: '🔊', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-      DRUID: [
-        { name: 'Forma Urso', icon: '🐻', key: '1' },
-        { name: 'Vinhas', icon: '🌿', key: '2' },
-        { name: 'Semente V', icon: '🌸', key: '3' },
-        { name: 'Esquiva', icon: '💨', key: 'Shift' },
-      ],
-    };
+    const activeScene = this.getActiveGameScene();
+    const cs = activeScene?.combatSystem;
+    if (!cs) return;
 
-    const skills = SKILL_MAP[this.playerClassStr] || SKILL_MAP.PALADIN;
-    skills.forEach((skill, idx) => {
-      const slot = this.skillSlots[idx];
-      if (slot) {
+    const activeSkills = cs.getActiveSkills();
+
+    // Slot 0 (Ataque Básico) - Fixo por classe
+    if (this.skillSlots[0]) {
+      const basicIcons: Record<string, string> = {
+        PALADIN: '⚔️', MAGE: '🔮', ARCHER: '🏹', ASSASSIN: '🗡️'
+      };
+      this.skillSlots[0].iconText.setText(basicIcons[this.playerClassStr] || '⚔️');
+      this.skillSlots[0].nameText.setText('Ataque');
+      this.skillSlots[0].keyText.setText('Esp');
+    }
+
+    // Slots 1 a 4
+    for (let i = 0; i < 4; i++) {
+      const slot = this.skillSlots[i + 1];
+      if (!slot) continue;
+
+      const skill = activeSkills[i];
+      if (skill) {
         slot.iconText.setText(skill.icon);
         slot.nameText.setText(skill.name);
-        slot.keyText.setText(skill.key);
+        slot.keyText.setText((i + 1).toString());
+        if (!skill.unlocked) {
+          slot.iconText.setAlpha(0.2);
+          slot.overlay.clear();
+          slot.overlay.fillStyle(0x000000, 0.8);
+          slot.overlay.fillRect(-21, -21, 42, 42); // Assumindo tamanho 42 do slot
+        } else {
+          slot.iconText.setAlpha(1);
+        }
+      } else {
+        slot.iconText.setText('');
+        slot.nameText.setText('');
       }
-    });
+    }
   }
 
   private showDialogueBox(data: { portrait: string; title: string; text: string; hasConfirm?: boolean; onConfirm?: () => void }): void {
@@ -677,27 +671,39 @@ export class UIScene extends Phaser.Scene {
     this.dialogueContainer = this.add.container(0, 0).setDepth(300);
 
     const boxW = 440;
-    const boxH = 96;
+    const boxH = 75;
     const px = (width - boxW) / 2;
-    const py = height - boxH - 74;
+    const py = height - boxH - 10;
 
-    // Fundo medieval com borda dourada
+    // Placa de Diálogo Medieval em Metal Escurrecido e Ouro
     const bg = this.add.graphics();
-    bg.fillStyle(0x0a0614, 0.95);
+    bg.fillStyle(0x0e0818, 0.96);
     bg.fillRoundedRect(px, py, boxW, boxH, 8);
-    bg.lineStyle(2, 0xd4a843, 1);
+    bg.lineStyle(2, 0xd4af37, 0.95);
     bg.strokeRoundedRect(px, py, boxW, boxH, 8);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(px + 3, py + 3, boxW - 6, boxH - 6, 6);
+
+    // Rebites de Ouro nos cantos
+    const dCorners = [
+      [px + 6, py + 6], [px + boxW - 6, py + 6],
+      [px + 6, py + boxH - 6], [px + boxW - 6, py + boxH - 6]
+    ];
+    dCorners.forEach(([cx, cy]) => {
+      bg.fillStyle(0xffd700, 1);
+      bg.fillCircle(cx, cy, 2);
+    });
     this.dialogueContainer.add(bg);
 
-    // Moldura do portrait
-    const portraitX = px + 12;
-    const portraitY = py + 12;
-    const portraitSize = 72;
+    // Moldura do portrait em metal trabalhado
+    const portraitX = px + 10;
+    const portraitY = py + 8;
+    const portraitSize = 58;
 
     const portBg = this.add.graphics();
-    portBg.fillStyle(0x1a0f30, 0.85);
+    portBg.fillStyle(0x1a102a, 0.95);
     portBg.fillRoundedRect(portraitX, portraitY, portraitSize, portraitSize, 4);
-    portBg.lineStyle(1.5, 0xd4a843, 0.7);
+    portBg.lineStyle(1.5, 0xd4af37, 0.9);
     portBg.strokeRoundedRect(portraitX, portraitY, portraitSize, portraitSize, 4);
     this.dialogueContainer.add(portBg);
 
@@ -724,14 +730,18 @@ export class UIScene extends Phaser.Scene {
     });
     this.dialogueContainer.add(textObj);
 
-    // Efeito de digitação (typing effect)
+    // Efeito de digitação (typing effect GBA)
     let currentIdx = 0;
-    const timer = this.time.addEvent({
-      delay: 20,
+    this.time.addEvent({
+      delay: 22,
       repeat: data.text.length - 1,
       callback: () => {
         if (textObj.active) {
-          textObj.text += data.text[currentIdx];
+          const char = data.text[currentIdx];
+          textObj.text += char;
+          if (currentIdx % 2 === 0 && char !== ' ') {
+            SoundSynth.playTextBlip();
+          }
           currentIdx++;
         }
       }
@@ -778,17 +788,56 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createCurrencyDisplay(): void {
-    const x = 16;
-    const y = 132;
+    const { width } = this.scale;
+    const px = width - 260;
+    const py = 16;
 
-    this.goldText = this.add.text(x, y, `🪙 ${this.playerData.gold.toLocaleString()}`, {
-      fontFamily: 'Inter', fontSize: '12px', fontStyle: 'bold',
-      color: '#ffd700', stroke: '#000', strokeThickness: 2,
-    });
+    // Fundo em pílula escura com borda metálica dourada para Moedas e Gemas
+    const pillBg = this.add.graphics();
+    pillBg.fillStyle(0x0c0818, 0.92);
+    pillBg.fillRoundedRect(px, py, 244, 28, 14);
+    pillBg.lineStyle(1.5, 0xffd700, 0.8);
+    pillBg.strokeRoundedRect(px, py, 244, 28, 14);
 
-    this.gemsText = this.add.text(x + 110, y, `💎 ${this.playerData.gems.toLocaleString()}`, {
-      fontFamily: 'Inter', fontSize: '12px', fontStyle: 'bold',
-      color: '#87ceeb', stroke: '#000', strokeThickness: 2,
+    this.goldText = this.add.text(px + 16, py + 14, `🪙 ${this.playerData.gold.toLocaleString()}`, {
+      fontFamily: 'Inter', fontSize: '11px', fontStyle: 'bold',
+      color: '#ffd700',
+    }).setOrigin(0, 0.5);
+
+    this.gemsText = this.add.text(px + 130, py + 14, `💎 ${this.playerData.gems.toLocaleString()}`, {
+      fontFamily: 'Inter', fontSize: '11px', fontStyle: 'bold',
+      color: '#87ceeb',
+    }).setOrigin(0, 0.5);
+
+    this.createGBAActionHints(width, this.scale.height);
+  }
+
+  private createGBAActionHints(width: number, height: number): void {
+    const x = width - 16;
+    const y = height - 24;
+
+    const hintContainer = this.add.container(x, y).setDepth(200);
+
+    const hints = [
+      { key: 'Ⓐ', label: 'Interagir [E]', color: '#52b72c' },
+      { key: 'Ⓑ', label: 'Atacar [Espaço]', color: '#ff3344' },
+      { key: 'Ⓧ', label: 'Esquiva [Shift]', color: '#3b82f6' },
+    ];
+
+    let currentX = 0;
+    hints.reverse().forEach((hint) => {
+      const pBg = this.add.graphics();
+      pBg.fillStyle(0x0c0818, 0.88);
+      pBg.fillRoundedRect(currentX - 110, -12, 105, 24, 12);
+      pBg.lineStyle(1, 0xffd700, 0.6);
+      pBg.strokeRoundedRect(currentX - 110, -12, 105, 24, 12);
+
+      const txt = this.add.text(currentX - 57, 0, `${hint.key} ${hint.label}`, {
+        fontFamily: 'Inter', fontSize: '9px', fontStyle: 'bold', color: hint.color
+      }).setOrigin(0.5);
+
+      hintContainer.add([pBg, txt]);
+      currentX -= 115;
     });
   }
 
@@ -849,6 +898,20 @@ export class UIScene extends Phaser.Scene {
     if (this.petKey && Phaser.Input.Keyboard.JustDown(this.petKey)) {
       this.togglePetMountUI();
     }
+    
+    if (this.mapKey && Phaser.Input.Keyboard.JustDown(this.mapKey)) {
+      if (!this.scene.isActive('MapScene')) {
+        // Pausar cenas ativas
+        if (this.scene.isActive('WorldScene')) this.scene.pause('WorldScene');
+        if (this.scene.isActive('DungeonScene')) this.scene.pause('DungeonScene');
+        this.scene.launch('MapScene');
+      } else {
+        this.scene.stop('MapScene');
+        if (this.scene.isPaused('WorldScene')) this.scene.resume('WorldScene');
+        if (this.scene.isPaused('DungeonScene')) this.scene.resume('DungeonScene');
+      }
+    }
+
     if (this.leaderboardKey && Phaser.Input.Keyboard.JustDown(this.leaderboardKey)) {
       this.toggleLeaderboardUI();
     }
@@ -873,19 +936,30 @@ export class UIScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     this.profileContainer = this.add.container(width / 2, height / 2).setDepth(400);
 
-    const w = 360;
-    const h = 380;
+    const w = 380;
+    const h = 470;
 
-    // Fundo medieval escuro com borda dourada
+    // Fundo medieval em metal trabalhado com filigrana dourada
     const bg = this.add.graphics();
-    bg.fillStyle(0x0a0614, 0.95);
+    bg.fillStyle(0x0e0818, 0.96);
     bg.fillRoundedRect(-w / 2, -h / 2, w, h, 10);
-    bg.lineStyle(2, 0xffd700, 1);
+    bg.lineStyle(2, 0xd4af37, 0.95);
     bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(-w / 2 + 3, -h / 2 + 3, w - 6, h - 6, 8);
+
+    const corners = [
+      [-w / 2 + 7, -h / 2 + 7], [w / 2 - 7, -h / 2 + 7],
+      [-w / 2 + 7, h / 2 - 7], [w / 2 - 7, h / 2 - 7]
+    ];
+    corners.forEach(([cx, cy]) => {
+      bg.fillStyle(0xffd700, 1);
+      bg.fillCircle(cx, cy, 3);
+    });
     this.profileContainer.add(bg);
 
     // Título
-    const title = this.add.text(0, -h / 2 + 20, '📜 PERFIL DO TEMPLÁRIO', {
+    const title = this.add.text(0, -h / 2 + 22, '📜 PERFIL DO TEMPLÁRIO', {
       fontFamily: 'Cinzel',
       fontSize: '18px',
       fontStyle: 'bold',
@@ -896,8 +970,8 @@ export class UIScene extends Phaser.Scene {
     this.profileContainer.add(title);
 
     // Botão Fechar (X)
-    const closeBtn = this.add.text(w / 2 - 20, -h / 2 + 15, '✖', {
-      fontFamily: 'Inter',
+    const closeBtn = this.add.text(w / 2 - 20, -h / 2 + 18, '✖', {
+      fontFamily: 'Cinzel',
       fontSize: '16px',
       color: '#ff4444',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -928,7 +1002,7 @@ export class UIScene extends Phaser.Scene {
       fontFamily: 'Cinzel',
       fontSize: '14px',
       fontStyle: 'bold',
-      color: this.statPoints > 0 ? '#00ff7f' : '#888888',
+      color: this.statPoints > 0 ? '#ffd700' : '#888888',
     }).setOrigin(0.5);
     this.profileContainer.add(statPointsText);
 
@@ -940,42 +1014,43 @@ export class UIScene extends Phaser.Scene {
       { key: 'vit', label: '❤️ VITALIDADE (HP & Defesa)', val: this.baseStats.vit },
     ];
 
-    const startY = -h / 2 + 155;
-    const rowHeight = 45;
+    const startY = -h / 2 + 145;
+    const rowHeight = 44;
 
     statConfigs.forEach((stat, idx) => {
       const ry = startY + idx * rowHeight;
 
-      // Fundo da linha
+      // Fundo da linha em madeira e ferro escuro
       const rowBg = this.add.graphics();
-      rowBg.fillStyle(0x1a0a2a, 0.6);
+      rowBg.fillStyle(0x1a0d24, 0.85);
       rowBg.fillRoundedRect(-w / 2 + 20, ry, w - 40, 36, 6);
-      rowBg.lineStyle(1, 0x4a2d6e, 0.5);
+      rowBg.lineStyle(1, 0x5a3e10, 0.8);
       rowBg.strokeRoundedRect(-w / 2 + 20, ry, w - 40, 36, 6);
       this.profileContainer.add(rowBg);
 
       // Label + Valor
       const lbl = this.add.text(-w / 2 + 32, ry + 10, `${stat.label}: ${stat.val}`, {
-        fontFamily: 'Inter',
-        fontSize: '12px',
+        fontFamily: 'Cinzel',
+        fontSize: '11px',
+        fontStyle: 'bold',
         color: '#ffffff',
       });
       this.profileContainer.add(lbl);
 
-      // Botão + se houver pontos
+      // Botão + Dourado Templário se houver pontos
       if (this.statPoints > 0) {
         const addBtnBg = this.add.graphics();
-        addBtnBg.fillStyle(0x00aa44, 0.85);
+        addBtnBg.fillStyle(0x4a2c00, 0.95);
         addBtnBg.fillRoundedRect(w / 2 - 58, ry + 5, 26, 26, 4);
-        addBtnBg.lineStyle(1, 0x00ff7f, 1);
+        addBtnBg.lineStyle(1.5, 0xffd700, 1);
         addBtnBg.strokeRoundedRect(w / 2 - 58, ry + 5, 26, 26, 4);
         this.profileContainer.add(addBtnBg);
 
-        const addLabel = this.add.text(w / 2 - 45, ry + 18, '+', {
-          fontFamily: 'Inter',
-          fontSize: '16px',
+        const addLabel = this.add.text(w / 2 - 45, ry + 17, '+', {
+          fontFamily: 'Cinzel',
+          fontSize: '18px',
           fontStyle: 'bold',
-          color: '#ffffff',
+          color: '#ffd700',
         }).setOrigin(0.5);
         this.profileContainer.add(addLabel);
 
@@ -984,6 +1059,7 @@ export class UIScene extends Phaser.Scene {
           const sc = this.getActiveCombatSystem();
           if (sc) {
             sc.allocateStatPoint(stat.key as any);
+            SoundSynth.playUpgrade();
             this.createProfileUI();
           }
         });
@@ -991,27 +1067,27 @@ export class UIScene extends Phaser.Scene {
     });
 
     // Seção de Reputação de Facções
-    const facY = startY + 4 * rowHeight - 5;
+    const facY = startY + 4 * rowHeight + 10;
     const facTitle = this.add.text(0, facY, '⚔️ FACÇÕES TEMPLÁRIAS', {
-      fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ffd700'
+      fontFamily: 'Cinzel', fontSize: '12px', fontStyle: 'bold', color: '#ffd700'
     }).setOrigin(0.5);
     this.profileContainer.add(facTitle);
 
     const factions = FactionSystem.getInstance().getFactions();
     factions.forEach((f: Faction, fIdx: number) => {
-      const fy = facY + 16 + fIdx * 20;
+      const fy = facY + 18 + fIdx * 20;
       const rank = FactionSystem.getInstance().getRank(f.id);
       const fTxt = this.add.text(-w / 2 + 25, fy, `${f.icon} ${f.name}: ${f.reputation} REP [${rank}]`, {
-        fontFamily: 'Inter', fontSize: '9px', color: rank === 'EXALTADO' ? '#00ffcc' : rank === 'RESPEITADO' ? '#ffd700' : '#cccccc'
+        fontFamily: 'MedievalSharp', fontSize: '11px', color: rank === 'EXALTADO' ? '#00ffcc' : rank === 'RESPEITADO' ? '#ffd700' : '#cccccc'
       });
       this.profileContainer.add(fTxt);
     });
 
-    // Tecla de Atalho Dica
-    const hintText = this.add.text(0, h / 2 - 15, 'Pressione [C] para Fechar', {
-      fontFamily: 'Inter',
-      fontSize: '11px',
-      color: '#888888',
+    // Tecla de Atalho Dica no Rodapé com Margem Adequada
+    const hintText = this.add.text(0, h / 2 - 18, 'Pressione [C] ou [ESC] para Fechar', {
+      fontFamily: 'Cinzel',
+      fontSize: '10px',
+      color: '#aaaaaa',
     }).setOrigin(0.5);
     this.profileContainer.add(hintText);
   }
@@ -1069,12 +1145,23 @@ export class UIScene extends Phaser.Scene {
     const pw = 480;
     const ph = 340;
 
-    // Fundo do painel principal
+    // Fundo do painel principal em metal trabalhado
     const bg = this.add.graphics();
-    bg.fillStyle(0x0a0618, 0.95);
+    bg.fillStyle(0x0e0818, 0.96);
     bg.fillRoundedRect(px, py, pw, ph, 10);
-    bg.lineStyle(2, 0xd4a843, 1);
+    bg.lineStyle(2, 0xd4af37, 0.95);
     bg.strokeRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(px + 3, py + 3, pw - 6, ph - 6, 8);
+
+    const iCorners = [
+      [px + 7, py + 7], [px + pw - 7, py + 7],
+      [px + 7, py + ph - 7], [px + pw - 7, py + ph - 7]
+    ];
+    iCorners.forEach(([cx, cy]) => {
+      bg.fillStyle(0xffd700, 1);
+      bg.fillCircle(cx, cy, 3);
+    });
     this.inventoryContainer.add(bg);
 
     // Título medieval
@@ -1152,6 +1239,7 @@ export class UIScene extends Phaser.Scene {
         const zone = this.add.zone(eqX + eqSlotW / 2, sy + eqSlotH / 2, eqSlotW, eqSlotH).setInteractive({ useHandCursor: true });
         zone.on('pointerdown', () => {
           cs.unequipItem(slot.key);
+          this.createInventoryUI();
         });
 
         this.addTooltipListeners(zone, item);
@@ -1207,6 +1295,7 @@ export class UIScene extends Phaser.Scene {
                 cs.equipItem(item.id);
               }
             }
+            this.createInventoryUI();
           });
 
           this.input.mouse?.disableContextMenu();
@@ -1332,10 +1421,21 @@ export class UIScene extends Phaser.Scene {
     const ph = 320;
 
     const bg = this.add.graphics();
-    bg.fillStyle(0x0f091c, 0.95);
+    bg.fillStyle(0x0e0818, 0.96);
     bg.fillRoundedRect(px, py, pw, ph, 10);
-    bg.lineStyle(2, 0xffd700, 1);
+    bg.lineStyle(2, 0xd4af37, 0.95);
     bg.strokeRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(px + 3, py + 3, pw - 6, ph - 6, 8);
+
+    const qCorners = [
+      [px + 7, py + 7], [px + pw - 7, py + 7],
+      [px + 7, py + ph - 7], [px + pw - 7, py + ph - 7]
+    ];
+    qCorners.forEach(([cx, cy]) => {
+      bg.fillStyle(0xffd700, 1);
+      bg.fillCircle(cx, cy, 3);
+    });
     this.questBoardContainer.add(bg);
 
     const title = this.add.text(width / 2, py + 20, '📜 QUADRO DE MISSÕES DIÁRIAS', {
@@ -1437,10 +1537,21 @@ export class UIScene extends Phaser.Scene {
     const ph = 330;
 
     const bg = this.add.graphics();
-    bg.fillStyle(0x0a0518, 0.95);
+    bg.fillStyle(0x0e0818, 0.96);
     bg.fillRoundedRect(px, py, pw, ph, 10);
-    bg.lineStyle(2, 0xffd700, 1);
+    bg.lineStyle(2, 0xd4af37, 0.95);
     bg.strokeRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(px + 3, py + 3, pw - 6, ph - 6, 8);
+
+    const tCorners = [
+      [px + 7, py + 7], [px + pw - 7, py + 7],
+      [px + 7, py + ph - 7], [px + pw - 7, py + ph - 7]
+    ];
+    tCorners.forEach(([cx, cy]) => {
+      bg.fillStyle(0xffd700, 1);
+      bg.fillCircle(cx, cy, 3);
+    });
     this.talentTreeContainer.add(bg);
 
     const title = this.add.text(width / 2, py + 20, '🌟 ÁRVORE DE TALENTOS', {
@@ -1556,14 +1667,25 @@ export class UIScene extends Phaser.Scene {
     const ph = 330;
 
     const bg = this.add.graphics();
-    bg.fillStyle(0x0e1428, 0.95);
+    bg.fillStyle(0x0e0818, 0.96);
     bg.fillRoundedRect(px, py, pw, ph, 10);
-    bg.lineStyle(2, 0x00ffcc, 1);
+    bg.lineStyle(2, 0xd4af37, 0.95);
     bg.strokeRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(px + 3, py + 3, pw - 6, ph - 6, 8);
+
+    const pCorners = [
+      [px + 7, py + 7], [px + pw - 7, py + 7],
+      [px + 7, py + ph - 7], [px + pw - 7, py + ph - 7]
+    ];
+    pCorners.forEach(([cx, cy]) => {
+      bg.fillStyle(0xffd700, 1);
+      bg.fillCircle(cx, cy, 3);
+    });
     this.petMountContainer.add(bg);
 
     const title = this.add.text(width / 2, py + 20, '🐾 MASCOTES & MONTARIAS TEMPLÁRIAS', {
-      fontFamily: 'Cinzel', fontSize: '14px', fontStyle: 'bold', color: '#00ffcc'
+      fontFamily: 'Cinzel', fontSize: '14px', fontStyle: 'bold', color: '#ffd700'
     }).setOrigin(0.5);
     this.petMountContainer.add(title);
 
@@ -1658,10 +1780,21 @@ export class UIScene extends Phaser.Scene {
     const ph = 330;
 
     const bg = this.add.graphics();
-    bg.fillStyle(0x120a1c, 0.95);
+    bg.fillStyle(0x0e0818, 0.96);
     bg.fillRoundedRect(px, py, pw, ph, 10);
-    bg.lineStyle(2, 0xffd700, 1);
+    bg.lineStyle(2, 0xd4af37, 0.95);
     bg.strokeRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(px + 3, py + 3, pw - 6, ph - 6, 8);
+
+    const lCorners = [
+      [px + 7, py + 7], [px + pw - 7, py + 7],
+      [px + 7, py + ph - 7], [px + pw - 7, py + ph - 7]
+    ];
+    lCorners.forEach(([cx, cy]) => {
+      bg.fillStyle(0xffd700, 1);
+      bg.fillCircle(cx, cy, 3);
+    });
     this.leaderboardContainer.add(bg);
 
     const title = this.add.text(width / 2, py + 20, '🏆 RANKING GLOBAL DOS TEMPLÁRIOS', {
@@ -1716,12 +1849,23 @@ export class UIScene extends Phaser.Scene {
     const pw = 520;
     const ph = 340;
 
-    // Fundo do painel
+    // Fundo do painel em metal trabalhado com filigrana dourada
     const bg = this.add.graphics();
-    bg.fillStyle(0x0e091a, 0.95);
+    bg.fillStyle(0x0e0818, 0.96);
     bg.fillRoundedRect(px, py, pw, ph, 10);
-    bg.lineStyle(2, 0xd4a843, 1);
+    bg.lineStyle(2, 0xd4af37, 0.95);
     bg.strokeRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(px + 3, py + 3, pw - 6, ph - 6, 8);
+
+    const sCorners = [
+      [px + 7, py + 7], [px + pw - 7, py + 7],
+      [px + 7, py + ph - 7], [px + pw - 7, py + ph - 7]
+    ];
+    sCorners.forEach(([cx, cy]) => {
+      bg.fillStyle(0xffd700, 1);
+      bg.fillCircle(cx, cy, 3);
+    });
     this.shopContainer.add(bg);
 
     // Título Loja
@@ -1900,12 +2044,23 @@ export class UIScene extends Phaser.Scene {
     const pw = 480;
     const ph = 340;
 
-    // Fundo
+    // Fundo do painel da forja em metal trabalhado
     const bg = this.add.graphics();
-    bg.fillStyle(0x0a0614, 0.95);
+    bg.fillStyle(0x0e0818, 0.96);
     bg.fillRoundedRect(px, py, pw, ph, 10);
-    bg.lineStyle(2, 0xd4a843, 1);
+    bg.lineStyle(2, 0xd4af37, 0.95);
     bg.strokeRoundedRect(px, py, pw, ph, 10);
+    bg.lineStyle(1, 0x5a3e10, 0.7);
+    bg.strokeRoundedRect(px + 3, py + 3, pw - 6, ph - 6, 8);
+
+    const fCorners = [
+      [px + 7, py + 7], [px + pw - 7, py + 7],
+      [px + 7, py + ph - 7], [px + pw - 7, py + ph - 7]
+    ];
+    fCorners.forEach(([cx, cy]) => {
+      bg.fillStyle(0xffd700, 1);
+      bg.fillCircle(cx, cy, 3);
+    });
     this.forgeContainer.add(bg);
 
     // Título
@@ -2137,7 +2292,9 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createMobileControlsUI(width: number, height: number): void {
-    this.mobileControlsContainer = this.add.container(0, 0).setVisible(false).setDepth(250);
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth < 768);
+    this.isMobileControlsVisible = isTouch;
+    this.mobileControlsContainer = this.add.container(0, 0).setVisible(this.isMobileControlsVisible).setDepth(250);
 
     // ==================== JOYSTICK (Canto Inferior Esquerdo) ====================
     const joyX = 80;
@@ -2452,12 +2609,14 @@ export class UIScene extends Phaser.Scene {
     const shortcuts = [
       { key: 'I', label: '🎒 [I] Inventário', action: () => this.toggleInventory() },
       { key: 'C', label: '📜 [C] Perfil', action: () => this.toggleProfileUI() },
+      { key: 'Q', label: '📜 [Q] Missões', action: () => this.toggleQuestUI() },
       { key: 'T', label: '🌟 [T] Talentos', action: () => this.toggleTalentTree() },
-      { key: 'M', label: '🐾 [M] Mascotes', action: () => this.togglePetMountUI() },
+      { key: 'G', label: '🏰 [G] Guilda', action: () => this.toggleGuildUI() },
+      { key: 'K', label: '🔨 [K] Forja', action: () => this.toggleCraftingUI() },
       { key: 'L', label: '🏆 [L] Ranking', action: () => this.toggleLeaderboardUI() },
     ];
 
-    const barW = 460;
+    const barW = 580;
     const startX = width / 2 - barW / 2;
     const barY = height - 16;
 
@@ -2468,12 +2627,222 @@ export class UIScene extends Phaser.Scene {
     bg.strokeRoundedRect(startX, barY - 10, barW, 22, 6);
 
     shortcuts.forEach((sc, idx) => {
-      const btnX = startX + 12 + idx * 90;
+      const btnX = startX + 8 + idx * 81;
       const txt = this.add.text(btnX, barY + 1, sc.label, {
-        fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold', color: '#ffd700'
+        fontFamily: 'Cinzel', fontSize: '8.5px', fontStyle: 'bold', color: '#ffd700'
       }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
 
       txt.on('pointerdown', sc.action);
     });
+
+    if (this.input.keyboard) {
+      const gKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.G);
+      gKey.on('down', () => this.toggleGuildUI());
+
+      const kKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K);
+      kKey.on('down', () => this.toggleCraftingUI());
+
+      const qKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+      qKey.on('down', () => this.toggleQuestUI());
+
+      const escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+      escKey.on('down', () => this.closeAllModals());
+    }
+  }
+
+  public closeAllModals(): void {
+    if (this.questUIModal) { this.questUIModal.destroy(); this.questUIModal = null; }
+    if (this.craftingUIModal) { this.craftingUIModal.destroy(); this.craftingUIModal = null; }
+    if (this.guildUIModal) { this.guildUIModal.destroy(); this.guildUIModal = null; }
+    if (this.isInventoryOpen) { this.toggleInventory(); }
+    if (this.isProfileOpen) { this.toggleProfileUI(); }
+  }
+
+  private questUIModal: Phaser.GameObjects.Container | null = null;
+
+  public toggleQuestUI(): void {
+    if (this.questUIModal) {
+      this.questUIModal.destroy();
+      this.questUIModal = null;
+      return;
+    }
+
+    const { width, height } = this.scale;
+    const modal = this.add.container(width / 2, height / 2).setDepth(200);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0e0818, 0.95);
+    bg.fillRoundedRect(-240, -190, 480, 380, 10);
+    bg.lineStyle(2, 0xd4a843, 1);
+    bg.strokeRoundedRect(-240, -190, 480, 380, 10);
+    modal.add(bg);
+
+    const title = this.add.text(0, -165, '📜 DIÁRIO DE MISSÕES DIÁRIAS', {
+      fontFamily: 'Cinzel', fontSize: '18px', fontStyle: 'bold', color: '#ffd700'
+    }).setOrigin(0.5);
+    modal.add(title);
+
+    const quests = QuestSystem.getInstance().getQuests();
+    const cs = this.getActiveCombatSystem();
+
+    quests.forEach((q, idx) => {
+      const cardY = -110 + idx * 85;
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(0x1a1228, 0.9);
+      cardBg.fillRoundedRect(-210, cardY, 420, 75, 6);
+      cardBg.lineStyle(1, q.completed ? 0x00ff44 : 0xd4a843, 0.6);
+      cardBg.strokeRoundedRect(-210, cardY, 420, 75, 6);
+      modal.add(cardBg);
+
+      const questTitle = this.add.text(-195, cardY + 10, `${q.icon} ${q.title} (${q.currentCount}/${q.targetCount})`, {
+        fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: q.completed ? '#00ff44' : '#ffd700'
+      });
+      modal.add(questTitle);
+
+      const desc = this.add.text(-195, cardY + 32, `${q.description}\nRecompensa: +${q.goldReward} Ouro | +${q.gemsReward} Gemas`, {
+        fontFamily: 'MedievalSharp', fontSize: '11px', color: '#ffffff'
+      });
+      modal.add(desc);
+
+      const claimText = q.claimed ? '✅ RESGATADO' : (q.completed ? '🎁 RESGATAR' : '⏳ EM PROGRESSO');
+      const claimBtn = this.add.text(145, cardY + 25, claimText, {
+        fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold',
+        color: q.claimed ? '#888888' : (q.completed ? '#00ff44' : '#aaaaaa'),
+        backgroundColor: q.completed && !q.claimed ? '#004411' : '#222222',
+        padding: { x: 8, y: 4 }
+      }).setOrigin(0.5).setInteractive({ useHandCursor: q.completed && !q.claimed });
+
+      if (q.completed && !q.claimed) {
+        claimBtn.on('pointerdown', () => {
+          if (cs && QuestSystem.getInstance().claim(q.id, cs)) {
+            SoundSynth.playLoot();
+            this.events.emit('show-notification', `🎉 Missão Concluída! +${q.goldReward} Ouro e +${q.gemsReward} Gemas!`);
+            this.toggleQuestUI();
+            this.toggleQuestUI();
+          }
+        });
+      }
+      modal.add(claimBtn);
+    });
+
+    const closeBtn = this.add.text(215, -175, '✖', {
+      fontFamily: 'Cinzel', fontSize: '16px', color: '#ff4444'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleQuestUI());
+    modal.add(closeBtn);
+
+    this.questUIModal = modal;
+  }
+
+  private craftingUIModal: Phaser.GameObjects.Container | null = null;
+
+  public toggleCraftingUI(): void {
+    if (this.craftingUIModal) {
+      this.craftingUIModal.destroy();
+      this.craftingUIModal = null;
+      return;
+    }
+
+    const { width, height } = this.scale;
+    const modal = this.add.container(width / 2, height / 2).setDepth(200);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0e0818, 0.95);
+    bg.fillRoundedRect(-240, -190, 480, 380, 10);
+    bg.lineStyle(2, 0xd4a843, 1);
+    bg.strokeRoundedRect(-240, -190, 480, 380, 10);
+    modal.add(bg);
+
+    const title = this.add.text(0, -165, '🔨 FORJA & CRAFTING DO FERREIRO', {
+      fontFamily: 'Cinzel', fontSize: '18px', fontStyle: 'bold', color: '#ffd700'
+    }).setOrigin(0.5);
+    modal.add(title);
+
+    const recipes = CraftingSystem.getInstance().getRecipes();
+    recipes.forEach((r, idx) => {
+      const cardY = -110 + idx * 85;
+      const cardBg = this.add.graphics();
+      cardBg.fillStyle(0x1a1228, 0.9);
+      cardBg.fillRoundedRect(-210, cardY, 420, 75, 6);
+      cardBg.lineStyle(1, 0x00ffcc, 0.6);
+      cardBg.strokeRoundedRect(-210, cardY, 420, 75, 6);
+      modal.add(cardBg);
+
+      const itemText = this.add.text(-195, cardY + 10, `${r.icon} ${r.name} (${r.resultItem.rarity})`, {
+        fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: '#00ffcc'
+      });
+      modal.add(itemText);
+
+      const statsText = this.add.text(-195, cardY + 30, `Bônus: ${r.resultItem.statBonus}\nMateriais: ${r.materials.map(m => `${m.item} x${m.amount}`).join(', ')}`, {
+        fontFamily: 'MedievalSharp', fontSize: '11px', color: '#ffffff'
+      });
+      modal.add(statsText);
+
+      const craftBtn = this.add.text(145, cardY + 25, '🔨 FORJAR', {
+        fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ffd700',
+        backgroundColor: '#4a2c00', padding: { x: 8, y: 4 }
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+      craftBtn.on('pointerdown', () => {
+        const res = CraftingSystem.getInstance().craftItem(r.id);
+        SoundSynth.playUpgrade();
+        this.events.emit('show-notification', res.message);
+      });
+      modal.add(craftBtn);
+    });
+
+    const closeBtn = this.add.text(215, -175, '✖', {
+      fontFamily: 'Cinzel', fontSize: '16px', color: '#ff4444'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleCraftingUI());
+    modal.add(closeBtn);
+
+    this.craftingUIModal = modal;
+  }
+
+  private guildUIModal: Phaser.GameObjects.Container | null = null;
+
+  public toggleGuildUI(): void {
+    if (this.guildUIModal) {
+      this.guildUIModal.destroy();
+      this.guildUIModal = null;
+      return;
+    }
+
+    const { width, height } = this.scale;
+    const modal = this.add.container(width / 2, height / 2).setDepth(200);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0e0818, 0.95);
+    bg.fillRoundedRect(-220, -180, 440, 360, 10);
+    bg.lineStyle(2, 0xd4a843, 1);
+    bg.strokeRoundedRect(-220, -180, 440, 360, 10);
+    modal.add(bg);
+
+    const title = this.add.text(0, -155, '🏰 GUILDA TEMPLÁRIA', {
+      fontFamily: 'Cinzel', fontSize: '18px', fontStyle: 'bold', color: '#ffd700'
+    }).setOrigin(0.5);
+    modal.add(title);
+
+    const guild = FactionSystem.getInstance().getGuild();
+    if (guild) {
+      const infoText = this.add.text(-190, -110,
+        `Nome: ${guild.name} [${guild.tag}]\n` +
+        `Nível da Guilda: Nv. ${guild.level}\n` +
+        `Bônus Passivo: +${guild.expBuff}% EXP | +${guild.goldBuff}% Ouro\n\n` +
+        `Membros Online (${guild.members.length}):\n` +
+        guild.members.map(m => ` • ${m.name} (Nv. ${m.level}) - ${m.role}`).join('\n'),
+        { fontFamily: 'MedievalSharp', fontSize: '12px', color: '#ffffff', lineSpacing: 6 }
+      );
+      modal.add(infoText);
+    }
+
+    const closeBtn = this.add.text(195, -165, '✖', {
+      fontFamily: 'Cinzel', fontSize: '16px', color: '#ff4444'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeBtn.on('pointerdown', () => this.toggleGuildUI());
+    modal.add(closeBtn);
+
+    this.guildUIModal = modal;
   }
 }

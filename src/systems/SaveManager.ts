@@ -3,6 +3,7 @@ import { Item } from '../../shared/types/item.types';
 
 export interface SaveData {
   version: number;
+  name?: string;
   playerClass: PlayerClass;
   level: number;
   xp: number;
@@ -24,8 +25,8 @@ export interface SaveData {
   displayName?: string;
 }
 
-const SAVE_KEY = 'taverna_save_v1';
-const SAVE_VERSION = 1;
+const SAVE_KEY = 'taverna_save_v2';
+const SAVE_VERSION = 2;
 
 export const SaveManager = {
   save(data: Omit<SaveData, 'version' | 'savedAt'>): void {

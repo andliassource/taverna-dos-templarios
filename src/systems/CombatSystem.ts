@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Monster } from '../entities/Monster';
-import { PlayerClass } from '../../shared/types';
+import { PlayerClass, ActiveSkill, SkillType } from '../../shared/types';
 import { Item } from '../../shared/types/item.types';
 import { SoundSynth } from '../utils/SoundSynth';
 import { AchievementSystem } from './AchievementSystem';
@@ -33,6 +33,7 @@ export class CombatSystem {
   private playerMaxXp = 100;
   private gold = 500;
   private gems = 10;
+  private compounds = 0;
   private statPoints = 0;
   private baseStats = { str: 10, agi: 10, int: 10, vit: 10 };
   private lastPlayerAttackTime = 0;
@@ -55,6 +56,33 @@ export class CombatSystem {
     ARMOR: null,
     HELMET: null,
     SHIELD: null,
+  };
+
+  private CLASS_SKILLS: Record<string, ActiveSkill[]> = {
+    [PlayerClass.PALADIN]: [
+      { id: 'pal_1', name: 'Golpe Sagrado', description: 'Um golpe imbudo de luz.', icon: '⚔️', costMp: 10, cooldownMs: 3000, damageMultiplier: 1.5, type: SkillType.PROJECTILE, range: 100, unlockedAtLevel: 1, color: 0xffffaa },
+      { id: 'pal_2', name: 'Escudo Divino', description: 'Aumenta defesa temporariamente.', icon: '🛡️', costMp: 20, cooldownMs: 15000, damageMultiplier: 0, type: SkillType.BUFF, range: 0, unlockedAtLevel: 3, color: 0xffee55 },
+      { id: 'pal_3', name: 'Julgamento', description: 'Causa dano em área ao redor.', icon: '⚖️', costMp: 25, cooldownMs: 8000, damageMultiplier: 2.0, type: SkillType.AOE, range: 150, unlockedAtLevel: 5, color: 0xffdd44 },
+      { id: 'pal_4', name: 'Investida', description: 'Avança rapidamente contra o inimigo.', icon: '⚡', costMp: 15, cooldownMs: 6000, damageMultiplier: 1.2, type: SkillType.DASH, range: 200, unlockedAtLevel: 10, color: 0xffffff },
+    ],
+    [PlayerClass.MAGE]: [
+      { id: 'mag_1', name: 'Bola de Fogo', description: 'Lança uma esfera flamejante.', icon: '🔥', costMp: 15, cooldownMs: 2500, damageMultiplier: 1.8, type: SkillType.PROJECTILE, range: 400, unlockedAtLevel: 1, color: 0xff4400 },
+      { id: 'mag_2', name: 'Onda de Gelo', description: 'Congela os inimigos ao redor.', icon: '❄️', costMp: 25, cooldownMs: 8000, damageMultiplier: 1.2, type: SkillType.AOE, range: 200, unlockedAtLevel: 3, color: 0x44aaff },
+      { id: 'mag_3', name: 'Blink', description: 'Teleporta uma curta distância.', icon: '✨', costMp: 20, cooldownMs: 5000, damageMultiplier: 0, type: SkillType.DASH, range: 300, unlockedAtLevel: 5, color: 0xaaffff },
+      { id: 'mag_4', name: 'Meteoro', description: 'Evoca um meteoro devastador.', icon: '☄️', costMp: 50, cooldownMs: 15000, damageMultiplier: 3.5, type: SkillType.AOE, range: 300, unlockedAtLevel: 10, color: 0xff2200 },
+    ],
+    [PlayerClass.ARCHER]: [
+      { id: 'arc_1', name: 'Flecha Perfurante', description: 'Atira uma flecha rápida.', icon: '🏹', costMp: 10, cooldownMs: 1500, damageMultiplier: 1.3, type: SkillType.PROJECTILE, range: 500, unlockedAtLevel: 1, color: 0xaaffaa },
+      { id: 'arc_2', name: 'Chuva de Flechas', description: 'Flechas caem em uma área.', icon: '🌧️', costMp: 25, cooldownMs: 8000, damageMultiplier: 1.8, type: SkillType.AOE, range: 400, unlockedAtLevel: 3, color: 0x88ff88 },
+      { id: 'arc_3', name: 'Recuo Tático', description: 'Pula para trás rapidamente.', icon: '💨', costMp: 15, cooldownMs: 5000, damageMultiplier: 0, type: SkillType.DASH, range: 250, unlockedAtLevel: 5, color: 0xdddddd },
+      { id: 'arc_4', name: 'Tiro Mortal', description: 'Dano massivo em alvo único.', icon: '🎯', costMp: 40, cooldownMs: 12000, damageMultiplier: 3.0, type: SkillType.PROJECTILE, range: 600, unlockedAtLevel: 10, color: 0xff0000 },
+    ],
+    [PlayerClass.ASSASSIN]: [
+      { id: 'ass_1', name: 'Arremesso de Adaga', description: 'Joga uma adaga.', icon: '🔪', costMp: 8, cooldownMs: 1000, damageMultiplier: 1.1, type: SkillType.PROJECTILE, range: 350, unlockedAtLevel: 1, color: 0xaaaaaa },
+      { id: 'ass_2', name: 'Corte Sombrio', description: 'Dash através dos inimigos.', icon: '🦇', costMp: 20, cooldownMs: 6000, damageMultiplier: 1.6, type: SkillType.DASH, range: 300, unlockedAtLevel: 3, color: 0x444444 },
+      { id: 'ass_3', name: 'Cortina de Fumaça', description: 'Fica furtivo.', icon: '🌫️', costMp: 30, cooldownMs: 15000, damageMultiplier: 0, type: SkillType.BUFF, range: 0, unlockedAtLevel: 5, color: 0x888888 },
+      { id: 'ass_4', name: 'Lâmina Envenenada', description: 'Explosão de veneno.', icon: '☠️', costMp: 35, cooldownMs: 10000, damageMultiplier: 2.5, type: SkillType.AOE, range: 150, unlockedAtLevel: 10, color: 0x22ff22 },
+    ]
   };
 
   private itemPool: Omit<Item, 'id'>[] = [
@@ -156,35 +184,40 @@ export class CombatSystem {
 
   private createHolySlashEffect(x: number, y: number, angle: number): void {
     const slash = this.scene.add.graphics();
-    slash.setDepth(50);
+    slash.setDepth(60);
     slash.setPosition(x, y);
+    slash.setRotation(angle);
 
-    // Arco dourado
-    slash.lineStyle(3, 0xffd700, 1);
-    slash.fillStyle(0xffffff, 0.8);
-
+    // Arco de Corte Dourado em HD com Gradiente Mágico
+    slash.lineStyle(4, 0xffd700, 0.95);
     slash.beginPath();
-    slash.arc(0, 0, 20, angle - 0.8, angle + 0.8, false);
+    slash.arc(0, 0, 24, -Math.PI / 3, Math.PI / 3, false);
     slash.strokePath();
 
-    // Partículas de luz sagrada
-    this.scene.add.particles(x, y, 'particle-gold', {
-      speed: { min: 40, max: 100 },
-      angle: { min: Phaser.Math.RadToDeg(angle) - 40, max: Phaser.Math.RadToDeg(angle) + 40 },
-      scale: { start: 1, end: 0 },
+    slash.lineStyle(2, 0xffffff, 1);
+    slash.beginPath();
+    slash.arc(0, 0, 22, -Math.PI / 4, Math.PI / 4, false);
+    slash.strokePath();
+
+    // Faíscas de Impacto Douradas
+    this.emitParticles(x, y, 'particle-gold', {
+      speed: { min: 40, max: 110 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 0.9, end: 0 },
       alpha: { start: 1, end: 0 },
       lifespan: 250,
-      quantity: 8,
+      quantity: 12,
+      tint: [0xffd700, 0xffffff, 0xff8c00],
       blendMode: 'ADD',
     });
 
-    // Fade out do arco
     this.scene.tweens.add({
       targets: slash,
+      scaleX: 1.6,
+      scaleY: 1.6,
       alpha: 0,
-      scaleX: 1.3,
-      scaleY: 1.3,
-      duration: 150,
+      duration: 180,
+      ease: 'Power2',
       onComplete: () => slash.destroy(),
     });
   }
@@ -400,6 +433,8 @@ export class CombatSystem {
   }
 
   private takePlayerDamage(amount: number): void {
+    if (this.isInvulnerable || this.playerHp <= 0) return;
+
     const defense = this.getDefense();
     // Reduz o dano em 1% por ponto de defesa, com teto de 75%
     const reduction = Math.min(0.75, defense / 100);
@@ -409,13 +444,55 @@ export class CombatSystem {
     this.emitStateUpdate();
     SoundSynth.playHurt();
 
-    // Tremo de tela ao sofrer dano (game feel)
+    // i-Frames (Invulnerabilidade de 0.8s) + Piscar do Sprite do Jogador
+    this.isInvulnerable = true;
+    const playerSprite = (this.scene as any).player;
+    if (playerSprite) {
+      this.scene.tweens.add({
+        targets: playerSprite,
+        alpha: 0.3,
+        duration: 100,
+        yoyo: true,
+        repeat: 3,
+        onComplete: () => {
+          if (playerSprite.active) playerSprite.setAlpha(1);
+          this.isInvulnerable = false;
+        }
+      });
+    } else {
+      this.scene.time.delayedCall(800, () => {
+        this.isInvulnerable = false;
+      });
+    }
+
+    // Tremo de tela ao sofrer dano (game feel GBA)
     this.scene.cameras.main.shake(150, 0.02);
 
     // Se o HP zerou
     if (this.playerHp <= 0) {
       this.scene.events.emit('player-died');
     }
+  }
+
+  public gainXp(amount: number): void {
+    this.playerXp += amount;
+    if (this.playerXp >= this.playerMaxXp) {
+      this.playerXp -= this.playerMaxXp;
+      this.playerLevel++;
+      this.playerMaxXp = Math.floor(this.playerMaxXp * 1.4);
+      this.statPoints += 3;
+      this.maxPlayerHp += 20;
+      this.playerHp = this.maxPlayerHp;
+      this.maxPlayerMp += 10;
+      this.playerMp = this.maxPlayerMp;
+
+      SoundSynth.playLevelUp();
+      const playerSprite = (this.scene as any).player;
+      if (playerSprite) {
+        this.showFloatingText(playerSprite.x, playerSprite.y - 30, 'LEVEL UP! +3 Pontos', '#ffd700');
+      }
+    }
+    this.emitStateUpdate();
   }
 
   private emitStateUpdate(): void {
@@ -429,6 +506,10 @@ export class CombatSystem {
       level: this.playerLevel,
       gold: this.gold,
       gems: this.gems,
+      compounds: this.compounds,
+      statPoints: this.statPoints,
+      baseStats: { ...this.baseStats },
+      playerClass: this.playerClass,
       skillCooldowns: this.lastSkillTimes.map((lastTime, idx) => {
         const cd = this.getSkillCooldown(idx);
         return Math.max(0, (lastTime + cd - this.scene.time.now) / cd);
@@ -502,6 +583,14 @@ export class CombatSystem {
     this.emitStateUpdate();
   }
 
+
+  private emitParticles(x: number, y: number, key: string, config: any): void {
+    const emitter = this.scene.add.particles(x, y, key, config);
+    this.scene.time.delayedCall((config.lifespan || 400) + 100, () => {
+      if (emitter && emitter.active) emitter.destroy();
+    });
+  }
+
   public update(time: number): void {
     // Regeneração de Mana e HP passiva
     if (time > this.lastRegenTime + this.regenInterval) {
@@ -541,9 +630,154 @@ export class CombatSystem {
   }
 
   public updateMonsters(time: number): void {
-    this.monsters.forEach((monster) => {
-      if (!monster.isDead) monster.update(time);
+    this.monsters.forEach(monster => {
+      if (!monster.isDead) {
+        monster.update(time);
+        monster.setDepth(monster.y);
+      }
     });
+
+    this.projectiles.getChildren().forEach((p: any) => {
+      if (p.active) p.setDepth(p.y);
+    });
+  }
+
+  public getActiveSkills(): (ActiveSkill & { unlocked: boolean })[] {
+    const classSkills = this.CLASS_SKILLS[this.playerClass] || [];
+    return classSkills.map(s => ({ ...s, unlocked: this.playerLevel >= s.unlockedAtLevel }));
+  }
+
+  public getSkillCooldownProgress(index: number, time: number): number {
+    const skills = this.CLASS_SKILLS[this.playerClass];
+    if (!skills || !skills[index]) return 0;
+    const skill = skills[index];
+    const lastTime = this.lastSkillTimes[index] || 0;
+    const elapsed = time - lastTime;
+    if (elapsed >= skill.cooldownMs) return 0;
+    return 1 - (elapsed / skill.cooldownMs);
+  }
+
+  public castActiveSkill(index: number, player: Phaser.GameObjects.Sprite, targetX: number, targetY: number, time: number): void {
+    const skills = this.CLASS_SKILLS[this.playerClass];
+    if (!skills || !skills[index]) return;
+    
+    const skill = skills[index];
+    if (this.playerLevel < skill.unlockedAtLevel) {
+      this.showFloatingText(player.x, player.y - 20, 'Level Insuficiente!', '#ff4444');
+      return;
+    }
+
+    const lastTime = this.lastSkillTimes[index] || 0;
+    if (time - lastTime < skill.cooldownMs) {
+      this.showFloatingText(player.x, player.y - 20, 'Em Recarga!', '#ffaa44');
+      return;
+    }
+
+    if (this.playerMp < skill.costMp) {
+      this.showFloatingText(player.x, player.y - 20, 'Mana Insuficiente!', '#4488ff');
+      return;
+    }
+
+    // Gasta MP e Seta Cooldown
+    this.playerMp -= skill.costMp;
+    this.lastSkillTimes[index] = time;
+    this.emitStateUpdate();
+
+    // Calcula Dano e Executa
+    const rawDamage = this.getAttackPower() * skill.damageMultiplier;
+    const finalDamage = this.getModifiedDamage(rawDamage, player);
+
+    if (skill.type === SkillType.PROJECTILE) {
+      this.castProjectileSkill(skill, finalDamage, player, targetX, targetY);
+    } else if (skill.type === SkillType.AOE) {
+      this.castAoeSkill(skill, finalDamage, player);
+    } else if (skill.type === SkillType.BUFF) {
+      this.castBuffSkill(skill, player);
+    } else if (skill.type === SkillType.DASH) {
+      this.castDashSkill(skill, finalDamage, player, targetX, targetY);
+    }
+  }
+
+  private castProjectileSkill(skill: ActiveSkill, damage: number, player: Phaser.GameObjects.Sprite, tx: number, ty: number): void {
+    const angle = Phaser.Math.Angle.Between(player.x, player.y, tx, ty);
+    const speed = 300;
+    const proj = this.scene.physics.add.sprite(player.x, player.y - 8, 'mage-proj');
+    proj.setTint(skill.color || 0xffffff);
+    proj.setDepth(40);
+    this.scene.physics.velocityFromRotation(angle, speed, (proj.body as Phaser.Physics.Arcade.Body).velocity);
+    proj.setRotation(angle);
+    proj.setData('damage', damage);
+    proj.setData('type', 'skill_proj');
+    this.projectiles.add(proj);
+    SoundSynth.playFireball();
+  }
+
+  private castAoeSkill(skill: ActiveSkill, damage: number, player: Phaser.GameObjects.Sprite): void {
+    SoundSynth.playExplosion();
+    this.emitParticles(player.x, player.y, 'particle-gold', {
+      speed: { min: 50, max: 200 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 1.5, end: 0 },
+      lifespan: 500,
+      quantity: 30,
+      tint: skill.color || 0xffffff,
+      blendMode: 'ADD',
+    });
+
+    this.monsters.forEach((monster) => {
+      if (monster.isDead) return;
+      const dist = Phaser.Math.Distance.Between(player.x, player.y, monster.x, monster.y);
+      if (dist <= skill.range) {
+        const died = monster.takeDamage(damage);
+        if (died) this.onMonsterKilled(monster);
+      }
+    });
+  }
+
+  private castBuffSkill(skill: ActiveSkill, player: Phaser.GameObjects.Sprite): void {
+    SoundSynth.playLevelUp();
+    if (skill.name === 'Cortina de Fumaça') {
+      this.isStealth = true;
+      player.setAlpha(0.5);
+      this.showFloatingText(player.x, player.y - 30, 'FURTIVO!', '#888888');
+    } else {
+      this.isInvulnerable = true;
+      this.scene.time.delayedCall(4000, () => {
+        this.isInvulnerable = false;
+      });
+      this.showFloatingText(player.x, player.y - 30, 'BUFF ATIVADO!', '#ffff44');
+    }
+    
+    this.emitParticles(player.x, player.y, 'particle-gold', {
+      speed: 0, scale: { start: 2, end: 2 }, alpha: { start: 0.5, end: 0 }, lifespan: 1000, tint: skill.color || 0xffff44, blendMode: 'ADD',
+    });
+  }
+
+  private castDashSkill(skill: ActiveSkill, damage: number, player: Phaser.GameObjects.Sprite, tx: number, ty: number): void {
+    SoundSynth.playDash();
+    const angle = Phaser.Math.Angle.Between(player.x, player.y, tx, ty);
+    const dist = Math.min(skill.range, Phaser.Math.Distance.Between(player.x, player.y, tx, ty));
+    
+    const targetMoveX = player.x + Math.cos(angle) * dist;
+    const targetMoveY = player.y + Math.sin(angle) * dist;
+
+    this.emitParticles(player.x, player.y, 'particle-gold', {
+      speed: 0, scale: { start: 1, end: 0 }, lifespan: 200, tint: skill.color || 0xffffff
+    });
+
+    player.x = targetMoveX;
+    player.y = targetMoveY;
+
+    if (damage > 0) {
+      this.monsters.forEach((monster) => {
+        if (monster.isDead) return;
+        const mDist = Phaser.Math.Distance.Between(player.x, player.y, monster.x, monster.y);
+        if (mDist < 50) {
+          const died = monster.takeDamage(damage);
+          if (died) this.onMonsterKilled(monster);
+        }
+      });
+    }
   }
 
   private getModifiedDamage(baseDamage: number, player: Phaser.GameObjects.Sprite): number {
@@ -610,7 +844,7 @@ export class CombatSystem {
     this.projectiles.add(proj);
 
     // Partículas ao atirar
-    this.scene.add.particles(player.x, player.y - 8, 'particle-gold', {
+    this.emitParticles(player.x, player.y - 8, 'particle-gold', {
       speed: { min: 10, max: 30 },
       angle: { min: 0, max: 360 },
       scale: { start: 0.6, end: 0 },
@@ -851,7 +1085,7 @@ export class CombatSystem {
     expl.fillStyle(0x8a2be2, 0.6);
     expl.fillCircle(0, 0, 24);
 
-    this.scene.add.particles(x, y, 'particle-gold', {
+    this.emitParticles(x, y, 'particle-gold', {
       speed: { min: 30, max: 70 },
       angle: { min: 0, max: 360 },
       scale: { start: 0.8, end: 0 },
@@ -871,6 +1105,8 @@ export class CombatSystem {
       onComplete: () => expl.destroy(),
     });
   }
+
+
 
   public showFloatingText(x: number, y: number, text: string, color: string): void {
     const fText = this.scene.add.text(x, y, text, {
@@ -1114,7 +1350,7 @@ export class CombatSystem {
       SoundSynth.playLoot();
       this.showFloatingText(player.x, player.y - 24, '+45 HP', '#22ff22');
 
-      this.scene.add.particles(player.x, player.y - 8, 'particle-gold', {
+      this.emitParticles(player.x, player.y - 8, 'particle-gold', {
         speed: { min: 20, max: 50 },
         angle: { min: 0, max: 360 },
         scale: { start: 0.8, end: 0 },
@@ -1240,7 +1476,7 @@ export class CombatSystem {
       }
 
       // Poeira arcanas no início
-      this.scene.add.particles(player.x, player.y - 8, 'particle-gold', {
+      this.emitParticles(player.x, player.y - 8, 'particle-gold', {
         speed: { min: 20, max: 40 },
         angle: { min: 0, max: 360 },
         scale: { start: 0.8, end: 0 },
@@ -1257,7 +1493,7 @@ export class CombatSystem {
       }
 
       // Poeira arcana no fim
-      this.scene.add.particles(player.x, player.y - 8, 'particle-gold', {
+      this.emitParticles(player.x, player.y - 8, 'particle-gold', {
         speed: { min: 20, max: 40 },
         angle: { min: 0, max: 360 },
         scale: { start: 0.8, end: 0 },
@@ -1320,7 +1556,7 @@ export class CombatSystem {
         boom.fillCircle(0, 0, 50);
         this.scene.tweens.add({ targets: boom, alpha: 0, duration: 250, onComplete: () => boom.destroy() });
 
-        this.scene.add.particles(trap.x, trap.y, 'particle-gold', {
+        this.emitParticles(trap.x, trap.y, 'particle-gold', {
           speed: { min: 40, max: 90 },
           angle: { min: 0, max: 360 },
           scale: { start: 1, end: 0 },
@@ -1715,6 +1951,9 @@ export class CombatSystem {
   public setGold(val: number): void { this.gold = val; this.emitStateUpdate(); }
   public getGems(): number { return this.gems; }
   public setGems(val: number): void { this.gems = val; this.emitStateUpdate(); }
+
+  public getCompounds(): number { return this.compounds; }
+  public setCompounds(val: number): void { this.compounds = val; this.emitStateUpdate(); }
 
   // ==================== INVENTÓRIO E EQUIPAMENTOS ====================
   public getInventory(): Item[] {

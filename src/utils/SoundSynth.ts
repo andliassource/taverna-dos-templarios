@@ -4,12 +4,27 @@ export class SoundSynth {
   private static activeOscillators: { osc: any; gain: any }[] = [];
   private static currentBgmType: 'village' | 'arena' | 'menu' | 'dungeon' | null = null;
 
+  public static initAudioOnUserGesture(): void {
+    const unlock = () => {
+      try {
+        const ctx = this.getContext();
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume();
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+  }
+
   private static getContext(): AudioContext {
     if (!this.context) {
       this.context = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
     if (this.context.state === 'suspended') {
-      this.context.resume();
+      this.context.resume().catch(() => {});
     }
     return this.context;
   }
@@ -67,6 +82,54 @@ export class SoundSynth {
       osc.stop(ctx.currentTime + 0.26);
     } catch (e) {
       console.warn('[SoundSynth] Erro no som Fireball:', e);
+    }
+  }
+
+  public static playExplosion(): void {
+    try {
+      const ctx = this.getContext();
+      const noise = this.getNoiseBuffer(ctx);
+      const noiseSource = ctx.createBufferSource();
+      noiseSource.buffer = noise;
+
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type = 'lowpass';
+      noiseFilter.frequency.setValueAtTime(1000, ctx.currentTime);
+      noiseFilter.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(1, ctx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+
+      noiseSource.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noiseSource.start();
+    } catch (e) {
+      console.warn('[SoundSynth] Erro no som Explosion:', e);
+    }
+  }
+
+  public static playLevelUp(): void {
+    try {
+      const ctx = this.getContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.2);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + 0.3);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch (e) {
+      console.warn('[SoundSynth] Erro no som LevelUp:', e);
     }
   }
 
@@ -234,6 +297,28 @@ export class SoundSynth {
       osc.stop(ctx.currentTime + 0.13);
     } catch (e) {
       console.warn('[SoundSynth] Erro no som Hurt:', e);
+    }
+  }
+
+  public static playTextBlip(): void {
+    try {
+      const ctx = this.getContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(420 + Math.random() * 80, ctx.currentTime);
+
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.035);
+    } catch (e) {
+      // Ignora pequenos erros de áudio no diálogo
     }
   }
 

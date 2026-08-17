@@ -6,8 +6,42 @@ export interface Faction {
   description: string;
 }
 
+export interface GuildMember {
+  name: string;
+  level: number;
+  role: 'Líder' | 'Oficial' | 'Membro';
+  online: boolean;
+}
+
+export interface Guild {
+  name: string;
+  tag: string;
+  level: number;
+  exp: number;
+  maxExp: number;
+  expBuff: number;
+  goldBuff: number;
+  members: GuildMember[];
+}
+
 export class FactionSystem {
   private static instance: FactionSystem;
+
+  private userGuild: Guild | null = {
+    name: 'Ordem dos Templários',
+    tag: 'TEMPLAR',
+    level: 3,
+    exp: 4200,
+    maxExp: 10000,
+    expBuff: 10,
+    goldBuff: 15,
+    members: [
+      { name: 'SirGalahad', level: 25, role: 'Líder', online: true },
+      { name: 'Você', level: 12, role: 'Oficial', online: true },
+      { name: 'MerlinArcano', level: 18, role: 'Membro', online: true },
+      { name: 'SombraLethal', level: 20, role: 'Membro', online: false },
+    ],
+  };
 
   private factions: Record<string, Faction> = {
     SILVER_GUARD: {
@@ -55,5 +89,25 @@ export class FactionSystem {
 
   public getFactions(): Faction[] {
     return Object.values(this.factions);
+  }
+
+  public getGuild(): Guild | null {
+    return this.userGuild;
+  }
+
+  public createGuild(name: string, tag: string): Guild {
+    this.userGuild = {
+      name,
+      tag: tag.toUpperCase(),
+      level: 1,
+      exp: 0,
+      maxExp: 5000,
+      expBuff: 5,
+      goldBuff: 5,
+      members: [
+        { name: 'Você', level: 1, role: 'Líder', online: true }
+      ]
+    };
+    return this.userGuild;
   }
 }

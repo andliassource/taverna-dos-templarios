@@ -1111,19 +1111,32 @@ export class CombatSystem {
   public showFloatingText(x: number, y: number, text: string, color: string): void {
     const fText = this.scene.add.text(x, y, text, {
       fontFamily: 'Cinzel',
-      fontSize: '10px',
+      fontSize: '12px',
       fontStyle: 'bold',
       color: color,
       stroke: '#000000',
-      strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(100);
+      strokeThickness: 4,
+      shadow: { offsetX: 1, offsetY: 2, color: '#000000', blur: 3, fill: true }
+    }).setOrigin(0.5).setDepth(150);
+
+    fText.setScale(1.5);
 
     this.scene.tweens.add({
       targets: fText,
-      y: y - 24,
-      alpha: 0,
-      duration: 800,
-      onComplete: () => fText.destroy(),
+      scaleX: 1,
+      scaleY: 1,
+      duration: 180,
+      ease: 'Back.out',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: fText,
+          y: y - 32,
+          alpha: 0,
+          duration: 700,
+          ease: 'Power2.easeOut',
+          onComplete: () => fText.destroy(),
+        });
+      }
     });
   }
 

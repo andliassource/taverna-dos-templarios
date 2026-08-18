@@ -14,6 +14,11 @@ import { SettingsModal } from '../ui/modals/SettingsModal';
 import { InventoryModal } from '../ui/modals/InventoryModal';
 import { AchievementModal } from '../ui/modals/AchievementModal';
 import { BestiaryModal } from '../ui/modals/BestiaryModal';
+import { QuestModal } from '../ui/modals/QuestModal';
+import { CraftingModal } from '../ui/modals/CraftingModal';
+import { PetModal } from '../ui/modals/PetModal';
+import { GuildModal } from '../ui/modals/GuildModal';
+import { TalentModal } from '../ui/modals/TalentModal';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -1192,11 +1197,16 @@ export class UIScene extends Phaser.Scene {
     if (!open) {
       this.forgeContainer?.destroy();
       this.selectedForgeItemId = null;
-      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
     } else {
       if (this.isInventoryOpen) this.toggleInventory();
       if (this.isShopOpen) this.toggleMerchantShop(false);
-      this.createBlacksmithForgeUI();
+
+      this.forgeContainer?.destroy();
+      this.forgeContainer = new CraftingModal(
+        this,
+        () => this.toggleBlacksmithForge(false),
+        () => this.updateHUDVisuals()
+      ) as any;
     }
   }
 
@@ -1207,12 +1217,17 @@ export class UIScene extends Phaser.Scene {
     this.isQuestBoardOpen = open;
     if (!open) {
       this.questBoardContainer?.destroy();
-      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
     } else {
       if (this.isInventoryOpen) this.toggleInventory();
       if (this.isShopOpen) this.toggleMerchantShop(false);
       if (this.isForgeOpen) this.toggleBlacksmithForge(false);
-      this.createQuestBoardUI();
+
+      this.questBoardContainer?.destroy();
+      this.questBoardContainer = new QuestModal(
+        this,
+        () => this.toggleQuestBoard(false),
+        () => this.updateHUDVisuals()
+      ) as any;
     }
   }
 
@@ -1322,13 +1337,18 @@ export class UIScene extends Phaser.Scene {
 
     if (!nextState) {
       this.talentTreeContainer?.destroy();
-      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
     } else {
       if (this.isInventoryOpen) this.toggleInventory();
       if (this.isShopOpen) this.toggleMerchantShop(false);
       if (this.isForgeOpen) this.toggleBlacksmithForge(false);
       if (this.isQuestBoardOpen) this.toggleQuestBoard(false);
-      this.createTalentTreeUI();
+
+      this.talentTreeContainer?.destroy();
+      this.talentTreeContainer = new TalentModal(
+        this,
+        () => this.toggleTalentTree(false),
+        () => this.updateHUDVisuals()
+      ) as any;
     }
   }
 
@@ -1454,14 +1474,19 @@ export class UIScene extends Phaser.Scene {
 
     if (!nextState) {
       this.petMountContainer?.destroy();
-      this.getActiveGameScene()?.player && this.getActiveGameScene().physics.world.enable(this.getActiveGameScene().player);
     } else {
       if (this.isInventoryOpen) this.toggleInventory();
       if (this.isShopOpen) this.toggleMerchantShop(false);
       if (this.isForgeOpen) this.toggleBlacksmithForge(false);
       if (this.isQuestBoardOpen) this.toggleQuestBoard(false);
       if (this.isTalentTreeOpen) this.toggleTalentTree(false);
-      this.createPetMountUI();
+
+      this.petMountContainer?.destroy();
+      this.petMountContainer = new PetModal(
+        this,
+        () => this.togglePetMountUI(false),
+        () => this.updateHUDVisuals()
+      ) as any;
     }
   }
 
@@ -2624,41 +2649,7 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
-    const { width, height } = this.scale;
-    const modal = this.add.container(width / 2, height / 2).setDepth(200);
-
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0e0818, 0.95);
-    bg.fillRoundedRect(-220, -180, 440, 360, 10);
-    bg.lineStyle(2, 0xd4a843, 1);
-    bg.strokeRoundedRect(-220, -180, 440, 360, 10);
-    modal.add(bg);
-
-    const title = this.add.text(0, -155, '🏰 GUILDA TEMPLÁRIA', {
-      fontFamily: 'Cinzel', fontSize: '18px', fontStyle: 'bold', color: '#ffd700'
-    }).setOrigin(0.5);
-    modal.add(title);
-
-    const guild = FactionSystem.getInstance().getGuild();
-    if (guild) {
-      const infoText = this.add.text(-190, -110,
-        `Nome: ${guild.name} [${guild.tag}]\n` +
-        `Nível da Guilda: Nv. ${guild.level}\n` +
-        `Bônus Passivo: +${guild.expBuff}% EXP | +${guild.goldBuff}% Ouro\n\n` +
-        `Membros Online (${guild.members.length}):\n` +
-        guild.members.map(m => ` • ${m.name} (Nv. ${m.level}) - ${m.role}`).join('\n'),
-        { fontFamily: 'MedievalSharp', fontSize: '12px', color: '#ffffff', lineSpacing: 6 }
-      );
-      modal.add(infoText);
-    }
-
-    const closeBtn = this.add.text(195, -165, '✖', {
-      fontFamily: 'Cinzel', fontSize: '16px', color: '#ff4444'
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    closeBtn.on('pointerdown', () => this.toggleGuildUI());
-    modal.add(closeBtn);
-
-    this.guildUIModal = modal;
+    this.guildUIModal = new GuildModal(this, () => this.toggleGuildUI()) as any;
   }
 
   private settingsUIModal: SettingsModal | null = null;

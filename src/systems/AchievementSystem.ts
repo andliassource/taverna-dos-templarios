@@ -110,6 +110,10 @@ export class AchievementSystem {
     this.saveData();
   }
 
+  public unlock(id: string, _scene?: any): void {
+    this.addProgress(id, 9999);
+  }
+
   public getAchievements(): Achievement[] {
     return Object.values(this.achievements);
   }

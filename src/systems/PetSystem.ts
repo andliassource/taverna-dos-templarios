@@ -119,6 +119,10 @@ export class PetSystem {
     return now - this.lastPhoenixReviveTime > 180_000;
   }
 
+  public getXpMultiplier(): number {
+    return 1.0;
+  }
+
   public triggerPhoenixRevive(now: number): void {
     this.lastPhoenixReviveTime = now;
   }

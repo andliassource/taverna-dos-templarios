@@ -143,19 +143,6 @@ export class WorldScene extends BaseGameScene {
     ground.setOrigin(0.5, 0.5);
     ground.setDepth(0);
 
-    // Vignette Gótica Sombria Fixa na Câmera (Efeito Diablo Dark Fantasy)
-    const { width: scrW, height: scrH } = this.scale;
-    const vignette = this.add.graphics();
-    vignette.setScrollFactor(0);
-    vignette.setDepth(99);
-    
-    // Gradiente de vinheta nos cantos
-    vignette.fillStyle(0x000000, 0.35);
-    vignette.fillRect(0, 0, scrW, 30);
-    vignette.fillRect(0, scrH - 30, scrW, 30);
-    vignette.fillRect(0, 0, 30, scrH);
-    vignette.fillRect(scrW - 30, 0, 30, scrH);
-
     // 3. Bordas do mundo (muros de pedra e colisões naturais)
     this.wallBodies = this.physics.add.staticGroup();
 

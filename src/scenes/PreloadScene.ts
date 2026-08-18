@@ -1433,54 +1433,40 @@ export class PreloadScene extends Phaser.Scene {
       const ctx = canvas!.getContext();
       ctx.imageSmoothingEnabled = true;
 
-      // Fundo Base: Grama Escura Gótica Sombria
-      ctx.fillStyle = '#0e180d';
+      // Fundo Base: Grama Orgânica Vibrante de Alta Definição
+      ctx.fillStyle = '#1c3e1b';
       ctx.fillRect(0, 0, 1024, 1024);
 
-      // 1. Textura de Grama Sombria com Manchas Ricas
-      for (let i = 0; i < 3000; i++) {
+      // 1. Manchas Orgânicas de Grama Rica (Tonéis de verde e musgo)
+      for (let i = 0; i < 4000; i++) {
         const x = Math.random() * 1024;
         const y = Math.random() * 1024;
-        const r = Math.random() * 10 + 4;
-        ctx.fillStyle = Math.random() > 0.4 ? 'rgba(22, 50, 18, 0.45)' : 'rgba(8, 25, 10, 0.55)';
+        const r = Math.random() * 14 + 6;
+        ctx.fillStyle = Math.random() > 0.4 ? 'rgba(38, 92, 32, 0.45)' : 'rgba(18, 48, 16, 0.55)';
         ctx.beginPath();
-        ctx.ellipse(x, y, r * 1.6, r, Math.random() * Math.PI, 0, Math.PI * 2);
+        ctx.ellipse(x, y, r * 1.5, r, Math.random() * Math.PI, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // 2. Paralelepípedos e Blocos de Pedra da Estrada Templária (Grid HD)
-      const tileSize = 64;
-      for (let row = 0; row < 16; row++) {
-        for (let col = 0; col < 16; col++) {
-          const px = col * tileSize;
-          const py = row * tileSize;
+      // 2. Estradas Orgânicas de Terra Batida Suave (Sem grades rígidas)
+      ctx.fillStyle = 'rgba(68, 48, 28, 0.28)';
+      for (let i = 0; i < 120; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 1024;
+        const rx = Math.random() * 120 + 40;
+        const ry = Math.random() * 80 + 30;
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, ry, Math.random() * Math.PI, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-          // Desenha blocos de pedra nas estradas principais do grid
-          if ((col >= 3 && col <= 5) || (row >= 3 && row <= 5) || (col >= 11 && col <= 13)) {
-            // Argamassa e sombra entre pedras
-            ctx.fillStyle = '#060a05';
-            ctx.fillRect(px, py, tileSize, tileSize);
-
-            // Pedra esculpida
-            ctx.fillStyle = (col + row) % 2 === 0 ? '#1e241c' : '#272e25';
-            ctx.beginPath();
-            ctx.roundRect(px + 2, py + 2, tileSize - 4, tileSize - 4, 4);
-            ctx.fill();
-
-            // Iluminação da borda superior da pedra
-            ctx.strokeStyle = 'rgba(100, 120, 95, 0.25)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            // Detalhe de musgo dourado nas frestas
-            if (Math.random() < 0.35) {
-              ctx.fillStyle = 'rgba(180, 150, 40, 0.25)';
-              ctx.beginPath();
-              ctx.arc(px + Math.random() * 40 + 12, py + Math.random() * 40 + 12, 4, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-        }
+      // 3. Detalhes de Pedras Naturais e Fagulhas de Flores Silvestres
+      for (let i = 0; i < 500; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 1024;
+        const s = Math.random() * 3 + 1;
+        ctx.fillStyle = Math.random() > 0.6 ? '#6a7865' : '#889980';
+        ctx.fillRect(x, y, s, s);
       }
 
       // 3. Caminhos de Terra Batida Suave

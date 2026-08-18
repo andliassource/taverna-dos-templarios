@@ -133,7 +133,7 @@ export class Monster extends Phaser.GameObjects.Container {
     }
 
     this.sprite = this.scene.add.sprite(0, 0, textureKey);
-    this.sprite.setDisplaySize(64, 70);
+    this.sprite.setDisplaySize(54, 58);
     this.sprite.setOrigin(0.5, 0.75);
     this.sprite.setPipeline('Light2D');
 

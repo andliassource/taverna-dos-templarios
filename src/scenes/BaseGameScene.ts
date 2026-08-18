@@ -44,8 +44,8 @@ export abstract class BaseGameScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(x, y, skinKey);
     this.player.setDepth(y / TILE_SIZE + 2);
     
-    // O frame real é 64x64 com transparência real — Aumentado para 1.35x para destaque HD
-    this.player.setScale(1.35);
+    // O frame real é 64x64 com transparência real — Escala limpa 1.2x sem distorção
+    this.player.setScale(1.2);
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 32);

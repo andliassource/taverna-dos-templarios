@@ -1,110 +1,204 @@
 import Phaser from 'phaser';
-import { UI_THEME } from '../../config/theme.config';
-import { SoundSynth } from '../../utils/SoundSynth';
 
 export class SettingsModal extends Phaser.GameObjects.Container {
-  private isBGMEnabled = true;
-  private isSFXEnabled = true;
-  private isShakeEnabled = true;
+  private isVisibleModal = false;
 
-  constructor(scene: Phaser.Scene, onClose: () => void) {
-    const { width, height } = scene.scale;
-    super(scene, width / 2, height / 2);
-    this.setDepth(210);
+  private bgmVolume = 0.8;
+  private sfxVolume = 1.0;
+  private particleQuality = 'HIGH';
 
-    const bg = scene.add.graphics();
-    bg.fillStyle(UI_THEME.colors.bgDark, 0.96);
-    bg.fillRoundedRect(-250, -200, 500, 400, 10);
-    bg.lineStyle(2, UI_THEME.colors.borderGold, 0.95);
-    bg.strokeRoundedRect(-250, -200, 500, 400, 10);
-    bg.lineStyle(1, UI_THEME.colors.borderDarkGold, 0.7);
-    bg.strokeRoundedRect(-246, -196, 492, 392, 8);
-    this.add(bg);
+  constructor(scene: Phaser.Scene) {
+    super(scene, 0, 0);
+    this.setDepth(1000);
+    this.setScrollFactor(0);
+    this.setVisible(false);
+    scene.add.existing(this);
 
-    const title = scene.add.text(0, -170, '⚙️ CONFIGURAÇÕES DO JOGO', {
-      fontFamily: UI_THEME.fonts.title, fontSize: '18px', fontStyle: 'bold', color: UI_THEME.colors.textGold,
-      stroke: '#000000', strokeThickness: 3,
+    this.createModal();
+  }
+
+  private createModal(): void {
+    const { width: scrW, height: scrH } = this.scene.scale;
+    const modalW = 480;
+    const modalH = 420;
+    const modalX = (scrW - modalW) / 2;
+    const modalY = (scrH - modalH) / 2;
+
+    // Overlay translúcido de fundo
+    const overlay = this.scene.add.graphics();
+    overlay.fillStyle(0x000000, 0.7);
+    overlay.fillRect(0, 0, scrW, scrH);
+    overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, scrW, scrH), Phaser.Geom.Rectangle.Contains);
+    this.add(overlay);
+
+    // Painel Principal em 9-Slice de Couro Gótico
+    const panel = this.scene.add.graphics();
+    panel.fillStyle(0x120c1f, 0.95);
+    panel.fillRoundedRect(modalX, modalY, modalW, modalH, 12);
+
+    panel.lineStyle(3, 0xd4af37, 1);
+    panel.strokeRoundedRect(modalX, modalY, modalW, modalH, 12);
+    panel.lineStyle(1, 0xffe899, 0.6);
+    panel.strokeRoundedRect(modalX + 3, modalY + 3, modalW - 6, modalH - 6, 10);
+    this.add(panel);
+
+    // Título do Modal
+    const titleText = this.scene.add.text(scrW / 2, modalY + 28, '⚙️ CONFIGURAÇÕES DO JOGO', {
+      fontFamily: 'Cinzel',
+      fontSize: '20px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      stroke: '#000000',
+      strokeThickness: 4,
     }).setOrigin(0.5);
-    this.add(title);
+    this.add(titleText);
 
-    // Seção Áudio
-    const audioLabel = scene.add.text(-220, -130, '🔊 ÁUDIO & SOM', {
-      fontFamily: UI_THEME.fonts.title, fontSize: '13px', fontStyle: 'bold', color: UI_THEME.colors.textBlue,
+    // 1. Áudio: Música (BGM)
+    const bgmLabel = this.scene.add.text(modalX + 40, modalY + 80, '🎵 Música de Fundo (BGM)', {
+      fontFamily: 'MedievalSharp',
+      fontSize: '15px',
+      color: '#ffffff',
     });
-    this.add(audioLabel);
+    this.add(bgmLabel);
 
-    const bgmBtn = scene.add.text(-200, -100, `Música (BGM): ${this.isBGMEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`, {
-      fontFamily: UI_THEME.fonts.body, fontSize: '12px', color: UI_THEME.colors.textWhite,
-      backgroundColor: '#2a1a3a', padding: { x: 10, y: 6 }
+    const bgmBtn = this.scene.add.text(modalX + 360, modalY + 78, '80%', {
+      fontFamily: 'Cinzel',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#00ff88',
+      backgroundColor: '#1a2638',
+      padding: { x: 12, y: 4 },
     }).setInteractive({ useHandCursor: true });
+
     bgmBtn.on('pointerdown', () => {
-      this.isBGMEnabled = !this.isBGMEnabled;
-      bgmBtn.setText(`Música (BGM): ${this.isBGMEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`);
-      SoundSynth.playClick();
+      this.bgmVolume = this.bgmVolume >= 1.0 ? 0 : this.bgmVolume + 0.2;
+      bgmBtn.setText(`${Math.round(this.bgmVolume * 100)}%`);
+      this.scene.sound.volume = this.bgmVolume;
     });
     this.add(bgmBtn);
 
-    const sfxBtn = scene.add.text(20, -100, `Efeitos (SFX): ${this.isSFXEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`, {
-      fontFamily: UI_THEME.fonts.body, fontSize: '12px', color: UI_THEME.colors.textWhite,
-      backgroundColor: '#2a1a3a', padding: { x: 10, y: 6 }
+    // 2. Áudio: Efeitos Sonoros (SFX)
+    const sfxLabel = this.scene.add.text(modalX + 40, modalY + 130, '🔊 Efeitos Sonoros (SFX)', {
+      fontFamily: 'MedievalSharp',
+      fontSize: '15px',
+      color: '#ffffff',
+    });
+    this.add(sfxLabel);
+
+    const sfxBtn = this.scene.add.text(modalX + 360, modalY + 128, '100%', {
+      fontFamily: 'Cinzel',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#00ff88',
+      backgroundColor: '#1a2638',
+      padding: { x: 12, y: 4 },
     }).setInteractive({ useHandCursor: true });
+
     sfxBtn.on('pointerdown', () => {
-      this.isSFXEnabled = !this.isSFXEnabled;
-      sfxBtn.setText(`Efeitos (SFX): ${this.isSFXEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`);
-      SoundSynth.playClick();
+      this.sfxVolume = this.sfxVolume >= 1.0 ? 0 : this.sfxVolume + 0.25;
+      sfxBtn.setText(`${Math.round(this.sfxVolume * 100)}%`);
     });
     this.add(sfxBtn);
 
-    // Seção Gráficos & Gameplay
-    const gfxLabel = scene.add.text(-220, -50, '🎮 GRÁFICOS & GAMEPLAY', {
-      fontFamily: UI_THEME.fonts.title, fontSize: '13px', fontStyle: 'bold', color: UI_THEME.colors.textBlue,
+    // 3. Gráficos: Partículas
+    const gfxLabel = this.scene.add.text(modalX + 40, modalY + 180, '✨ Qualidade de Partículas', {
+      fontFamily: 'MedievalSharp',
+      fontSize: '15px',
+      color: '#ffffff',
     });
     this.add(gfxLabel);
 
-    const shakeBtn = scene.add.text(-200, -20, `Tremor de Tela: ${this.isShakeEnabled ? '✅ LIGADO' : '❌ OCULTO'}`, {
-      fontFamily: UI_THEME.fonts.body, fontSize: '12px', color: UI_THEME.colors.textWhite,
-      backgroundColor: '#2a1a3a', padding: { x: 10, y: 6 }
+    const gfxBtn = this.scene.add.text(modalX + 340, modalY + 178, 'ALTA (60fps)', {
+      fontFamily: 'Cinzel',
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#ffd700',
+      backgroundColor: '#2b1b10',
+      padding: { x: 10, y: 4 },
     }).setInteractive({ useHandCursor: true });
-    shakeBtn.on('pointerdown', () => {
-      this.isShakeEnabled = !this.isShakeEnabled;
-      shakeBtn.setText(`Tremor de Tela: ${this.isShakeEnabled ? '✅ LIGADO' : '❌ OCULTO'}`);
-      SoundSynth.playClick();
+
+    gfxBtn.on('pointerdown', () => {
+      this.particleQuality = this.particleQuality === 'HIGH' ? 'LOW' : 'HIGH';
+      gfxBtn.setText(this.particleQuality === 'HIGH' ? 'ALTA (60fps)' : 'ECONÔMICA');
     });
-    this.add(shakeBtn);
+    this.add(gfxBtn);
 
-    // Seção Atalhos
-    const keysLabel = scene.add.text(-220, 30, '⌨️ ATALHOS DO TECLADO', {
-      fontFamily: UI_THEME.fonts.title, fontSize: '13px', fontStyle: 'bold', color: UI_THEME.colors.textBlue,
+    // 4. Tela Cheia (Fullscreen)
+    const fsLabel = this.scene.add.text(modalX + 40, modalY + 230, '🖥️ Modo Tela Cheia', {
+      fontFamily: 'MedievalSharp',
+      fontSize: '15px',
+      color: '#ffffff',
     });
-    this.add(keysLabel);
+    this.add(fsLabel);
 
-    const hints = scene.add.text(-220, 55,
-      ' [I] Inventário    | [C] Perfil    | [Q] Missões\n' +
-      ' [T] Talentos      | [G] Guilda    | [K] Forja\n' +
-      ' [P] Mascotes      | [L] Ranking   | [ESC] Fechar Modais',
-      { fontFamily: UI_THEME.fonts.hud, fontSize: '11px', color: UI_THEME.colors.textGold, lineSpacing: 6 }
-    );
-    this.add(hints);
+    const fsBtn = this.scene.add.text(modalX + 340, modalY + 228, 'ATIVAR [F11]', {
+      fontFamily: 'Cinzel',
+      fontSize: '14px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      backgroundColor: '#3a2010',
+      padding: { x: 10, y: 4 },
+    }).setInteractive({ useHandCursor: true });
 
-    // Reset de Dados
-    const resetBtn = scene.add.text(0, 140, '🗑️ REINICIAR DADOS DE SALVAMENTO', {
-      fontFamily: UI_THEME.fonts.title, fontSize: '11px', fontStyle: 'bold', color: UI_THEME.colors.textRed,
-      backgroundColor: '#4a0000', padding: { x: 14, y: 8 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    resetBtn.on('pointerdown', () => {
-      if (confirm('Tem certeza que deseja apagar os dados salvos e reiniciar?')) {
-        localStorage.clear();
-        window.location.reload();
+    fsBtn.on('pointerdown', () => {
+      if (this.scene.scale.isFullscreen) {
+        this.scene.scale.stopFullscreen();
+        fsBtn.setText('ATIVAR [F11]');
+      } else {
+        this.scene.scale.startFullscreen();
+        fsBtn.setText('SAIR TELA CHEIA');
       }
     });
-    this.add(resetBtn);
+    this.add(fsBtn);
 
-    const closeBtn = scene.add.text(225, -175, '✖', {
-      fontFamily: UI_THEME.fonts.title, fontSize: '16px', color: UI_THEME.colors.textRed
+    // Dicas de Controles
+    const helpBox = this.scene.add.text(
+      scrW / 2,
+      modalY + 295,
+      '⌨️ WASD/Setas = Mover | Espaço = Atacar | Shift = Esquiva | 1-5 = Habilidades\nI = Inventário | Q = Missões | T = Talentos | K = Forja | ESC = Fechar',
+      {
+        fontFamily: 'MedievalSharp',
+        fontSize: '11px',
+        color: '#aaaaaa',
+        align: 'center',
+        lineSpacing: 4,
+      }
+    ).setOrigin(0.5);
+    this.add(helpBox);
+
+    // Botão Fechar
+    const closeBtn = this.scene.add.text(modalX + modalW / 2, modalY + modalH - 35, 'FECHAR', {
+      fontFamily: 'Cinzel',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      backgroundColor: '#881111',
+      padding: { x: 26, y: 8 },
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    closeBtn.on('pointerdown', onClose);
-    this.add(closeBtn);
 
-    scene.add.existing(this);
+    closeBtn.on('pointerover', () => closeBtn.setStyle({ color: '#ffd700' }));
+    closeBtn.on('pointerout', () => closeBtn.setStyle({ color: '#ffffff' }));
+    closeBtn.on('pointerdown', () => this.toggle());
+    this.add(closeBtn);
+  }
+
+  public toggle(): void {
+    this.isVisibleModal = !this.isVisibleModal;
+    this.setVisible(this.isVisibleModal);
+
+    if (this.isVisibleModal) {
+      this.setScale(0.85);
+      this.scene.tweens.add({
+        targets: this,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 200,
+        ease: 'Back.easeOut',
+      });
+    }
+  }
+
+  public isOpen(): boolean {
+    return this.isVisibleModal;
   }
 }

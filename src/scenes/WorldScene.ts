@@ -237,6 +237,26 @@ export class WorldScene extends BaseGameScene {
     // Guardas Templários na Entrada da Cidade
     this.guards.push(this.createNPC(16 * TILE_SIZE, 26 * TILE_SIZE, 'master', 'Guarda Templário Cedric', '🛡️'));
     this.guards.push(this.createNPC(34 * TILE_SIZE, 26 * TILE_SIZE, 'master', 'Guarda Templário Gareth', '🛡️'));
+
+    this.createAmbientFireflies();
+  }
+
+  private createAmbientFireflies(): void {
+    if (this.textures.exists('particle-gold')) {
+      const emitter = this.add.particles(0, 0, 'particle-gold', {
+        x: { min: 100, max: 160 * TILE_SIZE - 100 },
+        y: { min: 100, max: 120 * TILE_SIZE - 100 },
+        speed: { min: 10, max: 30 },
+        angle: { min: 0, max: 360 },
+        scale: { start: 0.8, end: 0 },
+        alpha: { start: 0.8, end: 0 },
+        lifespan: 3000,
+        quantity: 2,
+        frequency: 200,
+        blendMode: 'ADD',
+      });
+      emitter.setDepth(90);
+    }
   }
 
   private createNPC(x: number, y: number, frameKey: string, name: string, icon: string, onInteract?: () => void): Phaser.GameObjects.Container {

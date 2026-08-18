@@ -2657,12 +2657,10 @@ export class UIScene extends Phaser.Scene {
   private bestiaryModal: BestiaryModal | null = null;
 
   public toggleSettingsUI(): void {
-    if (this.settingsUIModal) {
-      this.settingsUIModal.destroy();
-      this.settingsUIModal = null;
-      return;
+    if (!this.settingsUIModal) {
+      this.settingsUIModal = new SettingsModal(this);
     }
-    this.settingsUIModal = new SettingsModal(this, () => this.toggleSettingsUI());
+    this.settingsUIModal.toggle();
   }
 
   public toggleAchievementUI(): void {

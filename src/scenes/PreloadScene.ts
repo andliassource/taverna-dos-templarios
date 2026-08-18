@@ -207,19 +207,24 @@ export class PreloadScene extends Phaser.Scene {
         for (let row = 0; row < 4; row++) {
           for (let col = 0; col < 4; col++) {
             const isIdle = col % 2 === 0;
-            const legOffset = isIdle ? 0 : (col === 1 ? 2 : -2);
+            const yBob = isIdle ? (col === 0 ? 0 : -2) : (col === 1 ? -4 : 2);
+            const rotAngle = isIdle ? 0 : (col === 1 ? -0.06 : 0.06);
 
-            const dx = col * frameW + 10;
-            const dy = row * frameH + 4 + legOffset;
+            const cx = col * frameW + 32;
+            const cy = row * frameH + 32 + yBob;
 
-            // Sombra
+            // Sombra oval na base do frame
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.beginPath();
             ctx.ellipse(col * frameW + 32, row * frameH + 58, 16, 5, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Desenha a imagem HD de alta qualidade no frame 64x64
-            ctx.drawImage(imgObj, dx, dy, 44, 52);
+            // Desenha a imagem HD com rotação e deslocamento dinâmico do ciclo de passos
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(rotAngle);
+            ctx.drawImage(imgObj, -22, -26, 44, 52);
+            ctx.restore();
           }
         }
 

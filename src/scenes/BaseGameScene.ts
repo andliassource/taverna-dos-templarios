@@ -6,6 +6,7 @@ import { SoundSynth } from '../utils/SoundSynth';
 
 import { AchievementSystem } from '../systems/AchievementSystem';
 import { PetSystem } from '../systems/PetSystem';
+import { EntityAnimator } from '../utils/EntityAnimator';
 
 /**
  * BaseGameScene — Classe base compartilhada entre WorldScene e BattleScene.
@@ -58,6 +59,8 @@ export abstract class BaseGameScene extends Phaser.Scene {
 
     // Sinaliza que o player foi criado (para cenários com colisão via physics zones)
     this.events.emit('player-created');
+
+    EntityAnimator.addIdleBreathing(this, this.player);
 
     const shadow = this.add.ellipse(0, 8, 22, 9, 0x000000, 0.4);
     shadow.setDepth(24);

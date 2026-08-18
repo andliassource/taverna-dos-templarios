@@ -118,6 +118,10 @@ export class AchievementSystem {
     return this.activeTitle;
   }
 
+  public getEquippedTitle(): string {
+    return this.activeTitle;
+  }
+
   public setActiveTitle(title: string): void {
     this.activeTitle = title;
     this.saveData();

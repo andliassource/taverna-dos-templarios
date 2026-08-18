@@ -13,6 +13,15 @@ export class InventoryModal extends Phaser.GameObjects.Container {
     const px = -pw / 2;
     const py = -ph / 2;
 
+    // Pop-in animado elástico
+    this.setScale(0.85);
+    this.setAlpha(0);
+    scene.tweens.add({
+      targets: this,
+      scaleX: 1, scaleY: 1, alpha: 1,
+      duration: 200, ease: 'Back.out',
+    });
+
     const bg = scene.add.graphics();
     bg.fillStyle(UI_THEME.colors.bgDark, 0.96);
     bg.fillRoundedRect(px, py, pw, ph, 10);

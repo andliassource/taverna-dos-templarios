@@ -204,27 +204,43 @@ export class PreloadScene extends Phaser.Scene {
     if (customImgKey && this.textures.exists(customImgKey)) {
       const imgObj = this.textures.get(customImgKey).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
       if (imgObj) {
+        // 4 Rows: 0=Down, 1=Left, 2=Right, 3=Up
+        // 4 Cols: 0=Idle1, 1=StepLeft, 2=Idle2, 3=StepRight
         for (let row = 0; row < 4; row++) {
           for (let col = 0; col < 4; col++) {
             const isIdle = col % 2 === 0;
-            const yBob = isIdle ? (col === 0 ? 0 : -2) : (col === 1 ? -4 : 2);
-            const rotAngle = isIdle ? 0 : (col === 1 ? -0.06 : 0.06);
+            const yStep = isIdle ? (col === 0 ? 0 : -2) : (col === 1 ? -4 : 3);
+            const xStep = isIdle ? 0 : (col === 1 ? -3 : 3);
+            const rotAngle = isIdle ? 0 : (col === 1 ? -0.07 : 0.07);
 
             const cx = col * frameW + 32;
-            const cy = row * frameH + 32 + yBob;
+            const cy = row * frameH + 32 + yStep;
 
-            // Sombra oval na base do frame
+            // 1. Sombra nos pés
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.beginPath();
             ctx.ellipse(col * frameW + 32, row * frameH + 58, 16, 5, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Desenha a imagem HD com rotação e deslocamento dinâmico do ciclo de passos
             ctx.save();
-            ctx.translate(cx, cy);
+            ctx.translate(cx + xStep, cy);
+
+            // Espelhamento na direção Esquerda (row 1)
+            if (row === 1) {
+              ctx.scale(-1, 1);
+            }
+
             ctx.rotate(rotAngle);
             ctx.drawImage(imgObj, -22, -26, 44, 52);
             ctx.restore();
+
+            // Tinta de sombra nas costas para a direção Cima (row 3)
+            if (row === 3) {
+              ctx.fillStyle = 'rgba(10, 5, 20, 0.45)';
+              ctx.beginPath();
+              ctx.ellipse(cx, cy - 2, 20, 24, 0, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
         }
 

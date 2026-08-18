@@ -155,6 +155,23 @@ export class CombatSystem {
   ): void {
     if (time < this.lastPlayerAttackTime + this.attackCooldown) return;
 
+    // Avanço Dinâmico do Corpo (Attack Lunge) de 12px na direção do ataque
+    let dx = 0;
+    let dy = 0;
+    if (direction === 'left') dx = -14;
+    else if (direction === 'right') dx = 14;
+    else if (direction === 'up') dy = -14;
+    else dy = 14;
+
+    this.scene.tweens.add({
+      targets: player,
+      x: player.x + dx,
+      y: player.y + dy,
+      duration: 70,
+      yoyo: true,
+      ease: 'Quad.out',
+    });
+
     if (this.playerClass === PlayerClass.PALADIN) {
       this.executePaladinAttack(player, direction, time);
     } else if (this.playerClass === PlayerClass.GUARDIAN) {

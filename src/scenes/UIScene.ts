@@ -10,6 +10,8 @@ import { PetSystem, PetItem } from '../systems/PetSystem';
 import { FactionSystem, Faction } from '../systems/FactionSystem';
 import { LeaderboardSystem, LeaderboardEntry } from '../systems/LeaderboardSystem';
 import { CraftingSystem } from '../systems/CraftingSystem';
+import { SettingsModal } from '../ui/modals/SettingsModal';
+import { InventoryModal } from '../ui/modals/InventoryModal';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -1134,222 +1136,14 @@ export class UIScene extends Phaser.Scene {
       this.inventoryContainer.destroy();
     }
 
-    const { width, height } = this.cameras.main;
-    this.inventoryContainer = this.add.container(0, 0).setDepth(200);
-
     const cs = this.getActiveCombatSystem();
     if (!cs) return;
 
-    const px = width / 2 - 240;
-    const py = height / 2 - 170;
-    const pw = 480;
-    const ph = 340;
-
-    // Fundo do painel principal em metal trabalhado
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0e0818, 0.96);
-    bg.fillRoundedRect(px, py, pw, ph, 10);
-    bg.lineStyle(2, 0xd4af37, 0.95);
-    bg.strokeRoundedRect(px, py, pw, ph, 10);
-    bg.lineStyle(1, 0x5a3e10, 0.7);
-    bg.strokeRoundedRect(px + 3, py + 3, pw - 6, ph - 6, 8);
-
-    const iCorners = [
-      [px + 7, py + 7], [px + pw - 7, py + 7],
-      [px + 7, py + ph - 7], [px + pw - 7, py + ph - 7]
-    ];
-    iCorners.forEach(([cx, cy]) => {
-      bg.fillStyle(0xffd700, 1);
-      bg.fillCircle(cx, cy, 3);
-    });
-    this.inventoryContainer.add(bg);
-
-    // Título medieval
-    const title = this.add.text(width / 2, py + 22, 'INVENTÁRIO E EQUIPAMENTOS', {
-      fontFamily: 'Cinzel',
-      fontSize: '15px',
-      fontStyle: 'bold',
-      color: '#ffd700',
-    }).setOrigin(0.5);
-    this.inventoryContainer.add(title);
-
-    // Botão Fechar [X] no topo direito do painel
-    const closeBtn = this.add.text(px + pw - 26, py + 12, '✖', {
-      fontSize: '18px',
-      color: '#ffd700',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    closeBtn.on('pointerdown', () => this.toggleInventory());
-    this.inventoryContainer.add(closeBtn);
-
-    // === SEÇÃO ESQUERDA: SLOTS DE EQUIPAMENTO EQUIPADO ===
-    const eqX = px + 24;
-    const eqY = py + 54;
-    const eqSlotW = 180;
-    const eqSlotH = 48;
-
-    const slots = [
-      { key: 'HELMET', label: '🪖 ELMO', iconPlaceholder: '🪖' },
-      { key: 'ARMOR', label: '🧥 ARMADURA', iconPlaceholder: '🧥' },
-      { key: 'WEAPON', label: '🗡️ ARMA', iconPlaceholder: '🗡️' },
-      { key: 'SHIELD', label: '🛡️ ESCUDO', iconPlaceholder: '🛡️' },
-    ];
-
-    const equipped = cs.getEquipped();
-
-    slots.forEach((slot, index) => {
-      const sy = eqY + index * 58;
-
-      const slotBg = this.add.graphics();
-      slotBg.fillStyle(0x130a24, 0.85);
-      slotBg.fillRoundedRect(eqX, sy, eqSlotW, eqSlotH, 6);
-      slotBg.lineStyle(1, 0x5a3d8c, 0.6);
-      slotBg.strokeRoundedRect(eqX, sy, eqSlotW, eqSlotH, 6);
-      this.inventoryContainer.add(slotBg);
-
-      const item = equipped[slot.key];
-      if (item) {
-        const icon = this.add.text(eqX + 20, sy + 24, item.icon, { fontSize: '18px' }).setOrigin(0.5);
-        
-        let rarityColor = '#aaaaaa';
-        if (item.rarity === 'RARE') rarityColor = '#4488ff';
-        if (item.rarity === 'EPIC') rarityColor = '#8a2be2';
-        if (item.rarity === 'LEGENDARY') rarityColor = '#ffd700';
-
-        const name = this.add.text(eqX + 44, sy + 10, item.name, {
-          fontFamily: 'MedievalSharp',
-          fontSize: '10px',
-          color: rarityColor,
-          fontStyle: 'bold',
-        });
-
-        let statText = '';
-        if (item.stats.atk) statText += `+${item.stats.atk} ATK  `;
-        if (item.stats.def) statText += `+${item.stats.def} DEF  `;
-        if (item.stats.hp) statText += `+${item.stats.hp} HP  `;
-        if (item.stats.mp) statText += `+${item.stats.mp} MP  `;
-
-        const statLabel = this.add.text(eqX + 44, sy + 24, statText.trim(), {
-          fontFamily: 'Inter',
-          fontSize: '9px',
-          color: '#8b8b8b',
-        });
-
-        this.inventoryContainer.add([icon, name, statLabel]);
-
-        const zone = this.add.zone(eqX + eqSlotW / 2, sy + eqSlotH / 2, eqSlotW, eqSlotH).setInteractive({ useHandCursor: true });
-        zone.on('pointerdown', () => {
-          cs.unequipItem(slot.key);
-          this.createInventoryUI();
-        });
-
-        this.addTooltipListeners(zone, item);
-        this.inventoryContainer.add(zone);
-
-      } else {
-        const placeholderIcon = this.add.text(eqX + 20, sy + 24, slot.iconPlaceholder, { fontSize: '16px' }).setOrigin(0.5).setAlpha(0.25);
-        const placeholderName = this.add.text(eqX + 44, sy + 18, `[ Vazio ]`, {
-          fontFamily: 'Cinzel',
-          fontSize: '10px',
-          color: '#555555',
-        });
-        this.inventoryContainer.add([placeholderIcon, placeholderName]);
-      }
-    });
-
-    // === SEÇÃO DIREITA: GRID DE ITENS (5X5 - 25 SLOTS) ===
-    const gridX = px + 216;
-    const gridY = py + 54;
-    const slotSize = 44;
-    const gridSpacing = 6;
-    const inventory = cs.getInventory();
-
-    for (let row = 0; row < 5; row++) {
-      for (let col = 0; col < 5; col++) {
-        const index = row * 5 + col;
-        const sx = gridX + col * (slotSize + gridSpacing);
-        const sy = gridY + row * (slotSize + gridSpacing);
-
-        const slotBg = this.add.graphics();
-        slotBg.fillStyle(0x130a24, 0.85);
-        slotBg.fillRoundedRect(sx, sy, slotSize, slotSize, 4);
-
-        if (index < inventory.length) {
-          const item = inventory[index];
-          let strokeColor = 0x4a2d6e;
-          if (item.rarity === 'RARE') strokeColor = 0x00aaff;
-          if (item.rarity === 'EPIC') strokeColor = 0xaa33ff;
-          if (item.rarity === 'LEGENDARY') strokeColor = 0xff9900;
-
-          slotBg.lineStyle(1.5, strokeColor, 0.9);
-          slotBg.strokeRoundedRect(sx, sy, slotSize, slotSize, 4);
-          this.inventoryContainer.add(slotBg);
-
-          const itemIcon = this.add.text(sx + slotSize / 2, sy + slotSize / 2, item.icon, {
-            fontSize: '18px',
-          }).setOrigin(0.5);
-          this.inventoryContainer.add(itemIcon);
-
-          if (item.quantity && item.quantity > 1) {
-            const countTxt = this.add.text(sx + slotSize - 4, sy + slotSize - 4, `${item.quantity}`, {
-              fontFamily: 'Inter', fontSize: '9px', fontStyle: 'bold', color: '#ffffff'
-            }).setOrigin(1, 1);
-            this.inventoryContainer.add(countTxt);
-          }
-
-          const zone = this.add.zone(sx + slotSize / 2, sy + slotSize / 2, slotSize, slotSize).setInteractive({ useHandCursor: true });
-          zone.on('pointerdown', (pointer: any) => {
-            if (pointer.rightButtonDown()) {
-              cs.deleteItem(item.id);
-            } else {
-              if (item.type === 'POTION') {
-                cs.usePotion(item.id);
-              } else {
-                cs.equipItem(item.id);
-              }
-            }
-            this.createInventoryUI();
-          });
-
-          this.input.mouse?.disableContextMenu();
-          this.addTooltipListeners(zone, item);
-          this.inventoryContainer.add(zone);
-        } else {
-          slotBg.lineStyle(1, 0x332244, 0.4);
-          slotBg.strokeRoundedRect(sx, sy, slotSize, slotSize, 4);
-          this.inventoryContainer.add(slotBg);
-        }
-      }
-    }
-
-    // === FOOTER DO PAINEL: STATUS DO JOGADOR ===
-    const footerY = py + ph - 34;
-    const footerText = this.add.text(px + 20, footerY, `⚡ ATK: ${cs.getAttackPower()}  |  🛡️ DEF: ${cs.getDefense()}  |  ❤️ HP: ${cs.getHP()}/${cs.getMaxHP()}`, {
-      fontFamily: 'Cinzel',
-      fontSize: '10.5px',
-      fontStyle: 'bold',
-      color: '#ffd700',
-    });
-    this.inventoryContainer.add(footerText);
-
-    const instructionsText = this.add.text(px + pw - 20, footerY, '[Esq: Equipar/Usar  |  Dir: Lixo]', {
-      fontFamily: 'Inter',
-      fontSize: '8px',
-      color: '#888888',
-    }).setOrigin(1, 0);
-    this.inventoryContainer.add(instructionsText);
-
-    // Inicializa tooltip
-    this.tooltipText = this.add.text(0, 0, '', {
-      fontFamily: 'Inter',
-      fontSize: '9px',
-      color: '#ffffff',
-      backgroundColor: 'rgba(5, 2, 10, 0.95)',
-      padding: { x: 8, y: 6 },
-      wordWrap: { width: 160 },
-      stroke: '#ffd700',
-      strokeThickness: 1,
-    }).setDepth(211).setVisible(false);
-    this.inventoryContainer.add(this.tooltipText);
+    this.inventoryContainer = new InventoryModal(
+      this, cs,
+      () => this.toggleInventory(),
+      () => this.createInventoryUI()
+    );
   }
 
   private addTooltipListeners(zone: Phaser.GameObjects.Zone, item: Item): void {
@@ -2865,10 +2659,7 @@ export class UIScene extends Phaser.Scene {
     this.guildUIModal = modal;
   }
 
-  private settingsUIModal: Phaser.GameObjects.Container | null = null;
-  private isBGMEnabled = true;
-  private isSFXEnabled = true;
-  private isShakeEnabled = true;
+  private settingsUIModal: SettingsModal | null = null;
 
   public toggleSettingsUI(): void {
     if (this.settingsUIModal) {
@@ -2876,103 +2667,6 @@ export class UIScene extends Phaser.Scene {
       this.settingsUIModal = null;
       return;
     }
-
-    const { width, height } = this.scale;
-    const modal = this.add.container(width / 2, height / 2).setDepth(210);
-
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0c0818, 0.96);
-    bg.fillRoundedRect(-250, -200, 500, 400, 10);
-    bg.lineStyle(2, 0xffd700, 0.95);
-    bg.strokeRoundedRect(-250, -200, 500, 400, 10);
-    bg.lineStyle(1, 0x5a3e10, 0.7);
-    bg.strokeRoundedRect(-246, -196, 492, 392, 8);
-    modal.add(bg);
-
-    const title = this.add.text(0, -170, '⚙️ CONFIGURAÇÕES DO JOGO', {
-      fontFamily: 'Cinzel', fontSize: '18px', fontStyle: 'bold', color: '#ffd700',
-      stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0.5);
-    modal.add(title);
-
-    // Seção Áudio
-    const audioLabel = this.add.text(-220, -130, '🔊 ÁUDIO & SOM', {
-      fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: '#00ffcc',
-    });
-    modal.add(audioLabel);
-
-    const bgmBtn = this.add.text(-200, -100, `Música (BGM): ${this.isBGMEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`, {
-      fontFamily: 'MedievalSharp', fontSize: '12px', color: '#ffffff',
-      backgroundColor: '#2a1a3a', padding: { x: 10, y: 6 }
-    }).setInteractive({ useHandCursor: true });
-    bgmBtn.on('pointerdown', () => {
-      this.isBGMEnabled = !this.isBGMEnabled;
-      bgmBtn.setText(`Música (BGM): ${this.isBGMEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`);
-      SoundSynth.playClick();
-    });
-    modal.add(bgmBtn);
-
-    const sfxBtn = this.add.text(20, -100, `Efeitos (SFX): ${this.isSFXEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`, {
-      fontFamily: 'MedievalSharp', fontSize: '12px', color: '#ffffff',
-      backgroundColor: '#2a1a3a', padding: { x: 10, y: 6 }
-    }).setInteractive({ useHandCursor: true });
-    sfxBtn.on('pointerdown', () => {
-      this.isSFXEnabled = !this.isSFXEnabled;
-      sfxBtn.setText(`Efeitos (SFX): ${this.isSFXEnabled ? '🔊 LIGADO' : '🔈 MUTE'}`);
-      SoundSynth.playClick();
-    });
-    modal.add(sfxBtn);
-
-    // Seção Gráficos & Efeitos
-    const gfxLabel = this.add.text(-220, -50, '🎮 GRÁFICOS & GAMEPLAY', {
-      fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: '#00ffcc',
-    });
-    modal.add(gfxLabel);
-
-    const shakeBtn = this.add.text(-200, -20, `Tremor de Tela: ${this.isShakeEnabled ? '✅ LIGADO' : '❌ OCULTO'}`, {
-      fontFamily: 'MedievalSharp', fontSize: '12px', color: '#ffffff',
-      backgroundColor: '#2a1a3a', padding: { x: 10, y: 6 }
-    }).setInteractive({ useHandCursor: true });
-    shakeBtn.on('pointerdown', () => {
-      this.isShakeEnabled = !this.isShakeEnabled;
-      shakeBtn.setText(`Tremor de Tela: ${this.isShakeEnabled ? '✅ LIGADO' : '❌ OCULTO'}`);
-      SoundSynth.playClick();
-    });
-    modal.add(shakeBtn);
-
-    // Seção Guia de Teclas
-    const keysLabel = this.add.text(-220, 30, '⌨️ ATALHOS DO TECLADO', {
-      fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: '#00ffcc',
-    });
-    modal.add(keysLabel);
-
-    const hints = this.add.text(-220, 55,
-      ' [I] Inventário    | [C] Perfil    | [Q] Missões\n' +
-      ' [T] Talentos      | [G] Guilda    | [K] Forja\n' +
-      ' [P] Mascotes      | [L] Ranking   | [ESC] Fechar Modais',
-      { fontFamily: 'Inter', fontSize: '11px', color: '#ffd700', lineSpacing: 6 }
-    );
-    modal.add(hints);
-
-    // Reset de Dados
-    const resetBtn = this.add.text(0, 140, '🗑️ REINICIAR DADOS DE SALVAMENTO', {
-      fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ff4444',
-      backgroundColor: '#4a0000', padding: { x: 14, y: 8 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    resetBtn.on('pointerdown', () => {
-      if (confirm('Tem certeza que deseja apagar os dados salvos e reiniciar?')) {
-        localStorage.clear();
-        window.location.reload();
-      }
-    });
-    modal.add(resetBtn);
-
-    const closeBtn = this.add.text(225, -175, '✖', {
-      fontFamily: 'Cinzel', fontSize: '16px', color: '#ff4444'
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    closeBtn.on('pointerdown', () => this.toggleSettingsUI());
-    modal.add(closeBtn);
-
-    this.settingsUIModal = modal;
+    this.settingsUIModal = new SettingsModal(this, () => this.toggleSettingsUI());
   }
 }

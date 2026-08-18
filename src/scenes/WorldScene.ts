@@ -48,6 +48,7 @@ export class WorldScene extends BaseGameScene {
   private pendingArenaResult: ArenaResult | null = null;
   private customPlayerName = 'Templário';
   private isNewGame = false;
+  private torchLights: Phaser.GameObjects.Light[] = [];
 
   init(data: { name?: string; isNewGame?: boolean; playerClass?: PlayerClass; fromSave?: boolean; fromTavern?: boolean; arenaResult?: ArenaResult }): void {
     if (data.name) this.customPlayerName = data.name;
@@ -64,6 +65,10 @@ export class WorldScene extends BaseGameScene {
   create(): void {
     SoundSynth.playBGM('village');
     
+    // Ativa sistema de Iluminação Dinâmica 2.5D (Light2D)
+    this.lights.enable();
+    this.lights.setAmbientColor(0x444455);
+
     // Explicitamente faz fade-in para evitar tela preta ao iniciar do MainMenu/Arena
     this.cameras.main.fadeIn(800, 0, 0, 0);
 
@@ -459,6 +464,26 @@ export class WorldScene extends BaseGameScene {
       'vignette',
     );
     vignette.setScrollFactor(0).setDisplaySize(width, height).setAlpha(0.35).setDepth(100);
+
+    // Luzes Dinâmicas 2.5D (Square Enix Light2D Setup)
+    if (this.lights.active) {
+      // Luz da Taverna
+      const tavernLight = this.lights.addLight(25 * TILE_SIZE, 12 * TILE_SIZE, 220, 0xffaa44, 1.4);
+      this.torchLights.push(tavernLight);
+
+      // Luz da Forja
+      const forgeLight = this.lights.addLight(34 * TILE_SIZE, 17 * TILE_SIZE, 200, 0xff5511, 1.6);
+      this.torchLights.push(forgeLight);
+
+      // Luz do Mercado
+      const shopLight = this.lights.addLight(16 * TILE_SIZE, 17 * TILE_SIZE, 180, 0x44ddff, 1.3);
+      this.torchLights.push(shopLight);
+
+      // Luz Suave de Aura do Jogador
+      if (this.player) {
+        this.playerLight = this.lights.addLight(this.player.x, this.player.y, 160, 0xffeaad, 1.2);
+      }
+    }
   }
 
   private spawnMonsters(): void {
@@ -608,6 +633,17 @@ export class WorldScene extends BaseGameScene {
 
   update(time: number): void {
     this.raidBoss?.updateBoss(time, this.player);
+
+    // Atualiza posição da luz do jogador e efeito de chama cintilante nas tochas
+    if (this.playerLight && this.player) {
+      this.playerLight.x = this.player.x;
+      this.playerLight.y = this.player.y;
+    }
+    if (this.torchLights.length > 0) {
+      this.torchLights.forEach((light, i) => {
+        light.intensity = 1.3 + Math.sin(time / 90 + i) * 0.25;
+      });
+    }
 
     // Colisão com muros (wallBodies)
     if (this.wallBodies && this.player) {

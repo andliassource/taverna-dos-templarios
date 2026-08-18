@@ -257,24 +257,28 @@ export class Monster extends Phaser.GameObjects.Container {
   private showFloatingDamage(amount: number, isCrit: boolean): void {
     const dmgText = this.scene.add.text(
       this.x + (Math.random() * 16 - 8),
-      this.y - 30,
-      `${isCrit ? '💥 ' : ''}${Math.round(amount)}`,
+      this.y - 32,
+      `${isCrit ? '💥 CRÍTICO! ' : ''}${Math.round(amount)}`,
       {
         fontFamily: 'Cinzel',
-        fontSize: isCrit ? '16px' : '12px',
+        fontSize: isCrit ? '18px' : '13px',
         fontStyle: 'bold',
-        color: isCrit ? '#ffff00' : '#ff3333',
+        color: isCrit ? '#ffd700' : '#ff4444',
         stroke: '#000000',
-        strokeThickness: 3,
+        strokeThickness: 4,
+        shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 2, stroke: true, fill: true }
       }
-    ).setOrigin(0.5).setDepth(100);
+    ).setOrigin(0.5).setDepth(150);
 
+    dmgText.setScale(1.5);
     this.scene.tweens.add({
       targets: dmgText,
-      y: dmgText.y - 35,
-      alpha: 0,
-      duration: 900,
-      ease: 'Cubic.easeOut',
+      scaleX: 1,
+      scaleY: 1,
+      y: dmgText.y - 42,
+      alpha: { start: 1, end: 0 },
+      duration: 850,
+      ease: 'Back.easeOut',
       onComplete: () => dmgText.destroy(),
     });
   }

@@ -209,36 +209,49 @@ export class PreloadScene extends Phaser.Scene {
         for (let row = 0; row < 4; row++) {
           for (let col = 0; col < 4; col++) {
             const isIdle = col % 2 === 0;
-            const yStep = isIdle ? (col === 0 ? 0 : -2) : (col === 1 ? -4 : 3);
-            const xStep = isIdle ? 0 : (col === 1 ? -3 : 3);
-            const rotAngle = isIdle ? 0 : (col === 1 ? -0.07 : 0.07);
+            // Deslocamento de pernas e corpo estilo JRPG (Square Enix 2D Walk Cycle)
+            const yOffset = isIdle ? (col === 0 ? 0 : -3) : (col === 1 ? -6 : -4);
+            const xStride = isIdle ? 0 : (col === 1 ? -5 : 5);
+            const bodyTilt = isIdle ? 0 : (col === 1 ? -0.12 : 0.12);
+            const armSwingY = isIdle ? 0 : (col === 1 ? 6 : -6);
 
             const cx = col * frameW + 32;
-            const cy = row * frameH + 32 + yStep;
+            const cy = row * frameH + 32 + yOffset;
 
-            // 1. Sombra nos pés
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            // 1. Sombra dinâmica sob os pés (encolhe no salto da passada)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
             ctx.beginPath();
-            ctx.ellipse(col * frameW + 32, row * frameH + 58, 16, 5, 0, 0, Math.PI * 2);
+            const shadowRadius = isIdle ? 16 : 12;
+            ctx.ellipse(col * frameW + 32, row * frameH + 58, shadowRadius, 5, 0, 0, Math.PI * 2);
             ctx.fill();
 
+            // 2. Desenha o sprite com passada expressiva, inclinação de tronco e balanço
             ctx.save();
-            ctx.translate(cx + xStep, cy);
+            ctx.translate(cx + xStride, cy);
 
-            // Espelhamento na direção Esquerda (row 1)
+            // Perfil Esquerda (row 1)
             if (row === 1) {
               ctx.scale(-1, 1);
             }
 
-            ctx.rotate(rotAngle);
-            ctx.drawImage(imgObj, -22, -26, 44, 52);
+            ctx.rotate(bodyTilt);
+            // Renderiza o corpo com deslocamento anatômico
+            ctx.drawImage(imgObj, -22, -26 + (isIdle ? 0 : 2), 44, 52);
             ctx.restore();
 
-            // Tinta de sombra nas costas para a direção Cima (row 3)
-            if (row === 3) {
-              ctx.fillStyle = 'rgba(10, 5, 20, 0.45)';
+            // 3. Efeito visual de rastro de passo / poeira sutil na base do frame ativo
+            if (!isIdle) {
+              ctx.fillStyle = 'rgba(200, 190, 160, 0.35)';
               ctx.beginPath();
-              ctx.ellipse(cx, cy - 2, 20, 24, 0, 0, Math.PI * 2);
+              ctx.arc(cx - xStride * 1.2, row * frameH + 54, 4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            // 4. Sombra gótica de costas para a direção Cima (row 3)
+            if (row === 3) {
+              ctx.fillStyle = 'rgba(12, 6, 24, 0.55)';
+              ctx.beginPath();
+              ctx.ellipse(cx, cy - 2, 22, 26, 0, 0, Math.PI * 2);
               ctx.fill();
             }
           }

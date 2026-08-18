@@ -12,6 +12,8 @@ import { LeaderboardSystem, LeaderboardEntry } from '../systems/LeaderboardSyste
 import { CraftingSystem } from '../systems/CraftingSystem';
 import { SettingsModal } from '../ui/modals/SettingsModal';
 import { InventoryModal } from '../ui/modals/InventoryModal';
+import { AchievementModal } from '../ui/modals/AchievementModal';
+import { BestiaryModal } from '../ui/modals/BestiaryModal';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -2660,6 +2662,8 @@ export class UIScene extends Phaser.Scene {
   }
 
   private settingsUIModal: SettingsModal | null = null;
+  private achievementModal: AchievementModal | null = null;
+  private bestiaryModal: BestiaryModal | null = null;
 
   public toggleSettingsUI(): void {
     if (this.settingsUIModal) {
@@ -2668,5 +2672,27 @@ export class UIScene extends Phaser.Scene {
       return;
     }
     this.settingsUIModal = new SettingsModal(this, () => this.toggleSettingsUI());
+  }
+
+  public toggleAchievementUI(): void {
+    if (this.achievementModal) {
+      this.achievementModal.destroy();
+      this.achievementModal = null;
+      return;
+    }
+    this.achievementModal = new AchievementModal(
+      this,
+      () => this.toggleAchievementUI(),
+      () => this.toggleAchievementUI()
+    );
+  }
+
+  public toggleBestiaryUI(): void {
+    if (this.bestiaryModal) {
+      this.bestiaryModal.destroy();
+      this.bestiaryModal = null;
+      return;
+    }
+    this.bestiaryModal = new BestiaryModal(this, () => this.toggleBestiaryUI());
   }
 }

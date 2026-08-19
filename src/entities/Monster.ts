@@ -137,15 +137,16 @@ export class Monster extends Phaser.GameObjects.Container {
     this.sprite.setOrigin(0.5, 0.75);
     this.sprite.setPipeline('Light2D');
 
-    // Nome e Nível acima do monstro
-    this.nameText = this.scene.add.text(0, -32, `Lv.${this.config.level} ${this.config.name}`, {
+    // Nome e Nível acima do monstro (sem sobreposição)
+    this.nameText = this.scene.add.text(0, -52, `Lv.${this.config.level} ${this.config.name}`, {
       fontFamily: 'MedievalSharp',
-      fontSize: '8px',
+      fontSize: '9px',
+      fontStyle: 'bold',
       color: '#ff6666',
       stroke: '#000000',
       strokeThickness: 3,
-      backgroundColor: 'rgba(0, 0, 0, 0.65)',
-      padding: { x: 3, y: 1 }
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      padding: { x: 4, y: 2 }
     }).setOrigin(0.5);
 
     // Barra de Vida flutuante
@@ -155,16 +156,14 @@ export class Monster extends Phaser.GameObjects.Container {
     this.add([this.targetReticle, shadow, this.sprite, this.nameText, this.hpBarGraphics]);
   }
 
-  // Removido drawMonsterBody corporizado via Sprite procedimental
-
   public updateHpBar(): void {
     this.hpBarGraphics.clear();
     if (this.hp <= 0) return;
 
-    const w = 26;
-    const h = 4;
+    const w = 32;
+    const h = 5;
     const x = -w / 2;
-    const y = -24;
+    const y = -40;
 
     // Moldura de Metal Fundido Escuro
     this.hpBarGraphics.fillStyle(0x0e0818, 0.95);

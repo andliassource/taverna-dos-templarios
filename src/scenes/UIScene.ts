@@ -2108,8 +2108,8 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createMobileControlsToggle(width: number): void {
-    const x = width - 78;
-    const y = 12;
+    const x = width - 335;
+    const y = 16;
 
     const btn = this.add.text(x, y, '📱 Touch', {
       fontFamily: 'Inter',
@@ -2117,10 +2117,10 @@ export class UIScene extends Phaser.Scene {
       fontStyle: 'bold',
       color: '#ffd700',
       backgroundColor: 'rgba(10, 6, 18, 0.9)',
-      padding: { x: 6, y: 3 },
-      stroke: '#000000',
-      strokeThickness: 2,
-    }).setOrigin(0.5, 0).setDepth(200).setInteractive({ useHandCursor: true });
+      padding: { x: 6, y: 4 },
+      stroke: '#ffd700',
+      strokeThickness: 1,
+    }).setOrigin(1, 0).setDepth(200).setInteractive({ useHandCursor: true });
 
     btn.on('pointerdown', () => {
       this.toggleMobileControls();

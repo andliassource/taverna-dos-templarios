@@ -8,6 +8,7 @@ import { BattleScene } from '../scenes/BattleScene';
 import { DungeonScene } from '../scenes/DungeonScene';
 import { UIScene } from '../scenes/UIScene';
 import { MapScene } from '../scenes/MapScene';
+import { UnrealPostFX } from '../shaders/UnrealPostFX';
 import UIPlugin from 'phaser3-rex-plugins/templates/ui/ui-plugin.js';
 
 /**
@@ -62,6 +63,9 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
     antialias: true,
     roundPixels: false,
   },
+  pipeline: {
+    UnrealPostFX: UnrealPostFX,
+  } as any,
   plugins: {
     scene: [
       {

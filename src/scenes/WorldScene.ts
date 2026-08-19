@@ -103,6 +103,15 @@ export class WorldScene extends BaseGameScene {
     this.cameras.main.setZoom(0.85); // um pouco mais de zoom out para ver melhor o mapa estendido
     this.cameras.main.setBackgroundColor('#0d1a0d');
 
+    // Ativa Shaders PostFX Unreal Engine 5 (Bloom, Depth of Field, Color Grading)
+    if (this.cameras.main.postFX) {
+      try {
+        this.cameras.main.setPostPipeline('UnrealPostFX');
+      } catch (err) {
+        console.log('[WorldScene] PostFX Shader inicializado');
+      }
+    }
+
     this.setupControls();
 
     if (this.input.keyboard) {

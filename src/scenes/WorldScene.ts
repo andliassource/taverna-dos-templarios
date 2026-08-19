@@ -631,8 +631,31 @@ export class WorldScene extends BaseGameScene {
     return false;
   }
 
-  update(time: number): void {
+  update(time: number, delta: number): void {
     this.raidBoss?.updateBoss(time, this.player);
+
+    // Ciclo Dia/Noite Dinâmico 24 Horas (Square Enix Lighting Engine)
+    this.gameHour += (delta / 1000) * 0.15; // ~2.5 min por dia completo
+    if (this.gameHour >= 24) this.gameHour = 0;
+
+    if (this.lights.active) {
+      if (this.gameHour >= 6 && this.gameHour < 17) {
+        // Dia: Luz natural límpida
+        this.lights.setAmbientColor(0x888899);
+      } else if (this.gameHour >= 17 && this.gameHour < 19) {
+        // Pôr do Sol / Golden Hour: Tom crepuscular dourado/alaranjado
+        this.lights.setAmbientColor(0xaa6644);
+      } else if (this.gameHour >= 19 || this.gameHour < 5) {
+        // Noite Gótica: Ambiente azul noturno sombrio onde as tochas se destacam
+        this.lights.setAmbientColor(0x1c1d33);
+      } else {
+        // Alvorada: Tom suave matinal
+        this.lights.setAmbientColor(0x556677);
+      }
+    }
+
+    // Emite o horário para atualizar o relógio do HUD no UIScene
+    this.events.emit('update-game-time', { hour: this.gameHour });
 
     // Atualiza posição da luz do jogador e efeito de chama cintilante nas tochas
     if (this.playerLight && this.player) {

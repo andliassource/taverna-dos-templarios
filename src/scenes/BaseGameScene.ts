@@ -44,26 +44,49 @@ export abstract class BaseGameScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(x, y, skinKey);
     this.player.setDepth(y / TILE_SIZE + 2);
     
-    // O frame real é 64x64 com transparência real — Escala limpa 1.2x sem distorção
-    this.player.setScale(1.2);
+    // O frame real é 64x64 com transparência real — Escala marcante 1.6x estilo Action RPG HD
+    this.player.setScale(1.6);
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     body.setSize(24, 32);
     body.setOffset(20, 24);
     body.setCollideWorldBounds(true);
 
-    // Colisão com wallLayer (se existir — cenários antigos)
+    // Aura de Luz Sagrada sob os pés do Herói
+    const auraRing = this.add.graphics();
+    auraRing.fillStyle(0xffd700, 0.25);
+    auraRing.fillCircle(0, 10, 16);
+    auraRing.lineStyle(1.5, 0xffd700, 0.7);
+    auraRing.strokeCircle(0, 10, 16);
+
+    this.tweens.add({
+      targets: auraRing,
+      alpha: 0.15,
+      scaleX: 1.15,
+      scaleY: 1.15,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+
+    // Colisão com wallLayer (se existir)
     if (this.wallLayer) {
       this.physics.add.collider(this.player, this.wallLayer);
     }
 
-    // Sinaliza que o player foi criado (para cenários com colisão via physics zones)
+    // Sinaliza que o player foi criado
     this.events.emit('player-created');
 
     EntityAnimator.addIdleBreathing(this, this.player);
 
-    const shadow = this.add.ellipse(0, 8, 22, 9, 0x000000, 0.4);
+    const shadow = this.add.ellipse(0, 8, 26, 10, 0x000000, 0.45);
     shadow.setDepth(24);
+
+    this.events.on('postupdate', () => {
+      auraRing.setPosition(this.player.x, this.player.y);
+      auraRing.setDepth(this.player.depth - 1);
+    });
 
     const title = AchievementSystem.getInstance().getEquippedTitle();
     const pName = (this.scene.settings.data as any)?.name || (this as any).customPlayerName || 'Templário';

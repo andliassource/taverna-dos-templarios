@@ -6,6 +6,7 @@ import { WorldScene } from '../scenes/WorldScene';
 import { TavernScene } from '../scenes/TavernScene';
 import { BattleScene } from '../scenes/BattleScene';
 import { DungeonScene } from '../scenes/DungeonScene';
+import { DesertScene } from '../scenes/DesertScene';
 import { UIScene } from '../scenes/UIScene';
 import { MapScene } from '../scenes/MapScene';
 import { UnrealPostFX } from '../shaders/UnrealPostFX';
@@ -45,6 +46,7 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
     TavernScene,
     BattleScene,
     DungeonScene,
+    DesertScene,
     UIScene,
     MapScene,
   ],

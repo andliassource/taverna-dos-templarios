@@ -271,6 +271,42 @@ export class WorldScene extends BaseGameScene {
       });
       emitter.setDepth(90);
     }
+
+    // Portal de Fogo para o Deserto de Cristal
+    const portalX = 45 * TILE_SIZE;
+    const portalY = 10 * TILE_SIZE;
+
+    const firePortal = this.add.circle(portalX, portalY, 26, 0xff4400, 0.75);
+    firePortal.setDepth(15 * TILE_SIZE);
+
+    this.tweens.add({
+      targets: firePortal,
+      scaleX: 1.3,
+      scaleY: 1.3,
+      alpha: 0.3,
+      duration: 750,
+      yoyo: true,
+      repeat: -1,
+    });
+
+    this.add.text(portalX, portalY - 36, '🔥 DESERTO DE FOGO', {
+      fontFamily: 'Cinzel', fontSize: '10px', fontStyle: 'bold', color: '#ff6600',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(16 * TILE_SIZE);
+
+    const portalZone = this.add.zone(portalX, portalY, 48, 48);
+    this.physics.add.existing(portalZone, true);
+
+    let portalActive = false;
+    this.physics.add.overlap(this.player, portalZone, () => {
+      if (portalActive) return;
+      portalActive = true;
+
+      this.cameras.main.fadeOut(600, 0, 0, 0);
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.scene.start('DesertScene', { playerClass: this.playerClass });
+      });
+    });
   }
 
   private createNPC(x: number, y: number, frameKey: string, name: string, icon: string, onInteract?: () => void): Phaser.GameObjects.Container {

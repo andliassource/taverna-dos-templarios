@@ -306,7 +306,10 @@ export class UIScene extends Phaser.Scene {
     const hpY = 40;
     const mpY = 56;
 
-    if (this.levelText) this.levelText.setText(`Lv.${this.playerData.level}`);
+    if (this.levelText && this.classText) {
+      this.levelText.setText(`Lv.${this.playerData.level}`);
+      this.levelText.setX(this.classText.x + this.classText.width + 10);
+    }
 
     // Redesenha Barra de Vida Rubi
     if (this.hpBar) {
@@ -325,9 +328,14 @@ export class UIScene extends Phaser.Scene {
         this.playerData.mp / this.playerData.maxMp, 0x00008b, 0x3498db);
     }
 
-    // Atualiza textos de Moedas
-    if (this.goldText) this.goldText.setText(`🪙 ${this.playerData.gold.toLocaleString()}`);
-    if (this.gemsText) this.gemsText.setText(`💎 ${this.playerData.gems.toLocaleString()}`);
+    // Atualiza textos de Moedas (Posicionamento Dinâmico sem sobreposição)
+    if (this.goldText && this.gemsText) {
+      this.goldText.setText(`🪙 ${this.playerData.gold.toLocaleString()}`);
+      this.gemsText.setText(`💎 ${this.playerData.gems.toLocaleString()}`);
+
+      const goldW = this.goldText.width;
+      this.gemsText.setX(this.goldText.x + goldW + 20);
+    }
 
     const activeScene = this.getActiveGameScene();
     const dashCooldownRatio = activeScene?.lastDashTime
@@ -379,7 +387,7 @@ export class UIScene extends Phaser.Scene {
     const x = 16;
     const y = 16;
 
-    // Nome + Classe + Level
+    // Nome + Classe + Level (Posicionamento Dinâmico sem sobreposição)
     const displayName = FirebaseService.currentUser?.displayName ?? 'Templário';
     this.classText = this.add.text(x, y, `⚔️ ${displayName}`, {
       fontFamily: 'Cinzel',
@@ -390,7 +398,7 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 2,
     });
 
-    this.levelText = this.add.text(x + 130, y, `Lv.${this.playerData.level}`, {
+    this.levelText = this.add.text(this.classText.x + this.classText.width + 10, y, `Lv.${this.playerData.level}`, {
       fontFamily: 'Inter',
       fontSize: '12px',
       fontStyle: 'bold',

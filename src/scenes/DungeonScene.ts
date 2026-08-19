@@ -45,6 +45,14 @@ export class DungeonScene extends BaseGameScene {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setRoundPixels(true);
 
+    if (this.cameras.main.postFX) {
+      try {
+        this.cameras.main.setPostPipeline('UnrealPostFX');
+      } catch (err) {
+        // Fallback
+      }
+    }
+
     this.scene.run('UIScene');
     this.setupBossEventListeners();
 

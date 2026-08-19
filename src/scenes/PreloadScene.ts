@@ -1462,62 +1462,62 @@ export class PreloadScene extends Phaser.Scene {
       const ctx = canvas!.getContext();
       ctx.imageSmoothingEnabled = true;
 
-      // Fundo Base: Grama Orgânica Vibrante de Alta Definição
-      ctx.fillStyle = '#1c3e1b';
+      // 1. Fundo Base: Verde Gramado Prado Rico Homogêneo (#21441e)
+      ctx.fillStyle = '#21441e';
       ctx.fillRect(0, 0, 1024, 1024);
 
-      // 1. Manchas Orgânicas de Grama Rica (Tonéis de verde e musgo)
-      for (let i = 0; i < 4000; i++) {
+      // 2. Manchas Orgânicas de Grama Musgo (Com wrapping toroidal 100% Seamless)
+      for (let i = 0; i < 3500; i++) {
         const x = Math.random() * 1024;
         const y = Math.random() * 1024;
-        const r = Math.random() * 14 + 6;
-        ctx.fillStyle = Math.random() > 0.4 ? 'rgba(38, 92, 32, 0.45)' : 'rgba(18, 48, 16, 0.55)';
-        ctx.beginPath();
-        ctx.ellipse(x, y, r * 1.5, r, Math.random() * Math.PI, 0, Math.PI * 2);
-        ctx.fill();
+        const r = Math.random() * 18 + 6;
+        ctx.fillStyle = Math.random() > 0.4 ? 'rgba(46, 106, 38, 0.4)' : 'rgba(25, 60, 22, 0.4)';
+        
+        // Desenha a elipse principal e wrappers nas bordas para eliminar costuras
+        for (let dx of [0, -1024, 1024]) {
+          for (let dy of [0, -1024, 1024]) {
+            const cx = x + dx;
+            const cy = y + dy;
+            if (cx + r >= 0 && cx - r <= 1024 && cy + r >= 0 && cy - r <= 1024) {
+              ctx.beginPath();
+              ctx.ellipse(cx, cy, r * 1.4, r, 0.4, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
       }
 
-      // 2. Estradas Orgânicas de Terra Batida Suave (Sem grades rígidas)
-      ctx.fillStyle = 'rgba(68, 48, 28, 0.28)';
-      for (let i = 0; i < 120; i++) {
+      // 3. Estradas de Terra Batida & Pedras (Wrapping Toroidal para Seamless Perfeito)
+      for (let i = 0; i < 90; i++) {
         const x = Math.random() * 1024;
         const y = Math.random() * 1024;
-        const rx = Math.random() * 120 + 40;
-        const ry = Math.random() * 80 + 30;
-        ctx.beginPath();
-        ctx.ellipse(x, y, rx, ry, Math.random() * Math.PI, 0, Math.PI * 2);
-        ctx.fill();
+        const rx = Math.random() * 80 + 30;
+        const ry = Math.random() * 50 + 20;
+        ctx.fillStyle = 'rgba(78, 56, 32, 0.22)';
+
+        for (let dx of [0, -1024, 1024]) {
+          for (let dy of [0, -1024, 1024]) {
+            const cx = x + dx;
+            const cy = y + dy;
+            if (cx + rx >= 0 && cx - rx <= 1024 && cy + ry >= 0 && cy - ry <= 1024) {
+              ctx.beginPath();
+              ctx.ellipse(cx, cy, rx, ry, 0.2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
       }
 
-      // 3. Detalhes de Pedras Naturais e Fagulhas de Flores Silvestres
-      for (let i = 0; i < 500; i++) {
-        const x = Math.random() * 1024;
-        const y = Math.random() * 1024;
-        const s = Math.random() * 3 + 1;
-        ctx.fillStyle = Math.random() > 0.6 ? '#6a7865' : '#889980';
-        ctx.fillRect(x, y, s, s);
-      }
-
-      // 3. Caminhos de Terra Batida Suave
-      ctx.fillStyle = 'rgba(50, 35, 20, 0.22)';
-      for (let i = 0; i < 80; i++) {
-        const x = Math.random() * 1024;
-        const y = Math.random() * 1024;
-        ctx.beginPath();
-        ctx.ellipse(x, y, 160, 110, Math.random() * Math.PI, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // 4. Detalhes: Pedras Decorativas e Folhas Caídas
+      // 4. Flores Silvestres (Pontos Coloridos Dourados e Rosa Dourado)
       for (let i = 0; i < 400; i++) {
         const x = Math.random() * 1024;
         const y = Math.random() * 1024;
-        const s = Math.random() * 4 + 2;
-        ctx.fillStyle = '#444d42';
-        ctx.fillRect(x, y, s, s);
-        ctx.fillStyle = '#778875';
-        ctx.fillRect(x, y, s - 1, s - 1);
+        ctx.fillStyle = Math.random() > 0.5 ? '#ffd700' : '#ff99bb';
+        ctx.beginPath();
+        ctx.arc(x, y, Math.random() * 2 + 1, 0, Math.PI * 2);
+        ctx.fill();
       }
+
       canvas!.refresh();
     }
 

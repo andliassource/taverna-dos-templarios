@@ -731,12 +731,33 @@ export class CombatSystem {
 
   private castAoeSkill(skill: ActiveSkill, damage: number, player: Phaser.GameObjects.Sprite): void {
     SoundSynth.playExplosion();
+
+    // Tremo de tela cinematográfico (Impacto HD)
+    this.scene.cameras.main.shake(200, 0.015);
+
+    // Anel de Onda de Choque Expansível com Brilho Mágico
+    const shockwave = this.scene.add.graphics();
+    shockwave.setDepth(45);
+    shockwave.setPosition(player.x, player.y);
+    shockwave.lineStyle(4, skill.color || 0xffd700, 0.95);
+    shockwave.strokeCircle(0, 0, 15);
+
+    this.scene.tweens.add({
+      targets: shockwave,
+      scaleX: 5.5,
+      scaleY: 5.5,
+      alpha: 0,
+      duration: 350,
+      ease: 'Power2.easeOut',
+      onComplete: () => shockwave.destroy(),
+    });
+
     this.emitParticles(player.x, player.y, 'particle-gold', {
-      speed: { min: 50, max: 200 },
+      speed: { min: 60, max: 220 },
       angle: { min: 0, max: 360 },
-      scale: { start: 1.5, end: 0 },
+      scale: { start: 1.6, end: 0 },
       lifespan: 500,
-      quantity: 30,
+      quantity: 35,
       tint: skill.color || 0xffffff,
       blendMode: 'ADD',
     });
@@ -744,7 +765,7 @@ export class CombatSystem {
     this.monsters.forEach((monster) => {
       if (monster.isDead) return;
       const dist = Phaser.Math.Distance.Between(player.x, player.y, monster.x, monster.y);
-      if (dist <= skill.range) {
+      if (dist <= 120) {
         const died = monster.takeDamage(damage);
         if (died) this.onMonsterKilled(monster);
       }

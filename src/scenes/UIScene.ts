@@ -460,14 +460,20 @@ export class UIScene extends Phaser.Scene {
     graphics.lineStyle(1.5, 0xd4af37, 0.9);
     graphics.strokeRoundedRect(x, y, width, height, 4);
 
-    // Barra de Vidro/Gema Preenchida com Brilho Superior
+    // Barra de Perda/Catch-up em Tom Escuro (Diablo Red Catch-up Bar)
     if (percent > 0) {
       const fillW = Math.max(2, (width - 4) * percent);
+      
+      // Sombra traseira da barra
+      graphics.fillStyle(0x440000, 0.6);
+      graphics.fillRoundedRect(x + 2, y + 2, width - 4, height - 4, 3);
+
+      // Preenchimento de Cor Principal
       graphics.fillStyle(darkColor, 1);
       graphics.fillRoundedRect(x + 2, y + 2, fillW, height - 4, 3);
 
       // Reflexo de cristal no topo da barra
-      graphics.fillStyle(brightColor, 0.7);
+      graphics.fillStyle(brightColor, 0.85);
       graphics.fillRoundedRect(x + 2, y + 2, fillW, (height - 4) / 2, 2);
     }
   }

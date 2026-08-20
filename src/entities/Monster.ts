@@ -327,8 +327,17 @@ export class Monster extends Phaser.GameObjects.Container {
         Math.cos(angle) * this.config.speed,
         Math.sin(angle) * this.config.speed
       );
+
+      // Virar o sprite do monstro para o jogador e oscilar balanço de caminhada
+      if (this.sprite) {
+        this.sprite.setFlipX(this.target.x < this.x);
+        this.sprite.setAngle(Math.sin(time * 0.012) * 5);
+      }
     } else if (dist <= this.config.attackRadius) {
       body.setVelocity(0, 0);
+      if (this.sprite) {
+        this.sprite.setAngle(0);
+      }
 
       // Ataque ao jogador se o cooldown expirou
       if (time > this.lastAttackTime + this.config.attackCooldown) {

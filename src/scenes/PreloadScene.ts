@@ -168,6 +168,60 @@ export class PreloadScene extends Phaser.Scene {
     this.generateHDSpritesheet('npc-blacksmith', '#5c3317', '#444444', '#cc3333', '#e0b080', 'heavy');
     this.generateHDSpritesheet('npc-merchant', '#a020f0', '#ffb6c1', '#32cd32', '#ffd1a9', 'robe');
     this.generateHDSpritesheet('npc-master', '#d4af37', '#4b0082', '#ffffff', '#e0b080', 'robe');
+
+    // Registra animações Phaser para cada classe de herói
+    classes.forEach((c) => {
+      const clsName = c.key.replace('-sheet', '');
+      const sheetKey = c.key;
+
+      if (!this.anims.exists(`${clsName}-walk-down`)) {
+        this.anims.create({
+          key: `${clsName}-walk-down`,
+          frames: this.anims.generateFrameNumbers(sheetKey, { start: 0, end: 3 }),
+          frameRate: 8,
+          repeat: -1,
+        });
+        this.anims.create({
+          key: `${clsName}-walk-left`,
+          frames: this.anims.generateFrameNumbers(sheetKey, { start: 4, end: 7 }),
+          frameRate: 8,
+          repeat: -1,
+        });
+        this.anims.create({
+          key: `${clsName}-walk-right`,
+          frames: this.anims.generateFrameNumbers(sheetKey, { start: 8, end: 11 }),
+          frameRate: 8,
+          repeat: -1,
+        });
+        this.anims.create({
+          key: `${clsName}-walk-up`,
+          frames: this.anims.generateFrameNumbers(sheetKey, { start: 12, end: 15 }),
+          frameRate: 8,
+          repeat: -1,
+        });
+
+        this.anims.create({
+          key: `${clsName}-idle-down`,
+          frames: [{ key: sheetKey, frame: 0 }],
+          frameRate: 1,
+        });
+        this.anims.create({
+          key: `${clsName}-idle-left`,
+          frames: [{ key: sheetKey, frame: 4 }],
+          frameRate: 1,
+        });
+        this.anims.create({
+          key: `${clsName}-idle-right`,
+          frames: [{ key: sheetKey, frame: 8 }],
+          frameRate: 1,
+        });
+        this.anims.create({
+          key: `${clsName}-idle-up`,
+          frames: [{ key: sheetKey, frame: 12 }],
+          frameRate: 1,
+        });
+      }
+    });
   }
 
   private generateHDSpritesheet(

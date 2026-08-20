@@ -7,6 +7,7 @@ import { SoundSynth } from '../utils/SoundSynth';
 import { AchievementSystem } from '../systems/AchievementSystem';
 import { PetSystem } from '../systems/PetSystem';
 import { EntityAnimator } from '../utils/EntityAnimator';
+import { MountSystem } from '../systems/MountSystem';
 
 /**
  * BaseGameScene — Classe base compartilhada entre WorldScene e BattleScene.
@@ -126,6 +127,12 @@ export abstract class BaseGameScene extends Phaser.Scene {
       this.key3 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
       this.key4 = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.FOUR);
       this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+      const keyM = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+      keyM.on('down', () => {
+        if (this.player) {
+          MountSystem.getInstance().toggleMount(this, this.player);
+        }
+      });
       this.wasd = {
         w: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
         a: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
@@ -239,21 +246,26 @@ export abstract class BaseGameScene extends Phaser.Scene {
         : (vy > 0 ? 'down' : 'up');
     }
 
+    const speedMult = MountSystem.getInstance().getSpeedMultiplier();
+    const finalSpeed = this.PLAYER_SPEED * speedMult;
+
     if (vx !== 0 || vy !== 0) {
       this.targetDestination = null;
       const length = Math.hypot(vx, vy);
       vx /= length;
       vy /= length;
 
-      body.setVelocity(vx * this.PLAYER_SPEED, vy * this.PLAYER_SPEED);
+      body.setVelocity(vx * finalSpeed, vy * finalSpeed);
       this.player.play(`${this.playerClass}-walk-${this.currentDirection}`, true);
+      MountSystem.getInstance().updatePosition(this.player.x, this.player.y, this.player.depth);
     } else if (this.targetDestination) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.targetDestination.x, this.targetDestination.y);
       if (dist > 8) {
         this.aimAtPointer(this.targetDestination.x, this.targetDestination.y);
         const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, this.targetDestination.x, this.targetDestination.y);
-        body.setVelocity(Math.cos(angle) * this.PLAYER_SPEED, Math.sin(angle) * this.PLAYER_SPEED);
+        body.setVelocity(Math.cos(angle) * finalSpeed, Math.sin(angle) * finalSpeed);
         this.player.play(`${this.playerClass}-walk-${this.currentDirection}`, true);
+        MountSystem.getInstance().updatePosition(this.player.x, this.player.y, this.player.depth);
       } else {
         this.targetDestination = null;
         body.setVelocity(0, 0);

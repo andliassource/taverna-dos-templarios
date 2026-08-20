@@ -1,104 +1,68 @@
+import { SoundSynth } from '../utils/SoundSynth';
+
 export interface TalentNode {
   id: string;
   name: string;
-  branch: 'DEFENSE' | 'OFFENSE' | 'UTILITY';
-  icon: string;
   description: string;
-  points: number;
-  maxPoints: number;
+  branch: 'light' | 'fire' | 'ice';
+  icon: string;
+  level: number;
+  maxLevel: number;
+  unlocked: boolean;
 }
 
 export class TalentSystem {
   private static instance: TalentSystem;
-  private nodes: Record<string, TalentNode> = {
-    STEEL_SKIN: {
-      id: 'STEEL_SKIN',
-      name: 'Pele de Aço',
-      branch: 'DEFENSE',
-      icon: '🛡️',
-      description: '+5% de Defesa por ponto alocado.',
-      points: 0,
-      maxPoints: 5,
-    },
-    CRIT_PRECISION: {
-      id: 'CRIT_PRECISION',
-      name: 'Precisão Mortal',
-      branch: 'OFFENSE',
-      icon: '🎯',
-      description: '+3% de Chance de Crítico por ponto alocado.',
-      points: 0,
-      maxPoints: 5,
-    },
-    FLUID_MIND: {
-      id: 'FLUID_MIND',
-      name: 'Mente Fluida',
-      branch: 'UTILITY',
-      icon: '⚡',
-      description: '+5% de Redução de Recarga de habilidades.',
-      points: 0,
-      maxPoints: 5,
-    },
-    VAMPIRE_TOUCH: {
-      id: 'VAMPIRE_TOUCH',
-      name: 'Toque Vampírico',
-      branch: 'OFFENSE',
-      icon: '🩸',
-      description: '+5% de Roubo de Vida permanente.',
-      points: 0,
-      maxPoints: 1,
-    },
-  };
-
   private availablePoints = 5;
+  private nodes: TalentNode[] = [];
+
+  private constructor() {
+    this.initTalentTree();
+  }
 
   public static getInstance(): TalentSystem {
-    if (!this.instance) {
-      this.instance = new TalentSystem();
+    if (!TalentSystem.instance) {
+      TalentSystem.instance = new TalentSystem();
     }
-    return this.instance;
+    return TalentSystem.instance;
   }
 
-  public addPoints(amount = 1): void {
-    this.availablePoints += amount;
-  }
+  private initTalentTree(): void {
+    this.nodes = [
+      // Ramos de Luz Sagrada
+      { id: 'light_hp', name: 'Bênção Divina', description: '+15% de HP Máximo', branch: 'light', icon: '✨', level: 0, maxLevel: 5, unlocked: true },
+      { id: 'light_heal', name: 'Aura Regenerativa', description: 'Regenera 2% de HP por segundo', branch: 'light', icon: '💖', level: 0, maxLevel: 3, unlocked: false },
 
-  public allocate(id: string): boolean {
-    const node = this.nodes[id];
-    if (node && this.availablePoints > 0 && node.points < node.maxPoints) {
-      node.points++;
-      this.availablePoints--;
-      return true;
-    }
-    return false;
-  }
+      // Ramos de Fogo Arcano
+      { id: 'fire_atk', name: 'Lâmina Incandescente', description: '+20% de Dano Físico e Mágico', branch: 'fire', icon: '🔥', level: 0, maxLevel: 5, unlocked: true },
+      { id: 'fire_crit', name: 'Golpe Devastador', description: '+10% de Taxa Crítica', branch: 'fire', icon: '💥', level: 0, maxLevel: 3, unlocked: false },
 
-  public reset(cs: any): boolean {
-    if (cs.getGold() < 200) return false;
-    cs.setGold(cs.getGold() - 200);
-
-    let refunded = 0;
-    Object.values(this.nodes).forEach(n => {
-      refunded += n.points;
-      n.points = 0;
-    });
-
-    this.availablePoints += refunded;
-    return true;
+      // Ramos de Gelo Ancestral
+      { id: 'ice_def', name: 'Escudo Gelado', description: '+25% de Armadura e Defesa', branch: 'ice', icon: '❄️', level: 0, maxLevel: 5, unlocked: true },
+      { id: 'ice_dodge', name: 'Esquiva Glacial', description: '+12% de Esquiva em Combate', branch: 'ice', icon: '🛡️', level: 0, maxLevel: 3, unlocked: false },
+    ];
   }
 
   public getNodes(): TalentNode[] {
-    return Object.values(this.nodes);
+    return this.nodes;
   }
 
-  public getAvailablePoints(): number {
+  public getPoints(): number {
     return this.availablePoints;
   }
 
-  public getBonusDamageMultiplier(): number {
-    return 1 + (this.nodes.CRIT_PRECISION.points * 0.04);
+  public addPoint(): void {
+    this.availablePoints++;
   }
 
-  public getDefenseBonusMultiplier(): number {
-    return 1 + (this.nodes.STEEL_SKIN.points * 0.05);
+  public upgradeTalent(nodeId: string): boolean {
+    const node = this.nodes.find((n) => n.id === nodeId);
+    if (node && node.unlocked && node.level < node.maxLevel && this.availablePoints > 0) {
+      node.level++;
+      this.availablePoints--;
+      SoundSynth.playUpgrade();
+      return true;
+    }
+    return false;
   }
 }

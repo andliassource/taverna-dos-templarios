@@ -1,43 +1,14 @@
-export interface MountInfo {
-  id: string;
-  name: string;
-  speedMultiplier: number;
-  icon: string;
-  unlocked: boolean;
-}
+import Phaser from 'phaser';
+import { SoundSynth } from '../utils/SoundSynth';
 
 export class MountSystem {
   private static instance: MountSystem;
-  private activeMount: MountInfo | null = null;
-  private isMounted: boolean = false;
+  private isMounted = false;
+  private mountType: 'steed' | 'gryphon' = 'steed';
+  private mountSpeedMultiplier = 1.6; // +60% velocidade
+  private mountSprite: Phaser.GameObjects.Graphics | null = null;
 
-  private availableMounts: MountInfo[] = [
-    {
-      id: 'warhorse',
-      name: 'Cavalo de Guerra Templário',
-      speedMultiplier: 1.8,
-      icon: '🐎',
-      unlocked: true,
-    },
-    {
-      id: 'shadow_wolf',
-      name: 'Lobo Sombrio das Neves',
-      speedMultiplier: 2.0,
-      icon: '🐺',
-      unlocked: true,
-    },
-    {
-      id: 'golden_dragon',
-      name: 'Dragão Grifo Sagrado',
-      speedMultiplier: 2.5,
-      icon: '🦅',
-      unlocked: true,
-    },
-  ];
-
-  private constructor() {
-    this.activeMount = this.availableMounts[0];
-  }
+  private constructor() {}
 
   public static getInstance(): MountSystem {
     if (!MountSystem.instance) {
@@ -46,30 +17,55 @@ export class MountSystem {
     return MountSystem.instance;
   }
 
-  public toggleMount(): { mounted: boolean; mount: MountInfo | null } {
+  public toggleMount(scene: Phaser.Scene, player: Phaser.GameObjects.Sprite): boolean {
     this.isMounted = !this.isMounted;
-    return {
-      mounted: this.isMounted,
-      mount: this.isMounted ? this.activeMount : null,
-    };
+
+    if (this.isMounted) {
+      SoundSynth.playUpgrade();
+
+      // Criar aura/gráficos da montaria sob o personagem
+      if (this.mountSprite) this.mountSprite.destroy();
+
+      this.mountSprite = scene.add.graphics();
+      this.mountSprite.fillStyle(0xffd700, 0.45);
+      this.mountSprite.fillEllipse(0, 16, 36, 16);
+      this.mountSprite.lineStyle(2, 0xffd700, 0.9);
+      this.mountSprite.strokeEllipse(0, 16, 36, 16);
+
+      scene.tweens.add({
+        targets: this.mountSprite,
+        scaleX: 1.2,
+        scaleY: 1.2,
+        duration: 400,
+        yoyo: true,
+        repeat: -1,
+      });
+
+      player.setY(player.y - 8);
+    } else {
+      SoundSynth.playLoot();
+      if (this.mountSprite) {
+        this.mountSprite.destroy();
+        this.mountSprite = null;
+      }
+      player.setY(player.y + 8);
+    }
+
+    return this.isMounted;
   }
 
   public getIsMounted(): boolean {
     return this.isMounted;
   }
 
-  public getActiveMount(): MountInfo | null {
-    return this.activeMount;
+  public getSpeedMultiplier(): number {
+    return this.isMounted ? this.mountSpeedMultiplier : 1.0;
   }
 
-  public selectMount(mountId: string): void {
-    const found = this.availableMounts.find((m) => m.id === mountId);
-    if (found && found.unlocked) {
-      this.activeMount = found;
+  public updatePosition(x: number, y: number, depth: number): void {
+    if (this.mountSprite) {
+      this.mountSprite.setPosition(x, y);
+      this.mountSprite.setDepth(depth - 1);
     }
-  }
-
-  public getAvailableMounts(): MountInfo[] {
-    return this.availableMounts;
   }
 }

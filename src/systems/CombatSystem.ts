@@ -206,35 +206,38 @@ export class CombatSystem {
     slash.setRotation(angle);
 
     // Arco de Corte Dourado em HD com Gradiente Mágico
-    slash.lineStyle(4, 0xffd700, 0.95);
+    slash.lineStyle(5, 0xffd700, 0.95);
+    slash.beginPath();
+    slash.arc(0, 0, 28, -Math.PI / 2.5, Math.PI / 2.5, false);
+    slash.strokePath();
+
+    slash.lineStyle(2.5, 0xffffff, 1);
     slash.beginPath();
     slash.arc(0, 0, 24, -Math.PI / 3, Math.PI / 3, false);
     slash.strokePath();
 
-    slash.lineStyle(2, 0xffffff, 1);
-    slash.beginPath();
-    slash.arc(0, 0, 22, -Math.PI / 4, Math.PI / 4, false);
-    slash.strokePath();
-
     // Faíscas de Impacto Douradas
     this.emitParticles(x, y, 'particle-gold', {
-      speed: { min: 40, max: 110 },
+      speed: { min: 50, max: 130 },
       angle: { min: 0, max: 360 },
-      scale: { start: 0.9, end: 0 },
+      scale: { start: 1.0, end: 0 },
       alpha: { start: 1, end: 0 },
-      lifespan: 250,
-      quantity: 12,
+      lifespan: 280,
+      quantity: 14,
       tint: [0xffd700, 0xffffff, 0xff8c00],
       blendMode: 'ADD',
     });
 
+    // Micro-trepidação da câmera no impacto
+    this.scene.cameras.main.shake(120, 0.004);
+
     this.scene.tweens.add({
       targets: slash,
-      scaleX: 1.6,
-      scaleY: 1.6,
+      scaleX: 1.5,
+      scaleY: 1.5,
       alpha: 0,
-      duration: 180,
-      ease: 'Power2',
+      duration: 160,
+      ease: 'Power2.easeOut',
       onComplete: () => slash.destroy(),
     });
   }

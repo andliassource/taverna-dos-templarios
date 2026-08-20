@@ -96,5 +96,45 @@ export class EntityAnimator {
         if (onImpact) onImpact();
       },
     });
+
+    this.createWeaponSlashArc(scene, startX, startY, targetX, targetY);
+  }
+
+  /**
+   * Efeito visual de arco de lâmina de 120° com rastro reluzente de corte
+   */
+  public static createWeaponSlashArc(scene: Phaser.Scene, x: number, y: number, tx: number, ty: number): void {
+    const angle = Phaser.Math.Angle.Between(x, y, tx, ty);
+    const distance = 42;
+
+    const arcX = x + Math.cos(angle) * distance;
+    const arcY = y + Math.sin(angle) * distance;
+
+    const slashGraphics = scene.add.graphics();
+    slashGraphics.setPosition(arcX, arcY);
+    slashGraphics.setRotation(angle);
+    slashGraphics.setDepth(y / 32 + 50);
+
+    // Desenha lâmina semicircular de neon com gradiente de brilho
+    slashGraphics.lineStyle(4, 0xffffff, 0.95);
+    slashGraphics.beginPath();
+    slashGraphics.arc(0, 0, 24, -Math.PI / 3, Math.PI / 3, false);
+    slashGraphics.strokePath();
+
+    slashGraphics.lineStyle(2, 0xffd700, 0.85);
+    slashGraphics.beginPath();
+    slashGraphics.arc(0, 0, 28, -Math.PI / 3, Math.PI / 3, false);
+    slashGraphics.strokePath();
+
+    scene.tweens.add({
+      targets: slashGraphics,
+      scaleX: 1.4,
+      scaleY: 1.4,
+      alpha: 0,
+      rotation: angle + Math.PI / 2,
+      duration: 160,
+      ease: 'Quad.easeOut',
+      onComplete: () => slashGraphics.destroy(),
+    });
   }
 }

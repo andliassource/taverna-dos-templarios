@@ -272,6 +272,31 @@ export class WorldScene extends BaseGameScene {
       emitter.setDepth(90);
     }
 
+    // Raios de Sol Incandescentes (God Rays)
+    const godRays = this.add.graphics();
+    godRays.fillStyle(0xfff5cc, 0.08);
+    for (let i = 0; i < 5; i++) {
+      godRays.fillRect(i * 350 + 100, 0, 80, 160 * TILE_SIZE);
+    }
+    godRays.setDepth(85);
+
+    // Efeito de Pétalas de Cerejeira caindo com o vento
+    if (this.textures.exists('particle-gold')) {
+      const petals = this.add.particles(0, 0, 'particle-gold', {
+        x: { min: 0, max: 160 * TILE_SIZE },
+        y: -50,
+        speedY: { min: 20, max: 50 },
+        speedX: { min: -15, max: 25 },
+        scale: { start: 0.6, end: 0.2 },
+        alpha: { start: 0.7, end: 0.1 },
+        tint: [0xffb7c5, 0xff69b4, 0xffc0cb],
+        lifespan: 6000,
+        quantity: 1,
+        frequency: 250,
+      });
+      petals.setDepth(95);
+    }
+
     // Portal de Fogo para o Deserto de Cristal
     const portalX = 45 * TILE_SIZE;
     const portalY = 10 * TILE_SIZE;

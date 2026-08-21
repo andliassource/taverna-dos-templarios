@@ -1,70 +1,37 @@
+import { SoundSynth } from '../utils/SoundSynth';
+
 export interface FishCatch {
+  id: string;
   name: string;
-  icon: string;
-  gold: number;
-  gems: number;
   rarity: 'COMMON' | 'RARE' | 'LEGENDARY';
+  valueGold: number;
+  gemsReward: number;
+  icon: string;
 }
 
 export class FishingSystem {
   private static instance: FishingSystem;
   private isFishing = false;
-  private isHooked = false;
 
-  private catches: FishCatch[] = [
-    { name: 'Carpa prateada', icon: '🐟', gold: 35, gems: 0, rarity: 'COMMON' },
-    { name: 'Peixe Místico Azul', icon: '🐠', gold: 90, gems: 1, rarity: 'RARE' },
-    { name: 'Rei Dourado das Águas', icon: '👑', gold: 350, gems: 3, rarity: 'LEGENDARY' },
-  ];
+  private constructor() {}
 
   public static getInstance(): FishingSystem {
-    if (!this.instance) {
-      this.instance = new FishingSystem();
+    if (!FishingSystem.instance) {
+      FishingSystem.instance = new FishingSystem();
     }
-    return this.instance;
+    return FishingSystem.instance;
   }
 
-  public startFishing(scene: any, cs: any, onHook: () => void, onSuccess: (catchItem: FishCatch) => void): void {
-    if (this.isFishing) return;
+  public castRod(): FishCatch {
     this.isFishing = true;
-    this.isHooked = false;
+    SoundSynth.playLoot();
 
-    const delay = 1500 + Math.random() * 2000;
-    scene.time.delayedCall(delay, () => {
-      this.isHooked = true;
-      onHook();
-
-      // Janela de fisgada de 900ms
-      scene.time.delayedCall(900, () => {
-        if (this.isFishing && this.isHooked) {
-          this.isFishing = false;
-          this.isHooked = false;
-        }
-      });
-    });
-  }
-
-  public reelIn(cs: any): FishCatch | null {
-    if (this.isFishing && this.isHooked) {
-      this.isFishing = false;
-      this.isHooked = false;
-
-      const rand = Math.random();
-      const catchItem = rand < 0.15 ? this.catches[2] : rand < 0.45 ? this.catches[1] : this.catches[0];
-
-      cs.setGold(cs.getGold() + catchItem.gold);
-      cs.setGems(cs.getGems() + catchItem.gems);
-
-      return catchItem;
+    const roll = Math.random();
+    if (roll > 0.85) {
+      return { id: 'fish_dragon', name: 'Carpa Dourada das Marés', rarity: 'LEGENDARY', valueGold: 1200, gemsReward: 20, icon: '🐠' };
+    } else if (roll > 0.5) {
+      return { id: 'fish_blue', name: 'Peixe-Sol Celestial', rarity: 'RARE', valueGold: 450, gemsReward: 5, icon: '🐟' };
     }
-    return null;
-  }
-
-  public getIsFishing(): boolean {
-    return this.isFishing;
-  }
-
-  public getIsHooked(): boolean {
-    return this.isHooked;
+    return { id: 'fish_common', name: 'Truta do Lago Templário', rarity: 'COMMON', valueGold: 150, gemsReward: 0, icon: '🎣' };
   }
 }

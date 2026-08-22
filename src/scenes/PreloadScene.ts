@@ -174,53 +174,58 @@ export class PreloadScene extends Phaser.Scene {
       const clsName = c.key.replace('-sheet', '');
       const sheetKey = c.key;
 
-      if (!this.anims.exists(`${clsName}-walk-down`)) {
-        this.anims.create({
-          key: `${clsName}-walk-down`,
-          frames: this.anims.generateFrameNumbers(sheetKey, { start: 0, end: 3 }),
-          frameRate: 8,
-          repeat: -1,
-        });
-        this.anims.create({
-          key: `${clsName}-walk-left`,
-          frames: this.anims.generateFrameNumbers(sheetKey, { start: 4, end: 7 }),
-          frameRate: 8,
-          repeat: -1,
-        });
-        this.anims.create({
-          key: `${clsName}-walk-right`,
-          frames: this.anims.generateFrameNumbers(sheetKey, { start: 8, end: 11 }),
-          frameRate: 8,
-          repeat: -1,
-        });
-        this.anims.create({
-          key: `${clsName}-walk-up`,
-          frames: this.anims.generateFrameNumbers(sheetKey, { start: 12, end: 15 }),
-          frameRate: 8,
-          repeat: -1,
-        });
+      const clsNameUpper = clsName.toUpperCase();
+      const clsNameLower = clsName.toLowerCase();
 
-        this.anims.create({
-          key: `${clsName}-idle-down`,
-          frames: [{ key: sheetKey, frame: 0 }],
-          frameRate: 1,
-        });
-        this.anims.create({
-          key: `${clsName}-idle-left`,
-          frames: [{ key: sheetKey, frame: 4 }],
-          frameRate: 1,
-        });
-        this.anims.create({
-          key: `${clsName}-idle-right`,
-          frames: [{ key: sheetKey, frame: 8 }],
-          frameRate: 1,
-        });
-        this.anims.create({
-          key: `${clsName}-idle-up`,
-          frames: [{ key: sheetKey, frame: 12 }],
-          frameRate: 1,
-        });
-      }
+      [clsNameUpper, clsNameLower].forEach((nameKey) => {
+        if (!this.anims.exists(`${nameKey}-walk-down`)) {
+          this.anims.create({
+            key: `${nameKey}-walk-down`,
+            frames: this.anims.generateFrameNumbers(sheetKey, { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1,
+          });
+          this.anims.create({
+            key: `${nameKey}-walk-left`,
+            frames: this.anims.generateFrameNumbers(sheetKey, { start: 4, end: 7 }),
+            frameRate: 10,
+            repeat: -1,
+          });
+          this.anims.create({
+            key: `${nameKey}-walk-right`,
+            frames: this.anims.generateFrameNumbers(sheetKey, { start: 8, end: 11 }),
+            frameRate: 10,
+            repeat: -1,
+          });
+          this.anims.create({
+            key: `${nameKey}-walk-up`,
+            frames: this.anims.generateFrameNumbers(sheetKey, { start: 12, end: 15 }),
+            frameRate: 10,
+            repeat: -1,
+          });
+
+          this.anims.create({
+            key: `${nameKey}-idle-down`,
+            frames: [{ key: sheetKey, frame: 0 }],
+            frameRate: 1,
+          });
+          this.anims.create({
+            key: `${nameKey}-idle-left`,
+            frames: [{ key: sheetKey, frame: 4 }],
+            frameRate: 1,
+          });
+          this.anims.create({
+            key: `${nameKey}-idle-right`,
+            frames: [{ key: sheetKey, frame: 8 }],
+            frameRate: 1,
+          });
+          this.anims.create({
+            key: `${nameKey}-idle-up`,
+            frames: [{ key: sheetKey, frame: 12 }],
+            frameRate: 1,
+          });
+        }
+      });
     });
   }
 

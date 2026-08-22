@@ -162,7 +162,13 @@ export class PreloadScene extends Phaser.Scene {
       { key: 'DRUID-sheet', primary: '#1a3300', secondary: '#4d2600', accent: '#33cc33', skin: '#ffd1a9', type: 'robe' },
     ];
 
-    classes.forEach(c => this.generateHDSpritesheet(c.key, c.primary, c.secondary, c.accent, c.skin, c.type));
+    classes.forEach(c => {
+      this.generateHDSpritesheet(c.key, c.primary, c.secondary, c.accent, c.skin, c.type);
+      const lowerKey = c.key.toLowerCase();
+      if (lowerKey !== c.key) {
+        this.generateHDSpritesheet(lowerKey, c.primary, c.secondary, c.accent, c.skin, c.type);
+      }
+    });
 
     // NPCs
     this.generateHDSpritesheet('npc-blacksmith', '#5c3317', '#444444', '#cc3333', '#e0b080', 'heavy');

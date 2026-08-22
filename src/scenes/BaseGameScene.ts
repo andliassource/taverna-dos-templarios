@@ -84,9 +84,33 @@ export abstract class BaseGameScene extends Phaser.Scene {
     const shadow = this.add.ellipse(0, 8, 26, 10, 0x000000, 0.45);
     shadow.setDepth(24);
 
+    // Orbitas de Cristais Rúnicos Mágicos em torno da cabeça do Herói
+    const runeOrbit1 = this.add.graphics();
+    runeOrbit1.fillStyle(0xffd700, 0.9);
+    runeOrbit1.fillCircle(0, 0, 3.5);
+    runeOrbit1.lineStyle(1, 0xffffff, 1);
+    runeOrbit1.strokeCircle(0, 0, 3.5);
+
+    const runeOrbit2 = this.add.graphics();
+    runeOrbit2.fillStyle(0x00ffff, 0.9);
+    runeOrbit2.fillCircle(0, 0, 3);
+    runeOrbit2.lineStyle(1, 0xffffff, 1);
+    runeOrbit2.strokeCircle(0, 0, 3);
+
     this.events.on('postupdate', () => {
+      const t = this.time.now * 0.003;
+      const r = 22;
+      const px = this.player.x;
+      const py = this.player.y - 18;
+
       auraRing.setPosition(this.player.x, this.player.y);
       auraRing.setDepth(this.player.depth - 1);
+
+      runeOrbit1.setPosition(px + Math.cos(t) * r, py + Math.sin(t) * (r * 0.4));
+      runeOrbit1.setDepth(this.player.depth + (Math.sin(t) > 0 ? 2 : -1));
+
+      runeOrbit2.setPosition(px + Math.cos(t + Math.PI) * r, py + Math.sin(t + Math.PI) * (r * 0.4));
+      runeOrbit2.setDepth(this.player.depth + (Math.sin(t + Math.PI) > 0 ? 2 : -1));
     });
 
     const title = AchievementSystem.getInstance().getEquippedTitle();

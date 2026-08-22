@@ -402,73 +402,73 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createHUD(_width: number, _height: number): void {
-    const x = 16;
+    const x = 20;
     const y = 16;
 
-    // Nome + Classe + Level (Posicionamento Dinâmico sem sobreposição)
+    // Fundo do Painel do Herói em Vidro Obsidiana AAA
+    const panelBg = this.add.graphics();
+    panelBg.fillStyle(0x0a0614, 0.88);
+    panelBg.fillRoundedRect(x, y, 250, 82, 14);
+
+    panelBg.lineStyle(2, 0xffd700, 0.95);
+    panelBg.strokeRoundedRect(x, y, 250, 82, 14);
+
+    panelBg.lineStyle(1, 0xffea99, 0.4);
+    panelBg.strokeRoundedRect(x + 2, y + 2, 246, 78, 12);
+
+    // Brasão Circular de Avatar do Herói
+    const badgeX = x + 30;
+    const badgeY = y + 36;
+    panelBg.fillStyle(0x1a0f2e, 1);
+    panelBg.fillCircle(badgeX, badgeY, 22);
+    panelBg.lineStyle(2, 0xffd700, 1);
+    panelBg.strokeCircle(badgeX, badgeY, 22);
+
+    this.add.text(badgeX, badgeY, '🛡️', { fontSize: '20px' }).setOrigin(0.5);
+
+    // Nome e Nível do Jogador
     const displayName = FirebaseService.currentUser?.displayName ?? 'Templário';
-    this.classText = this.add.text(x, y, `⚔️ ${displayName}`, {
+    this.classText = this.add.text(x + 60, y + 10, `${displayName}`, {
       fontFamily: 'Cinzel',
       fontSize: '13px',
       fontStyle: 'bold',
-      color: '#ffd700',
+      color: '#ffffff',
       stroke: '#000000',
-      strokeThickness: 2,
+      strokeThickness: 3,
     });
 
-    this.levelText = this.add.text(this.classText.x + this.classText.width + 10, y, `Lv.${this.playerData.level}`, {
-      fontFamily: 'Inter',
+    this.levelText = this.add.text(this.classText.x + this.classText.width + 8, y + 10, `Lv.${this.playerData.level}`, {
+      fontFamily: 'Cinzel',
       fontSize: '12px',
       fontStyle: 'bold',
       color: '#ffd700',
       stroke: '#000000',
-      strokeThickness: 2,
+      strokeThickness: 3,
     });
 
     // === BARRA DE VIDA RUBI ÉPICO ===
-    const hpY = y + 24;
-    this.add.text(x, hpY + 2, 'HP', {
-      fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold',
-      color: '#ff4444', stroke: '#000', strokeThickness: 2,
-    });
-
+    const hpY = y + 32;
     this.hpBar = this.add.graphics();
-    this.drawBar(this.hpBar, x + 22, hpY, 130, 12,
-      Math.max(0, this.playerData.hp / this.playerData.maxHp), 0x8b0000, 0xe74c3c);
+    this.drawBar(this.hpBar, x + 60, hpY, 175, 12,
+      Math.max(0, this.playerData.hp / this.playerData.maxHp), 0x8b0000, 0xff3344);
 
-    this.hpText = this.add.text(x + 22 + 65, hpY + 6,
+    this.hpText = this.add.text(x + 60 + 87, hpY + 6,
       `HP: ${this.playerData.hp}/${this.playerData.maxHp}`, {
-        fontFamily: 'Cinzel', fontSize: '8px', fontStyle: 'bold',
+        fontFamily: 'Cinzel', fontSize: '8.5px', fontStyle: 'bold',
         color: '#ffffff', stroke: '#000000', strokeThickness: 2.5,
       }).setOrigin(0.5);
 
-    // MP / Mana Bar
+    // MP / Mana Bar (Safira)
     const mpY = hpY + 16;
-    this.add.text(x, mpY + 1, 'MP', {
-      fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold',
-      color: '#4488ff', stroke: '#000', strokeThickness: 2,
-    });
-
     this.mpBar = this.add.graphics();
-    this.drawBar(this.mpBar, x + 22, mpY, 130, 9,
-      this.playerData.mp / this.playerData.maxMp, 0x00008b, 0x3498db);
+    this.drawBar(this.mpBar, x + 60, mpY, 175, 10,
+      this.playerData.mp / this.playerData.maxMp, 0x00008b, 0x3399ff);
 
-    // EXP Bar
+    // EXP Bar (Topázio Dourado)
     const expY = mpY + 14;
-    this.add.text(x, expY, 'XP', {
-      fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold',
-      color: '#ffd700', stroke: '#000', strokeThickness: 2,
-    });
-
     this.expBar = this.add.graphics();
-    this.drawBar(this.expBar, x + 22, expY, 130, 8,
+    this.drawBar(this.expBar, x + 60, expY, 175, 8,
       this.playerData.exp / this.playerData.expToNext, 0x5a3e10, 0xffd700);
-
-    this.add.text(x + 22 + 65, expY + 4,
-      `${this.playerData.exp}/${this.playerData.expToNext}`, {
-        fontFamily: 'Cinzel', fontSize: '7.5px', fontStyle: 'bold',
-        color: '#ffffff', stroke: '#000', strokeThickness: 2,
-      }).setOrigin(0.5);
   }
 
   private drawBar(
@@ -478,21 +478,18 @@ export class UIScene extends Phaser.Scene {
     percent: number,
     darkColor: number, brightColor: number
   ): void {
-    // Fundo da barra em metal fundido escuro
-    graphics.fillStyle(0x0e0818, 0.95);
+    graphics.clear();
+
+    // Fundo da barra em ferro escuro
+    graphics.fillStyle(0x0c0714, 0.95);
     graphics.fillRoundedRect(x, y, width, height, 4);
 
     // Moldura chanfrada em ouro metálico
-    graphics.lineStyle(1.5, 0xd4af37, 0.9);
+    graphics.lineStyle(1.5, 0xd4af37, 0.95);
     graphics.strokeRoundedRect(x, y, width, height, 4);
 
-    // Barra de Perda/Catch-up em Tom Escuro (Diablo Red Catch-up Bar)
     if (percent > 0) {
       const fillW = Math.max(2, (width - 4) * percent);
-      
-      // Sombra traseira da barra
-      graphics.fillStyle(0x440000, 0.6);
-      graphics.fillRoundedRect(x + 2, y + 2, width - 4, height - 4, 3);
 
       // Preenchimento de Cor Principal
       graphics.fillStyle(darkColor, 1);

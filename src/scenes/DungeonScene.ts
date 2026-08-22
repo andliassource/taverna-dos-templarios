@@ -250,6 +250,27 @@ export class DungeonScene extends BaseGameScene {
   }
 
   private setupBossEventListeners(): void {
+    const { width, height } = this.scale;
+    const warningBanner = this.add.text(width / 2, 80, '⚠️ O LORDE MALAKOR DESPERTOU NA MASMORRA! ⚠️', {
+      fontFamily: 'Cinzel',
+      fontSize: '18px',
+      fontStyle: 'bold',
+      color: '#ff2222',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(300);
+
+    this.tweens.add({
+      targets: warningBanner,
+      scaleX: 1.15,
+      scaleY: 1.15,
+      alpha: 0.2,
+      duration: 500,
+      yoyo: true,
+      repeat: 4,
+      onComplete: () => warningBanner.destroy(),
+    });
+
     this.events.on('boss-damage-player', (damage: number) => {
       this.combatSystem.showFloatingText(this.player.x, this.player.y - 20, `-${Math.floor(damage)}`, '#ff0000');
     });

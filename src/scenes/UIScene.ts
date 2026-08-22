@@ -101,14 +101,28 @@ export class UIScene extends Phaser.Scene {
     super({ key: 'UIScene' });
   }
 
+  private settingsModal!: SettingsModal;
+
   create(): void {
     const { width, height } = this.cameras.main;
+
+    // Instancia o Modal de Configurações
+    this.settingsModal = new SettingsModal(this);
 
     // HUD — Canto superior esquerdo
     this.createHUD(width, height);
 
-    // Mini-mapa — Canto superior direito (placeholder)
+    // Mini-mapa — Canto superior direito
     this.createMiniMap(width);
+
+    // Botão de Configurações no Topo Direito (⚙️ Configurações)
+    const settingsBtn = this.add.text(width - 45, 12, '⚙️', {
+      fontSize: '22px',
+    }).setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
+
+    settingsBtn.on('pointerdown', () => {
+      this.settingsModal.toggle();
+    });
 
     // Hotbar — Parte inferior
     this.createHotbar(width, height);
@@ -135,8 +149,12 @@ export class UIScene extends Phaser.Scene {
     // Escuta atualizações de combate vindas do WorldScene
     this.setupCombatListeners();
 
-    // Registra atalhos de teclado (Tecla I: Inventário, Tecla C: Perfil, Tecla T: Talentos, Tecla M: Mascotes, Tecla L: Ranking)
+    // Registra atalhos de teclado (ESC: Configurações, I: Inventário, C: Perfil, T: Talentos, M: Mascotes)
     if (this.input.keyboard) {
+      const escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+      escKey.on('down', () => {
+        this.settingsModal.toggle();
+      });
       this.inventoryKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I);
       this.profileKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
       this.talentKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T);

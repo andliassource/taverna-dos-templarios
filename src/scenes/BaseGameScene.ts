@@ -7,6 +7,7 @@ import { SoundSynth } from '../utils/SoundSynth';
 import { AchievementSystem } from '../systems/AchievementSystem';
 import { EntityAnimator } from '../utils/EntityAnimator';
 import { MountSystem } from '../systems/MountSystem';
+import { NetworkSystem } from '../systems/NetworkSystem';
 
 /**
  * BaseGameScene — Classe base compartilhada entre WorldScene e BattleScene.
@@ -77,6 +78,7 @@ export abstract class BaseGameScene extends Phaser.Scene {
 
     // Sinaliza que o player foi criado
     this.events.emit('player-created');
+    NetworkSystem.getInstance().bindScene(this);
 
     EntityAnimator.addIdleBreathing(this, this.player);
 
@@ -389,6 +391,8 @@ export abstract class BaseGameScene extends Phaser.Scene {
       body.setVelocity(0, 0);
       this.player.play(`${this.playerClass}-idle-${this.currentDirection}`, true);
     }
+
+    NetworkSystem.getInstance().update(time);
   }
 
   protected spawnFootstepDust(): void {

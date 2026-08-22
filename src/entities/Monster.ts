@@ -231,6 +231,27 @@ export class Monster extends Phaser.GameObjects.Container {
       }
     });
 
+    // Partículas de Impacto Específicas do Tipo de Monstro
+    if (this.scene.textures.exists('particle-gold')) {
+      let particleTint = 0xff3333;
+      if (this.config.id.includes('goblin')) particleTint = 0x33cc33;
+      else if (this.config.id.includes('skeleton')) particleTint = 0xdddddd;
+      else if (this.config.id.includes('wolf')) particleTint = 0x6688aa;
+      else if (this.config.id.includes('imp') || this.config.id.includes('malakor')) particleTint = 0xff4400;
+
+      const hitEm = this.scene.add.particles(this.x, this.y - 12, 'particle-gold', {
+        speed: { min: 40, max: 120 },
+        angle: { min: 0, max: 360 },
+        scale: { start: isCrit ? 1.2 : 0.8, end: 0 },
+        alpha: { start: 1, end: 0 },
+        tint: particleTint,
+        lifespan: 220,
+        quantity: isCrit ? 12 : 6,
+        blendMode: 'ADD',
+      });
+      hitEm.setDepth(this.depth + 10);
+    }
+
     // Knockback físico
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body && this.target) {

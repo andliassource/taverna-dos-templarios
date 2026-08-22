@@ -20,6 +20,7 @@ import { PetModal } from '../ui/modals/PetModal';
 import { GuildModal } from '../ui/modals/GuildModal';
 import { TalentModal } from '../ui/modals/TalentModal';
 import { GlobalChatModal } from '../ui/modals/GlobalChatModal';
+import { AuctionHouseModal } from '../ui/modals/AuctionHouseModal';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -98,19 +99,21 @@ export class UIScene extends Phaser.Scene {
     map: 'Taverna dos Templários',
   };
 
+  private settingsModal!: SettingsModal;
+  private globalChatModal!: GlobalChatModal;
+  private auctionHouseModal!: AuctionHouseModal;
+
   constructor() {
     super({ key: 'UIScene' });
   }
 
-  private settingsModal!: SettingsModal;
-  private globalChatModal!: GlobalChatModal;
-
   create(): void {
     const { width, height } = this.cameras.main;
 
-    // Instancia o Modal de Configurações e Chat MMORPG
+    // Instancia os Modais MMORPG
     this.settingsModal = new SettingsModal(this);
     this.globalChatModal = new GlobalChatModal(this);
+    this.auctionHouseModal = new AuctionHouseModal(this);
 
     // HUD — Canto superior esquerdo
     this.createHUD(width, height);
@@ -118,14 +121,14 @@ export class UIScene extends Phaser.Scene {
     // Mini-mapa — Canto superior direito
     this.createMiniMap(width);
 
-    // Botão de Configurações no Topo Direito (⚙️ Configurações)
-    const settingsBtn = this.add.text(width - 45, 12, '⚙️', {
-      fontSize: '22px',
-    }).setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
+    // Botões de Ações Rápidas no Topo Direito (⚙️ Configurações | 🏪 Leilão | 🛡️ Clã)
+    const settingsBtn = this.add.text(width - 45, 12, '⚙️', { fontSize: '22px' })
+      .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
+    settingsBtn.on('pointerdown', () => this.settingsModal.toggle());
 
-    settingsBtn.on('pointerdown', () => {
-      this.settingsModal.toggle();
-    });
+    const auctionBtn = this.add.text(width - 80, 12, '🏪', { fontSize: '22px' })
+      .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
+    auctionBtn.on('pointerdown', () => this.auctionHouseModal.toggle());
 
     // Hotbar — Parte inferior
     this.createHotbar(width, height);

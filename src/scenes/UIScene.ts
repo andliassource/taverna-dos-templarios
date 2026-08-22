@@ -19,6 +19,7 @@ import { CraftingModal } from '../ui/modals/CraftingModal';
 import { PetModal } from '../ui/modals/PetModal';
 import { GuildModal } from '../ui/modals/GuildModal';
 import { TalentModal } from '../ui/modals/TalentModal';
+import { GlobalChatModal } from '../ui/modals/GlobalChatModal';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -102,12 +103,14 @@ export class UIScene extends Phaser.Scene {
   }
 
   private settingsModal!: SettingsModal;
+  private globalChatModal!: GlobalChatModal;
 
   create(): void {
     const { width, height } = this.cameras.main;
 
-    // Instancia o Modal de Configurações
+    // Instancia o Modal de Configurações e Chat MMORPG
     this.settingsModal = new SettingsModal(this);
+    this.globalChatModal = new GlobalChatModal(this);
 
     // HUD — Canto superior esquerdo
     this.createHUD(width, height);

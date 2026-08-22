@@ -278,22 +278,41 @@ export abstract class BaseGameScene extends Phaser.Scene {
   }
 
   protected spawnFootstepDust(): void {
-    if (Math.random() < 0.15 && this.player) {
-      const dust = this.add.circle(
-        this.player.x + (Math.random() * 8 - 4),
-        this.player.y + 12,
-        Phaser.Math.Between(2, 4),
-        0xc2b280, 0.4
-      );
-      dust.setDepth(this.player.depth - 1);
-      this.tweens.add({
-        targets: dust,
-        scale: 1.6,
-        alpha: 0,
-        y: dust.y - 4,
-        duration: 350,
-        onComplete: () => dust.destroy(),
-      });
+    if (this.player && (this.player.body as Phaser.Physics.Arcade.Body).speed > 10) {
+      if (Math.random() < 0.25) {
+        const dust = this.add.circle(
+          this.player.x + (Math.random() * 8 - 4),
+          this.player.y + 12,
+          Phaser.Math.Between(2, 5),
+          0xd4af37, 0.45
+        );
+        dust.setDepth(this.player.depth - 1);
+        this.tweens.add({
+          targets: dust,
+          scale: 1.8,
+          alpha: 0,
+          y: dust.y - 6,
+          duration: 350,
+          onComplete: () => dust.destroy(),
+        });
+
+        // Rastro de Fantasma Reluzente (Ghosting Speed Trail)
+        const ghost = this.add.sprite(this.player.x, this.player.y, this.player.texture.key, this.player.frame.name);
+        ghost.setScale(this.player.scaleX, this.player.scaleY);
+        ghost.setFlipX(this.player.flipX);
+        ghost.setDepth(this.player.depth - 1);
+        ghost.setTint(0xffd700);
+        ghost.setAlpha(0.3);
+
+        this.tweens.add({
+          targets: ghost,
+          alpha: 0,
+          scaleX: this.player.scaleX * 1.08,
+          scaleY: this.player.scaleY * 1.08,
+          duration: 220,
+          onComplete: () => ghost.destroy(),
+        });
+      }
     }
   }
 

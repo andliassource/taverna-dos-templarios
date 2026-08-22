@@ -302,22 +302,31 @@ export abstract class BaseGameScene extends Phaser.Scene {
 
     if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
       if (this.input.mousePointer.locked || pointer.isDown || pointer.x > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
+      EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
       this.combatSystem.performMeleeAttack(this.player, this.currentDirection, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key1)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
+      EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
+      EntityAnimator.playMagicalShockwaveEffect(this, this.player.x, this.player.y, 0x00ffff);
       this.combatSystem.castActiveSkill(0, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key2)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
+      EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
+      EntityAnimator.playMagicalShockwaveEffect(this, this.player.x, this.player.y, 0xff8800);
       this.combatSystem.castActiveSkill(1, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key3)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
+      EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
+      EntityAnimator.playMagicalShockwaveEffect(this, this.player.x, this.player.y, 0xaa00ff);
       this.combatSystem.castActiveSkill(2, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key4)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
+      EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
+      EntityAnimator.playMagicalShockwaveEffect(this, this.player.x, this.player.y, 0xffd700);
       this.combatSystem.castActiveSkill(3, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.shiftKey)) {

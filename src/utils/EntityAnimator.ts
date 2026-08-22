@@ -137,4 +137,61 @@ export class EntityAnimator {
       onComplete: () => slashGraphics.destroy(),
     });
   }
+
+  /**
+   * Animação elástica de estocada (Squash & Stretch) do herói durante o golpe
+   */
+  public static playAttackLungeAndStretch(scene: Phaser.Scene, target: Phaser.GameObjects.Sprite, direction: string): void {
+    const origScaleX = target.scaleX;
+    const origScaleY = target.scaleY;
+
+    let offsetX = 0;
+    let offsetY = 0;
+    let stretchX = 1.25;
+    let stretchY = 0.85;
+
+    if (direction === 'right') { offsetX = 14; stretchX = 1.35; stretchY = 0.8; }
+    else if (direction === 'left') { offsetX = -14; stretchX = 1.35; stretchY = 0.8; }
+    else if (direction === 'down') { offsetY = 14; stretchX = 0.85; stretchY = 1.35; }
+    else if (direction === 'up') { offsetY = -14; stretchX = 0.85; stretchY = 1.35; }
+
+    target.setTint(0xffffff);
+
+    scene.tweens.add({
+      targets: target,
+      x: target.x + offsetX,
+      y: target.y + offsetY,
+      scaleX: origScaleX * stretchX,
+      scaleY: origScaleY * stretchY,
+      duration: 90,
+      yoyo: true,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        if (target && target.active) {
+          target.setScale(origScaleX, origScaleY);
+          target.clearTint();
+        }
+      },
+    });
+  }
+
+  /**
+   * Efeito de Onda de Choque Mágica Expanding Radial Shockwave
+   */
+  public static playMagicalShockwaveEffect(scene: Phaser.Scene, x: number, y: number, color: number = 0xffd700): void {
+    const wave = scene.add.graphics({ x, y });
+    wave.lineStyle(3, color, 1);
+    wave.strokeCircle(0, 0, 10);
+    wave.setDepth(y / 32 + 50);
+
+    scene.tweens.add({
+      targets: wave,
+      scaleX: 3.5,
+      scaleY: 3.5,
+      alpha: 0,
+      duration: 350,
+      ease: 'Quad.easeOut',
+      onComplete: () => wave.destroy(),
+    });
+  }
 }

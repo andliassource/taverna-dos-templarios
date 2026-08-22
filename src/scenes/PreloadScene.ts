@@ -253,15 +253,16 @@ export class PreloadScene extends Phaser.Scene {
     ctx.imageSmoothingQuality = 'high';
 
     // Checa se existe imagem HD personalizada para este personagem/NPC
+    const upperKey = key.toUpperCase();
     let customImgKey = '';
-    if (key === 'PALADIN-sheet') customImgKey = 'hero-paladin-img';
-    else if (key === 'MAGE-sheet') customImgKey = 'hero-mage-img';
-    else if (key === 'ARCHER-sheet') customImgKey = 'hero-archer-img';
-    else if (key === 'WARRIOR-sheet') customImgKey = 'hero-warrior-img';
-    else if (key === 'CLERIC-sheet') customImgKey = 'hero-cleric-img';
-    else if (key === 'NECROMANCER-sheet') customImgKey = 'hero-necromancer-img';
-    else if (key === 'ASSASSIN-sheet') customImgKey = 'hero-assassin-img';
-    else if (key === 'GUARDIAN-sheet') customImgKey = 'hero-guardian-img';
+    if (upperKey === 'PALADIN-SHEET') customImgKey = 'hero-paladin-img';
+    else if (upperKey === 'MAGE-SHEET') customImgKey = 'hero-mage-img';
+    else if (upperKey === 'ARCHER-SHEET') customImgKey = 'hero-archer-img';
+    else if (upperKey === 'WARRIOR-SHEET') customImgKey = 'hero-warrior-img';
+    else if (upperKey === 'CLERIC-SHEET') customImgKey = 'hero-cleric-img';
+    else if (upperKey === 'NECROMANCER-SHEET') customImgKey = 'hero-necromancer-img';
+    else if (upperKey === 'ASSASSIN-SHEET') customImgKey = 'hero-assassin-img';
+    else if (upperKey === 'GUARDIAN-SHEET') customImgKey = 'hero-guardian-img';
     else if (key === 'npc-blacksmith') customImgKey = 'npc-blacksmith-img';
     else if (key === 'npc-merchant') customImgKey = 'npc-merchant-img';
     else if (key === 'npc-master') customImgKey = 'npc-master-img';
@@ -278,7 +279,6 @@ export class PreloadScene extends Phaser.Scene {
             const yOffset = isIdle ? (col === 0 ? 0 : -3) : (col === 1 ? -6 : -4);
             const xStride = isIdle ? 0 : (col === 1 ? -5 : 5);
             const bodyTilt = isIdle ? 0 : (col === 1 ? -0.12 : 0.12);
-            const armSwingY = isIdle ? 0 : (col === 1 ? 6 : -6);
 
             const cx = col * frameW + 32;
             const cy = row * frameH + 32 + yOffset;
@@ -300,7 +300,7 @@ export class PreloadScene extends Phaser.Scene {
             }
 
             ctx.rotate(bodyTilt);
-            // Renderiza o corpo com deslocamento anatômico
+            // Renderiza o corpo com deslocamento anatômico cristalino sem overlays
             ctx.drawImage(imgObj, -22, -26 + (isIdle ? 0 : 2), 44, 52);
             ctx.restore();
 
@@ -309,14 +309,6 @@ export class PreloadScene extends Phaser.Scene {
               ctx.fillStyle = 'rgba(200, 190, 160, 0.35)';
               ctx.beginPath();
               ctx.arc(cx - xStride * 1.2, row * frameH + 54, 4, 0, Math.PI * 2);
-              ctx.fill();
-            }
-
-            // 4. Sombra gótica de costas para a direção Cima (row 3)
-            if (row === 3) {
-              ctx.fillStyle = 'rgba(12, 6, 24, 0.55)';
-              ctx.beginPath();
-              ctx.ellipse(cx, cy - 2, 22, 26, 0, 0, Math.PI * 2);
               ctx.fill();
             }
           }

@@ -140,6 +140,88 @@ export abstract class BaseGameScene extends Phaser.Scene {
 
       this.player.setDepth(this.player.y / TILE_SIZE + 2);
     });
+
+    this.events.on('player-died', () => this.handlePlayerDeathRespawn());
+  }
+
+  protected handlePlayerDeathRespawn(): void {
+    if ((this as any).isRespawning) return;
+    (this as any).isRespawning = true;
+
+    if (this.player) {
+      this.player.setTint(0xff2222);
+      (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+    }
+
+    const { width, height } = this.scale;
+
+    const deathContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(2000);
+
+    const overlay = this.add.graphics();
+    overlay.fillStyle(0x000000, 0.82);
+    overlay.fillRect(0, 0, width, height);
+    deathContainer.add(overlay);
+
+    const modalW = 460;
+    const modalH = 260;
+    const modalX = (width - modalW) / 2;
+    const modalY = (height - modalH) / 2;
+
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1a0808, 0.95);
+    panel.fillRoundedRect(modalX, modalY, modalW, modalH, 12);
+    panel.lineStyle(3, 0xff2222, 1);
+    panel.strokeRoundedRect(modalX, modalY, modalW, modalH, 12);
+    deathContainer.add(panel);
+
+    const title = this.add.text(width / 2, modalY + 40, '☠️ VOCÊ CAIU EM COMBATE! ☠️', {
+      fontFamily: 'Cinzel',
+      fontSize: '22px',
+      fontStyle: 'bold',
+      color: '#ff4444',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5);
+    deathContainer.add(title);
+
+    const sub = this.add.text(width / 2, modalY + 95, 'Seu herói sucumbiu aos ferimentos.\nO poder templário o invocará de volta na Cidade!', {
+      fontFamily: 'Inter',
+      fontSize: '14px',
+      color: '#dddddd',
+      align: 'center',
+      wordWrap: { width: 400 },
+    }).setOrigin(0.5);
+    deathContainer.add(sub);
+
+    const respawnBtn = this.add.text(width / 2, modalY + 185, '🏰 RENASCER NA TAVERNA DO VILAREJO', {
+      fontFamily: 'Cinzel',
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: '#ffffff',
+      backgroundColor: '#8b0000',
+      padding: { x: 20, y: 10 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    respawnBtn.on('pointerover', () => respawnBtn.setStyle({ backgroundColor: '#ff2222' }));
+    respawnBtn.on('pointerout', () => respawnBtn.setStyle({ backgroundColor: '#8b0000' }));
+
+    respawnBtn.on('pointerdown', () => {
+      deathContainer.destroy();
+      (this as any).isRespawning = false;
+
+      this.combatSystem.setHP(this.combatSystem.getMaxHP());
+
+      if (this.scene.key !== 'WorldScene') {
+        this.scene.start('WorldScene', { playerClass: this.playerClass });
+      } else {
+        if (this.player) {
+          this.player.clearTint();
+          this.player.setPosition(16 * TILE_SIZE, 20 * TILE_SIZE);
+        }
+      }
+    });
+
+    deathContainer.add(respawnBtn);
   }
 
   protected setupControls(): void {

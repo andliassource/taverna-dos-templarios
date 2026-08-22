@@ -102,6 +102,7 @@ export class UIScene extends Phaser.Scene {
   private settingsModal!: SettingsModal;
   private globalChatModal!: GlobalChatModal;
   private auctionHouseModal!: AuctionHouseModal;
+  private guildModal!: GuildModal;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -114,6 +115,7 @@ export class UIScene extends Phaser.Scene {
     this.settingsModal = new SettingsModal(this);
     this.globalChatModal = new GlobalChatModal(this);
     this.auctionHouseModal = new AuctionHouseModal(this);
+    this.guildModal = new GuildModal(this);
 
     // HUD — Canto superior esquerdo
     this.createHUD(width, height);
@@ -129,6 +131,10 @@ export class UIScene extends Phaser.Scene {
     const auctionBtn = this.add.text(width - 80, 12, '🏪', { fontSize: '22px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     auctionBtn.on('pointerdown', () => this.auctionHouseModal.toggle());
+
+    const guildBtn = this.add.text(width - 115, 12, '🛡️', { fontSize: '22px' })
+      .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
+    guildBtn.on('pointerdown', () => this.guildModal.toggle());
 
     // Hotbar — Parte inferior
     this.createHotbar(width, height);

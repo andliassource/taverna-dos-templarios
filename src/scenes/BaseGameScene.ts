@@ -5,7 +5,6 @@ import { CombatSystem } from '../systems/CombatSystem';
 import { SoundSynth } from '../utils/SoundSynth';
 
 import { AchievementSystem } from '../systems/AchievementSystem';
-import { PetSystem } from '../systems/PetSystem';
 import { EntityAnimator } from '../utils/EntityAnimator';
 import { MountSystem } from '../systems/MountSystem';
 

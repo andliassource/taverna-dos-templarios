@@ -22,6 +22,8 @@ import { TalentModal } from '../ui/modals/TalentModal';
 import { GlobalChatModal } from '../ui/modals/GlobalChatModal';
 import { AuctionHouseModal } from '../ui/modals/AuctionHouseModal';
 import { ServerChannelModal } from '../ui/modals/ServerChannelModal';
+import { PlayerInteractionModal } from '../ui/modals/PlayerInteractionModal';
+import { PartySystem } from '../systems/PartySystem';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -105,6 +107,7 @@ export class UIScene extends Phaser.Scene {
   private auctionHouseModal!: AuctionHouseModal;
   private guildModal!: GuildModal;
   private serverChannelModal!: ServerChannelModal;
+  private playerInteractionModal!: PlayerInteractionModal;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -119,14 +122,16 @@ export class UIScene extends Phaser.Scene {
     this.auctionHouseModal = new AuctionHouseModal(this);
     this.guildModal = new GuildModal(this);
     this.serverChannelModal = new ServerChannelModal(this);
+    this.playerInteractionModal = new PlayerInteractionModal(this);
 
     // HUD — Canto superior esquerdo
     this.createHUD(width, height);
+    this.createPartyHUD();
 
     // Mini-mapa — Canto superior direito
     this.createMiniMap(width);
 
-    // Botões de Ações Rápidas no Topo Direito (⚙️ Configurações | 🏪 Leilão | 🛡️ Clã | 🌐 Canais)
+    // Botões de Ações Rápidas no Topo Direito (⚙️ Configurações | 🏪 Leilão | 🛡️ Clã | 🌐 Canais | ⚔️ Grupo)
     const settingsBtn = this.add.text(width - 45, 12, '⚙️', { fontSize: '22px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     settingsBtn.on('pointerdown', () => this.settingsModal.toggle());
@@ -142,6 +147,10 @@ export class UIScene extends Phaser.Scene {
     const channelBtn = this.add.text(width - 150, 12, '🌐', { fontSize: '22px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     channelBtn.on('pointerdown', () => this.serverChannelModal.toggle());
+
+    const partyBtn = this.add.text(width - 185, 12, '⚔️', { fontSize: '22px' })
+      .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
+    partyBtn.on('pointerdown', () => this.playerInteractionModal.openForPlayer('Mestre_SirLancelot'));
 
     // Hotbar — Parte inferior
     this.createHotbar(width, height);
@@ -488,6 +497,34 @@ export class UIScene extends Phaser.Scene {
     this.expBar = this.add.graphics();
     this.drawBar(this.expBar, x + 60, expY, 175, 8,
       this.playerData.exp / this.playerData.expToNext, 0x5a3e10, 0xffd700);
+  }
+
+  private createPartyHUD(): void {
+    const x = 20;
+    let startY = 110;
+    const members = PartySystem.getInstance().getMembers();
+
+    members.forEach((m, idx) => {
+      const y = startY + idx * 36;
+
+      const bg = this.add.graphics();
+      bg.fillStyle(0x0a0614, 0.85);
+      bg.fillRoundedRect(x, y, 190, 30, 8);
+      bg.lineStyle(1, 0xffd700, 0.6);
+      bg.strokeRoundedRect(x, y, 190, 30, 8);
+
+      const leaderBadge = m.isLeader ? '👑 ' : '';
+      this.add.text(x + 8, y + 4, `${leaderBadge}${m.name}`, {
+        fontFamily: 'Cinzel', fontSize: '9px', fontStyle: 'bold', color: '#ffffff',
+      });
+
+      const hpGraphic = this.add.graphics();
+      const pct = m.hp / m.maxHp;
+      hpGraphic.fillStyle(0x8b0000, 1);
+      hpGraphic.fillRoundedRect(x + 8, y + 18, 174 * pct, 6, 2);
+      hpGraphic.lineStyle(1, 0xff3344, 0.8);
+      hpGraphic.strokeRoundedRect(x + 8, y + 18, 174, 6, 2);
+    });
   }
 
   private drawBar(

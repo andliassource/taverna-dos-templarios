@@ -10,6 +10,7 @@ import { BaseGameScene } from './BaseGameScene';
 
 import { PetEntity } from '../entities/PetEntity';
 import { RaidBossEntity } from '../entities/RaidBossEntity';
+import { WeatherSystem } from '../systems/WeatherSystem';
 
 /**
  * WorldScene — Cenário principal do vilarejo com gráficos HD.
@@ -253,6 +254,7 @@ export class WorldScene extends BaseGameScene {
     this.guards.push(this.createNPC(34 * TILE_SIZE, 26 * TILE_SIZE, 'master', 'Guarda Templário Gareth', '🛡️'));
 
     this.createAmbientFireflies();
+    WeatherSystem.getInstance().setWeather(this, 'PETALS');
   }
 
   private createAmbientFireflies(): void {

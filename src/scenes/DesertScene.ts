@@ -8,6 +8,8 @@ import { BossEntity } from '../entities/BossEntity';
 import { Monster } from '../entities/Monster';
 import { SoundSynth } from '../utils/SoundSynth';
 
+import { WeatherSystem } from '../systems/WeatherSystem';
+
 export class DesertScene extends BaseGameScene {
   private boss!: BossEntity;
   private pet!: PetEntity;
@@ -112,6 +114,8 @@ export class DesertScene extends BaseGameScene {
       yoyo: true,
       repeat: -1,
     });
+
+    WeatherSystem.getInstance().setWeather(this, 'ASHES');
   }
 
   private createReturnPortal(): void {

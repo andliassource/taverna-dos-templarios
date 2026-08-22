@@ -21,6 +21,7 @@ import { GuildModal } from '../ui/modals/GuildModal';
 import { TalentModal } from '../ui/modals/TalentModal';
 import { GlobalChatModal } from '../ui/modals/GlobalChatModal';
 import { AuctionHouseModal } from '../ui/modals/AuctionHouseModal';
+import { ServerChannelModal } from '../ui/modals/ServerChannelModal';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -103,6 +104,7 @@ export class UIScene extends Phaser.Scene {
   private globalChatModal!: GlobalChatModal;
   private auctionHouseModal!: AuctionHouseModal;
   private guildModal!: GuildModal;
+  private serverChannelModal!: ServerChannelModal;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -116,6 +118,7 @@ export class UIScene extends Phaser.Scene {
     this.globalChatModal = new GlobalChatModal(this);
     this.auctionHouseModal = new AuctionHouseModal(this);
     this.guildModal = new GuildModal(this);
+    this.serverChannelModal = new ServerChannelModal(this);
 
     // HUD — Canto superior esquerdo
     this.createHUD(width, height);
@@ -123,7 +126,7 @@ export class UIScene extends Phaser.Scene {
     // Mini-mapa — Canto superior direito
     this.createMiniMap(width);
 
-    // Botões de Ações Rápidas no Topo Direito (⚙️ Configurações | 🏪 Leilão | 🛡️ Clã)
+    // Botões de Ações Rápidas no Topo Direito (⚙️ Configurações | 🏪 Leilão | 🛡️ Clã | 🌐 Canais)
     const settingsBtn = this.add.text(width - 45, 12, '⚙️', { fontSize: '22px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     settingsBtn.on('pointerdown', () => this.settingsModal.toggle());
@@ -135,6 +138,10 @@ export class UIScene extends Phaser.Scene {
     const guildBtn = this.add.text(width - 115, 12, '🛡️', { fontSize: '22px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     guildBtn.on('pointerdown', () => this.guildModal.toggle());
+
+    const channelBtn = this.add.text(width - 150, 12, '🌐', { fontSize: '22px' })
+      .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
+    channelBtn.on('pointerdown', () => this.serverChannelModal.toggle());
 
     // Hotbar — Parte inferior
     this.createHotbar(width, height);

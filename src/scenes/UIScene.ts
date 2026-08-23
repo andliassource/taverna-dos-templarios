@@ -1777,7 +1777,13 @@ export class UIScene extends Phaser.Scene {
     closeBtn.on('pointerdown', () => this.toggleLeaderboardUI(false));
     this.leaderboardContainer.add(closeBtn);
 
-    const entries = LeaderboardSystem.getInstance().getEntries();
+    const cs = this.getActiveCombatSystem();
+    const entries = LeaderboardSystem.getInstance().getEntries(
+      this.playerData.name,
+      this.playerData.level,
+      0,
+      cs ? cs.getGold() : 0
+    );
     entries.forEach((entry: LeaderboardEntry, idx: number) => {
       const iy = py + 55 + idx * 50;
 

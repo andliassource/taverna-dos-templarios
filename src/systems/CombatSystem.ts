@@ -275,7 +275,7 @@ export class CombatSystem {
   private levelUp(): void {
     this.playerLevel++;
     this.statPoints += 5;
-    TalentSystem.getInstance().addPoints(1);
+    TalentSystem.getInstance().addPoint(1);
     this.playerXp -= this.playerMaxXp;
     this.playerMaxXp = Math.floor(this.playerMaxXp * 1.5);
     this.maxPlayerHp += 15;
@@ -858,40 +858,34 @@ export class CombatSystem {
   }
 
   private executeMageAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
-    if (this.playerMp < 10) {
-      this.showFloatingText(player.x, player.y - 20, 'Mana Insuficiente!', '#4488ff');
-      return;
-    }
-    this.playerMp -= 10;
-    this.emitStateUpdate();
     this.lastPlayerAttackTime = time;
     SoundSynth.playFireball();
 
     let vx = 0; let vy = 0; let angle = 0;
     switch (direction) {
-      case 'left': vx = -250; angle = Math.PI; break;
-      case 'right': vx = 250; angle = 0; break;
-      case 'up': vy = -250; angle = -Math.PI / 2; break;
-      case 'down': vy = 250; angle = Math.PI / 2; break;
+      case 'left': vx = -340; angle = Math.PI; break;
+      case 'right': vx = 340; angle = 0; break;
+      case 'up': vy = -340; angle = -Math.PI / 2; break;
+      case 'down': vy = 340; angle = Math.PI / 2; break;
     }
 
     const proj = this.scene.physics.add.sprite(player.x, player.y - 8, 'mage-proj');
     proj.setDepth(40);
     proj.setVelocity(vx, vy);
     proj.setRotation(angle);
-    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 10);
+    const rawDamage = this.getAttackPower() + Math.floor(Math.random() * 12);
     proj.setData('damage', this.getModifiedDamage(rawDamage, player));
     proj.setData('type', 'mage');
     this.projectiles.add(proj);
 
-    // Partículas ao atirar
+    // Partículas luminosas da magia arcana ao ser disparada
     this.emitParticles(player.x, player.y - 8, 'particle-gold', {
-      speed: { min: 10, max: 30 },
+      speed: { min: 20, max: 60 },
       angle: { min: 0, max: 360 },
-      scale: { start: 0.6, end: 0 },
-      lifespan: 200,
-      quantity: 4,
-      tint: 0x8a2be2,
+      scale: { start: 0.9, end: 0 },
+      lifespan: 250,
+      quantity: 8,
+      tint: 0x9400d3,
       blendMode: 'ADD',
     });
   }
@@ -1038,25 +1032,19 @@ export class CombatSystem {
   }
 
   private executeNecromancerAttack(player: Phaser.GameObjects.Sprite, direction: string, time: number): void {
-    if (this.playerMp < 8) {
-      this.showFloatingText(player.x, player.y - 20, 'Mana Insuficiente!', '#4488ff');
-      return;
-    }
-    this.playerMp -= 8;
-    this.emitStateUpdate();
     this.lastPlayerAttackTime = time;
     SoundSynth.playFireball();
 
     let vx = 0; let vy = 0;
     switch (direction) {
-      case 'left': vx = -260; break;
-      case 'right': vx = 260; break;
-      case 'up': vy = -260; break;
-      case 'down': vy = 260; break;
+      case 'left': vx = -320; break;
+      case 'right': vx = 320; break;
+      case 'up': vy = -320; break;
+      case 'down': vy = 320; break;
     }
 
     const proj = this.scene.physics.add.sprite(player.x, player.y - 8, 'mage-proj');
-    proj.setTint(0x4b0082);
+    proj.setTint(0x8b00ff);
     proj.setDepth(40);
     proj.setVelocity(vx, vy);
     proj.setData('damage', this.getModifiedDamage(this.getAttackPower(), player));

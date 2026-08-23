@@ -57,8 +57,8 @@ export class TalentSystem {
     return this.availablePoints;
   }
 
-  public addPoint(): void {
-    this.availablePoints++;
+  public addPoint(amount = 1): void {
+    this.availablePoints += amount;
   }
 
   public reset(): void {

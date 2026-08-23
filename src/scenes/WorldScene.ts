@@ -101,7 +101,7 @@ export class WorldScene extends BaseGameScene {
     this.physics.world.setBounds(0, 0, worldW, worldH);
     this.cameras.main.setBounds(0, 0, worldW, worldH);
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.cameras.main.setZoom(0.85); // um pouco mais de zoom out para ver melhor o mapa estendido
+    this.cameras.main.setZoom(1.0);
     this.cameras.main.setBackgroundColor('#0d1a0d');
 
     // Ativa Shaders PostFX Unreal Engine 5 (Bloom, Depth of Field, Color Grading)

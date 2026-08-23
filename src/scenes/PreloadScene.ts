@@ -1603,64 +1603,60 @@ export class PreloadScene extends Phaser.Scene {
   private createProceduralGrounds(): void {
     // 1. Chão do Vilarejo HD Gótico (Grama Escura, Paralelepípedos Templários e Ruínas) - 1024x1024 tilável
     if (!this.textures.exists('procedural-village')) {
-      const canvas = this.textures.createCanvas('procedural-village', 1024, 1024);
+      const canvas = this.textures.createCanvas('procedural-village', 512, 512);
       const ctx = canvas!.getContext();
       ctx.imageSmoothingEnabled = true;
 
-      // 1. Fundo Base: Verde Gramado Prado Rico Homogêneo (#21441e)
+      // 1. Fundo Base: Verde Gramado Prado Homogêneo (#21441e)
       ctx.fillStyle = '#21441e';
-      ctx.fillRect(0, 0, 1024, 1024);
+      ctx.fillRect(0, 0, 512, 512);
 
-      // 2. Manchas Orgânicas de Grama Musgo (Com wrapping toroidal 100% Seamless)
-      for (let i = 0; i < 3500; i++) {
-        const x = Math.random() * 1024;
-        const y = Math.random() * 1024;
-        const r = Math.random() * 18 + 6;
-        ctx.fillStyle = Math.random() > 0.4 ? 'rgba(46, 106, 38, 0.4)' : 'rgba(25, 60, 22, 0.4)';
-        
-        // Desenha a elipse principal e wrappers nas bordas para eliminar costuras
-        for (let dx of [0, -1024, 1024]) {
-          for (let dy of [0, -1024, 1024]) {
-            const cx = x + dx;
-            const cy = y + dy;
-            if (cx + r >= 0 && cx - r <= 1024 && cy + r >= 0 && cy - r <= 1024) {
-              ctx.beginPath();
-              ctx.ellipse(cx, cy, r * 1.4, r, 0.4, 0, Math.PI * 2);
-              ctx.fill();
-            }
+      // 2. Manchas Orgânicas de Grama Musgo (Com wrapping 100% Seamless)
+      for (let i = 0; i < 1200; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const r = Math.random() * 14 + 4;
+        ctx.fillStyle = Math.random() > 0.4 ? 'rgba(46, 106, 38, 0.35)' : 'rgba(25, 60, 22, 0.35)';
+
+        for (let dx of [0, -512, 512]) {
+          for (let dy of [0, -512, 512]) {
+            ctx.beginPath();
+            ctx.ellipse(x + dx, y + dy, r * 1.3, r, 0.4, 0, Math.PI * 2);
+            ctx.fill();
           }
         }
       }
 
-      // 3. Estradas de Terra Batida & Pedras (Wrapping Toroidal para Seamless Perfeito)
-      for (let i = 0; i < 90; i++) {
-        const x = Math.random() * 1024;
-        const y = Math.random() * 1024;
-        const rx = Math.random() * 80 + 30;
-        const ry = Math.random() * 50 + 20;
-        ctx.fillStyle = 'rgba(78, 56, 32, 0.22)';
+      // 3. Estradas de Terra Batida Suave
+      for (let i = 0; i < 40; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const rx = Math.random() * 50 + 20;
+        const ry = Math.random() * 30 + 15;
+        ctx.fillStyle = 'rgba(78, 56, 32, 0.18)';
 
-        for (let dx of [0, -1024, 1024]) {
-          for (let dy of [0, -1024, 1024]) {
-            const cx = x + dx;
-            const cy = y + dy;
-            if (cx + rx >= 0 && cx - rx <= 1024 && cy + ry >= 0 && cy - ry <= 1024) {
-              ctx.beginPath();
-              ctx.ellipse(cx, cy, rx, ry, 0.2, 0, Math.PI * 2);
-              ctx.fill();
-            }
+        for (let dx of [0, -512, 512]) {
+          for (let dy of [0, -512, 512]) {
+            ctx.beginPath();
+            ctx.ellipse(x + dx, y + dy, rx, ry, 0.2, 0, Math.PI * 2);
+            ctx.fill();
           }
         }
       }
 
-      // 4. Flores Silvestres (Pontos Coloridos Dourados e Rosa Dourado)
-      for (let i = 0; i < 400; i++) {
-        const x = Math.random() * 1024;
-        const y = Math.random() * 1024;
+      // 4. Flores Silvestres
+      for (let i = 0; i < 200; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
         ctx.fillStyle = Math.random() > 0.5 ? '#ffd700' : '#ff99bb';
-        ctx.beginPath();
-        ctx.arc(x, y, Math.random() * 2 + 1, 0, Math.PI * 2);
-        ctx.fill();
+
+        for (let dx of [0, -512, 512]) {
+          for (let dy of [0, -512, 512]) {
+            ctx.beginPath();
+            ctx.arc(x + dx, y + dy, Math.random() * 1.5 + 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
       }
 
       canvas!.refresh();

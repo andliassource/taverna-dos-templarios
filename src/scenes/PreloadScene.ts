@@ -361,17 +361,17 @@ export class PreloadScene extends Phaser.Scene {
     // Checa se existe imagem HD personalizada para este personagem/NPC
     const upperKey = key.toUpperCase();
     let customImgKey = '';
-    if (upperKey === 'PALADIN-SHEET') customImgKey = 'hero-paladin-img';
-    else if (upperKey === 'MAGE-SHEET') customImgKey = 'hero-mage-img';
-    else if (upperKey === 'ARCHER-SHEET') customImgKey = 'hero-archer-img';
-    else if (upperKey === 'WARRIOR-SHEET') customImgKey = 'hero-warrior-img';
-    else if (upperKey === 'CLERIC-SHEET') customImgKey = 'hero-cleric-img';
-    else if (upperKey === 'NECROMANCER-SHEET') customImgKey = 'hero-necromancer-img';
-    else if (upperKey === 'ASSASSIN-SHEET') customImgKey = 'hero-assassin-img';
-    else if (upperKey === 'GUARDIAN-SHEET') customImgKey = 'hero-guardian-img';
-    else if (key === 'npc-blacksmith') customImgKey = 'npc-blacksmith-img';
-    else if (key === 'npc-merchant') customImgKey = 'npc-merchant-img';
-    else if (key === 'npc-master') customImgKey = 'npc-master-img';
+    if (upperKey.includes('PALADIN')) customImgKey = 'hero-paladin-img';
+    else if (upperKey.includes('MAGE')) customImgKey = 'hero-mage-img';
+    else if (upperKey.includes('ARCHER')) customImgKey = 'hero-archer-img';
+    else if (upperKey.includes('WARRIOR')) customImgKey = 'hero-warrior-img';
+    else if (upperKey.includes('CLERIC')) customImgKey = 'hero-cleric-img';
+    else if (upperKey.includes('NECROMANCER')) customImgKey = 'hero-necromancer-img';
+    else if (upperKey.includes('ASSASSIN')) customImgKey = 'hero-assassin-img';
+    else if (upperKey.includes('GUARDIAN')) customImgKey = 'hero-guardian-img';
+    else if (upperKey.includes('BLACKSMITH')) customImgKey = 'npc-blacksmith-img';
+    else if (upperKey.includes('MERCHANT')) customImgKey = 'npc-merchant-img';
+    else if (upperKey.includes('MASTER')) customImgKey = 'npc-master-img';
 
     if (customImgKey && this.textures.exists(customImgKey)) {
       const imgObj = this.textures.get(customImgKey).getSourceImage() as HTMLImageElement | HTMLCanvasElement;

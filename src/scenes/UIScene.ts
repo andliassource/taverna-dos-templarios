@@ -983,10 +983,12 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createMapInfo(width: number): void {
-    this.mapNameText = this.add.text(width / 2, 52, `📍 ${this.playerData.map}`, {
-      fontFamily: 'MedievalSharp', fontSize: '12px',
-      color: '#ffd700', stroke: '#000', strokeThickness: 3,
-    }).setOrigin(0.5, 0);
+    this.mapNameText = this.add.text(width / 2, 56, `📍 ${this.playerData.map}`, {
+      fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold',
+      color: '#ffd700', stroke: '#000000', strokeThickness: 3,
+      backgroundColor: 'rgba(10, 6, 18, 0.85)',
+      padding: { x: 10, y: 4 },
+    }).setOrigin(0.5, 0).setDepth(250);
   }
 
   private createFPSCounter(width: number): void {

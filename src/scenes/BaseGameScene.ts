@@ -206,23 +206,38 @@ export abstract class BaseGameScene extends Phaser.Scene {
     respawnBtn.on('pointerover', () => respawnBtn.setStyle({ backgroundColor: '#ff2222' }));
     respawnBtn.on('pointerout', () => respawnBtn.setStyle({ backgroundColor: '#8b0000' }));
 
-    respawnBtn.on('pointerdown', () => {
+    const doRespawn = () => {
+      if (!deathContainer.active) return;
       deathContainer.destroy();
       (this as any).isRespawning = false;
 
       this.combatSystem.setHP(this.combatSystem.getMaxHP());
+      this.combatSystem.setMP(this.combatSystem.getMaxMP());
+
+      if (this.player) {
+        this.player.clearTint();
+        this.physics.world.enable(this.player);
+        if (this.player.body) {
+          (this.player.body as Phaser.Physics.Arcade.Body).enable = true;
+          (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+        }
+        this.player.setPosition(25 * TILE_SIZE, 28 * TILE_SIZE);
+      }
 
       if (this.scene.key !== 'WorldScene') {
         this.scene.start('WorldScene', { playerClass: this.playerClass });
-      } else {
-        if (this.player) {
-          this.player.clearTint();
-          this.player.setPosition(16 * TILE_SIZE, 20 * TILE_SIZE);
-        }
+      }
+    };
+
+    respawnBtn.on('pointerdown', doRespawn);
+    deathContainer.add(respawnBtn);
+
+    // Timer de auto-renascimento em 5 segundos
+    this.time.delayedCall(5000, () => {
+      if ((this as any).isRespawning) {
+        doRespawn();
       }
     });
-
-    deathContainer.add(respawnBtn);
   }
 
   protected setupControls(): void {

@@ -157,6 +157,7 @@ export class WorldScene extends BaseGameScene {
     const ground = this.add.tileSprite(worldW / 2, worldH / 2, worldW, worldH, 'procedural-village');
     ground.setOrigin(0.5, 0.5);
     ground.setDepth(0);
+    ground.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
     // 3. Bordas do mundo (muros de pedra e colisões naturais)
     this.wallBodies = this.physics.add.staticGroup();

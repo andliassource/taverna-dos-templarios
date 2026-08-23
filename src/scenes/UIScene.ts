@@ -23,7 +23,9 @@ import { GlobalChatModal } from '../ui/modals/GlobalChatModal';
 import { AuctionHouseModal } from '../ui/modals/AuctionHouseModal';
 import { ServerChannelModal } from '../ui/modals/ServerChannelModal';
 import { PlayerInteractionModal } from '../ui/modals/PlayerInteractionModal';
+import { WorldBossModal } from '../ui/modals/WorldBossModal';
 import { PartySystem } from '../systems/PartySystem';
+import { WorldBossEventSystem } from '../systems/WorldBossEventSystem';
 
 /**
  * UIScene — Cena de UI sobreposta ao jogo.
@@ -108,6 +110,7 @@ export class UIScene extends Phaser.Scene {
   private guildModal!: GuildModal;
   private serverChannelModal!: ServerChannelModal;
   private playerInteractionModal!: PlayerInteractionModal;
+  private worldBossModal!: WorldBossModal;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -123,15 +126,17 @@ export class UIScene extends Phaser.Scene {
     this.guildModal = new GuildModal(this);
     this.serverChannelModal = new ServerChannelModal(this);
     this.playerInteractionModal = new PlayerInteractionModal(this);
+    this.worldBossModal = new WorldBossModal(this);
 
-    // HUD — Canto superior esquerdo
+    // HUD — Canto superior esquerdo & Topo central
     this.createHUD(width, height);
     this.createPartyHUD();
+    this.createWorldBossHUD(width);
 
     // Mini-mapa — Canto superior direito
     this.createMiniMap(width);
 
-    // Botões de Ações Rápidas no Topo Direito (⚙️ Configurações | 🏪 Leilão | 🛡️ Clã | 🌐 Canais | ⚔️ Grupo)
+    // Botões de Ações Rápidas no Topo Direito (⚙️ Configurações | 🏪 Leilão | 🛡️ Clã | 🌐 Canais | ⚔️ Grupo | 🐲 Boss)
     const settingsBtn = this.add.text(width - 45, 12, '⚙️', { fontSize: '22px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     settingsBtn.on('pointerdown', () => this.settingsModal.toggle());
@@ -151,6 +156,10 @@ export class UIScene extends Phaser.Scene {
     const partyBtn = this.add.text(width - 185, 12, '⚔️', { fontSize: '22px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     partyBtn.on('pointerdown', () => this.playerInteractionModal.openForPlayer('Mestre_SirLancelot'));
+
+    const bossBtn = this.add.text(width - 220, 12, '🐲', { fontSize: '22px' })
+      .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
+    bossBtn.on('pointerdown', () => this.worldBossModal.toggle());
 
     // Hotbar — Parte inferior
     this.createHotbar(width, height);
@@ -525,6 +534,32 @@ export class UIScene extends Phaser.Scene {
       hpGraphic.lineStyle(1, 0xff3344, 0.8);
       hpGraphic.strokeRoundedRect(x + 8, y + 18, 174, 6, 2);
     });
+  }
+
+  private createWorldBossHUD(width: number): void {
+    const evt = WorldBossEventSystem.getInstance().getCurrentEvent();
+    if (!evt) return;
+
+    const barWidth = 380;
+    const barX = (width - barWidth) / 2;
+    const barY = 14;
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a0614, 0.92);
+    bg.fillRoundedRect(barX, barY, barWidth, 36, 10);
+    bg.lineStyle(2, 0xff3333, 1);
+    bg.strokeRoundedRect(barX, barY, barWidth, 36, 10);
+
+    const title = this.add.text(width / 2, barY + 6, `${evt.name}`, {
+      fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ff4444',
+    }).setOrigin(0.5);
+
+    const hpGraphic = this.add.graphics();
+    const pct = evt.hpPercent / 100;
+    hpGraphic.fillStyle(0xcc0000, 1);
+    hpGraphic.fillRoundedRect(barX + 8, barY + 22, (barWidth - 16) * pct, 8, 3);
+    hpGraphic.lineStyle(1, 0xff6666, 0.8);
+    hpGraphic.strokeRoundedRect(barX + 8, barY + 22, barWidth - 16, 8, 3);
   }
 
   private drawBar(

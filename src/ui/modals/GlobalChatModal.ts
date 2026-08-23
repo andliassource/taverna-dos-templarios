@@ -42,10 +42,10 @@ export class GlobalChatModal {
     // Cabeçalho das Abas (GERAL, GUILDA, GRUPO, PRIVADO)
     const channels: Array<'GERAL' | 'GUILDA' | 'GRUPO' | 'PRIVADO'> = ['GERAL', 'GUILDA', 'GRUPO', 'PRIVADO'];
     channels.forEach((ch, idx) => {
-      const tabX = 10 + idx * 80;
-      const tabBtn = this.scene.add.text(tabX, 8, `[${ch}]`, {
+      const tabX = 10 + idx * 78;
+      const tabBtn = this.scene.add.text(tabX, 6, `[${ch}]`, {
         fontFamily: 'Cinzel',
-        fontSize: '11px',
+        fontSize: '10px',
         fontStyle: 'bold',
         color: ch === this.activeChannel ? '#ffd700' : '#888888',
       }).setInteractive({ useHandCursor: true });
@@ -58,11 +58,17 @@ export class GlobalChatModal {
       this.container.add(tabBtn);
     });
 
-    // Área de Texto do Histórico de Mensagens
-    for (let i = 0; i < 6; i++) {
-      const msgTxt = this.scene.add.text(12, 32 + i * 20, '', {
+    // Divisor abaixo das abas
+    const div = this.scene.add.graphics();
+    div.lineStyle(1, 0xd4af37, 0.4);
+    div.lineBetween(8, 24, width - 8, 24);
+    this.container.add(div);
+
+    // Área de Texto do Histórico de Mensagens (Sem sobreposição)
+    for (let i = 0; i < 5; i++) {
+      const msgTxt = this.scene.add.text(12, 28 + i * 22, '', {
         fontFamily: 'Inter',
-        fontSize: '11px',
+        fontSize: '10.5px',
         color: '#ffffff',
         wordWrap: { width: 316 },
       });

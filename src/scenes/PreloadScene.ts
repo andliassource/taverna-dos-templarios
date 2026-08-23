@@ -57,17 +57,40 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('tavern-building', tavernBuildingImg);
     this.load.image('forge-building', forgeBuildingImg);
 
-    // Carrega heróis HD
-    this.load.image('hero-paladin-img', heroPaladinImg);
-    this.load.image('hero-mage-img', heroMageImg);
-    this.load.image('hero-archer-img', heroArcherImg);
-    this.load.image('hero-warrior-img', heroWarriorImg);
-    this.load.image('hero-cleric-img', heroClericImg);
-    this.load.image('hero-necromancer-img', heroNecromancerImg);
-    this.load.image('hero-assassin-img', heroAssassinImg);
-    this.load.image('hero-guardian-img', heroGuardianImg);
-    this.load.image('menu-bg-hd', menuBgHdImg);
+    // Carrega Heróis HD como Spritesheets Nativos 64x64 (4 cols x 4 rows)
+    this.load.spritesheet('PALADIN-sheet', heroPaladinImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('paladin-sheet', heroPaladinImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('hero-paladin-img', heroPaladinImg, { frameWidth: 64, frameHeight: 64 });
 
+    this.load.spritesheet('MAGE-sheet', heroMageImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('mage-sheet', heroMageImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('hero-mage-img', heroMageImg, { frameWidth: 64, frameHeight: 64 });
+
+    this.load.spritesheet('ARCHER-sheet', heroArcherImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('archer-sheet', heroArcherImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('hero-archer-img', heroArcherImg, { frameWidth: 64, frameHeight: 64 });
+
+    this.load.spritesheet('WARRIOR-sheet', heroWarriorImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('warrior-sheet', heroWarriorImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('hero-warrior-img', heroWarriorImg, { frameWidth: 64, frameHeight: 64 });
+
+    this.load.spritesheet('CLERIC-sheet', heroClericImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('cleric-sheet', heroClericImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('hero-cleric-img', heroClericImg, { frameWidth: 64, frameHeight: 64 });
+
+    this.load.spritesheet('NECROMANCER-sheet', heroNecromancerImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('necromancer-sheet', heroNecromancerImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('hero-necromancer-img', heroNecromancerImg, { frameWidth: 64, frameHeight: 64 });
+
+    this.load.spritesheet('ASSASSIN-sheet', heroAssassinImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('assassin-sheet', heroAssassinImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('hero-assassin-img', heroAssassinImg, { frameWidth: 64, frameHeight: 64 });
+
+    this.load.spritesheet('GUARDIAN-sheet', heroGuardianImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('guardian-sheet', heroGuardianImg, { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('hero-guardian-img', heroGuardianImg, { frameWidth: 64, frameHeight: 64 });
+
+    this.load.image('menu-bg-hd', menuBgHdImg);
     this.load.image('npc-blacksmith-img', npcBlacksmithImg);
     this.load.image('npc-merchant-img', npcMerchantImg);
     this.load.image('npc-master-img', npcMasterImg);

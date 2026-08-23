@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GuildSystem } from '../../systems/GuildSystem';
+import { SoundSynth } from '../../utils/SoundSynth';
 
 export class GuildModal {
   private scene: Phaser.Scene;
@@ -60,9 +61,18 @@ export class GuildModal {
     }).setInteractive({ useHandCursor: true });
 
     donateBtn.on('pointerdown', () => {
-      system.depositGold(500);
-      alert('🎉 Você doou 500 Ouro para o Tesouro do Clã!');
-      infoText.setText(`📢 MOTD: "${guild.motd}"\n💰 Tesouro do Clã: ${guild.goldTreasury} Ouro`);
+      const activeScene = (this.scene as any).getActiveGameScene?.();
+      const cs = (this.scene as any).getActiveCombatSystem?.();
+      if (cs && cs.getGold() >= 500) {
+        cs.addGold(-500);
+        system.depositGold(500);
+        SoundSynth.playUpgrade();
+        this.scene.events.emit('show-notification', '🎉 Você doou 500 Ouro para o Tesouro do Clã!');
+        infoText.setText(`📢 MOTD: "${guild.motd}"\n💰 Tesouro do Clã: ${guild.goldTreasury} Ouro`);
+      } else {
+        SoundSynth.playUpgrade();
+        this.scene.events.emit('show-notification', '⚠️ Ouro insuficiente para doar ao Clã!');
+      }
     });
     this.container.add(donateBtn);
 

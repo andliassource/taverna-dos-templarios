@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SoundSynth } from '../../utils/SoundSynth';
 
 export class PlayerInteractionModal {
   private scene: Phaser.Scene;
@@ -37,10 +38,34 @@ export class PlayerInteractionModal {
     this.container.add(title);
 
     const actions = [
-      { label: '💬 Mensagem Privada', action: () => alert(`💬 Abrindo canal privado com ${this.targetPlayerName}`) },
-      { label: '🤝 Convidar p/ Troca Direta', action: () => alert(`🤝 Solicitado troca direta com ${this.targetPlayerName}`) },
-      { label: '⚔️ Convidar p/ Grupo', action: () => alert(`⚔️ Convite de grupo enviado para ${this.targetPlayerName}`) },
-      { label: '🏆 Desafiar p/ Duelo PvP', action: () => alert(`🏆 Desafio de Duelo enviado para ${this.targetPlayerName}`) },
+      {
+        label: '💬 Mensagem Privada',
+        action: () => {
+          SoundSynth.playUpgrade();
+          this.scene.events.emit('show-notification', `💬 Canal de conversa direta iniciado com ${this.targetPlayerName}`);
+        },
+      },
+      {
+        label: '🤝 Convidar p/ Troca Direta',
+        action: () => {
+          SoundSynth.playUpgrade();
+          this.scene.events.emit('show-notification', `🤝 Solicitado troca direta com ${this.targetPlayerName}`);
+        },
+      },
+      {
+        label: '⚔️ Convidar p/ Grupo',
+        action: () => {
+          SoundSynth.playUpgrade();
+          this.scene.events.emit('show-notification', `⚔️ Convite de grupo enviado para ${this.targetPlayerName}`);
+        },
+      },
+      {
+        label: '🏆 Desafiar p/ Duelo PvP',
+        action: () => {
+          SoundSynth.playUpgrade();
+          this.scene.events.emit('show-notification', `🏆 Desafio de Duelo enviado para ${this.targetPlayerName}`);
+        },
+      },
     ];
 
     actions.forEach((act, idx) => {

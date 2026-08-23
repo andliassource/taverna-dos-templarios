@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { AuctionHouseSystem, AuctionListing } from '../../systems/AuctionHouseSystem';
+import { AuctionHouseSystem } from '../../systems/AuctionHouseSystem';
+import { SoundSynth } from '../../utils/SoundSynth';
 
 export class AuctionHouseModal {
   private scene: Phaser.Scene;
@@ -83,10 +84,21 @@ export class AuctionHouseModal {
       }).setInteractive({ useHandCursor: true });
 
       buyBtn.on('pointerdown', () => {
-        const item = system.buyListing(auc.id);
-        if (item) {
-          alert(`🎉 Você comprou ${item.item.name} por ${item.priceGold} Ouro!`);
-          this.toggle();
+        const cs = (this.scene as any).getActiveCombatSystem?.();
+        if (cs) {
+          if (cs.getGold() >= auc.priceGold) {
+            const item = system.buyListing(auc.id);
+            if (item) {
+              cs.addGold(-auc.priceGold);
+              cs.addItem(item.item);
+              SoundSynth.playUpgrade();
+              this.scene.events.emit('show-notification', `🎉 Comprou ${item.item.name} por ${item.priceGold} Ouro!`);
+              this.toggle();
+            }
+          } else {
+            SoundSynth.playUpgrade();
+            this.scene.events.emit('show-notification', '⚠️ Ouro insuficiente para comprar este item!');
+          }
         }
       });
       this.container.add(buyBtn);

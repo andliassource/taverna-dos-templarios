@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SoundSynth } from '../../utils/SoundSynth';
 
 export class ServerChannelModal {
   private scene: Phaser.Scene;
@@ -74,7 +75,8 @@ export class ServerChannelModal {
 
       connBtn.on('pointerdown', () => {
         this.currentChannel = ch.name;
-        alert(`🌐 Conectado com sucesso ao ${ch.name}!`);
+        SoundSynth.playUpgrade();
+        this.scene.events.emit('show-notification', `🌐 Conectado ao ${ch.name}!`);
         this.toggle();
       });
       this.container.add(connBtn);

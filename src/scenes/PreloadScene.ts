@@ -6,7 +6,7 @@ import treeImg from '../assets/sprites/tree.png';
 import bushImg from '../assets/sprites/bush.png';
 import tavernBuildingImg from '../assets/sprites/tavern_building.png';
 import forgeBuildingImg from '../assets/sprites/forge_building.png';
-import heroPaladinImg from '../assets/sprites/hero_paladin_hd.png';
+import heroPaladinImg from '../assets/sprites/hero_paladin.png';
 import heroMageImg from '../assets/sprites/hero_mage.png';
 import heroArcherImg from '../assets/sprites/hero_archer.png';
 import heroWarriorImg from '../assets/sprites/hero_warrior.png';

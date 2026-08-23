@@ -208,10 +208,21 @@ export class PreloadScene extends Phaser.Scene {
       });
     });
 
-    // NPCs
-    this.generateHDSpritesheet('npc-blacksmith', '#5c3317', '#444444', '#cc3333', '#e0b080', 'heavy');
-    this.generateHDSpritesheet('npc-merchant', '#a020f0', '#ffb6c1', '#32cd32', '#ffd1a9', 'robe');
-    this.generateHDSpritesheet('npc-master', '#d4af37', '#4b0082', '#ffffff', '#e0b080', 'robe');
+    // NPCs (Preserva imagens HD se existirem)
+    [
+      { key: 'npc-blacksmith', imgKey: 'npc-blacksmith-img', primary: '#5c3317', secondary: '#444444', accent: '#cc3333', skin: '#e0b080', type: 'heavy' },
+      { key: 'npc-merchant', imgKey: 'npc-merchant-img', primary: '#a020f0', secondary: '#ffb6c1', accent: '#32cd32', skin: '#ffd1a9', type: 'robe' },
+      { key: 'npc-master', imgKey: 'npc-master-img', primary: '#d4af37', secondary: '#4b0082', accent: '#ffffff', skin: '#e0b080', type: 'robe' },
+    ].forEach(npc => {
+      if (!this.textures.exists(npc.key)) {
+        if (this.textures.exists(npc.imgKey)) {
+          const imgTex = this.textures.get(npc.imgKey);
+          this.textures.addImage(npc.key, imgTex.getSourceImage() as HTMLImageElement);
+        } else {
+          this.generateHDSpritesheet(npc.key, npc.primary, npc.secondary, npc.accent, npc.skin, npc.type as any);
+        }
+      }
+    });
 
     // Registra animações Phaser para cada classe de herói
     classes.forEach((c) => {

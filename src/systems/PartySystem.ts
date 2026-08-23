@@ -28,9 +28,39 @@ export class PartySystem {
   private initDefaultParty(): void {
     this.members = [
       { id: 'p1', name: 'Mestre_SirLancelot', classType: 'WARRIOR', level: 60, hp: 1200, maxHp: 1200, mp: 300, maxMp: 300, isLeader: true },
-      { id: 'p2', name: 'Você (Templário)', classType: 'PALADIN', level: 12, hp: 100, maxHp: 100, mp: 50, maxMp: 50, isLeader: false },
+      { id: 'player_self', name: 'Você (Templário)', classType: 'PALADIN', level: 12, hp: 100, maxHp: 100, mp: 50, maxMp: 50, isLeader: false },
       { id: 'p3', name: 'Lady_Merlin', classType: 'MAGE', level: 58, hp: 850, maxHp: 850, mp: 900, maxMp: 900, isLeader: false },
     ];
+  }
+
+  public syncActivePlayer(name: string, classType: string, level: number, hp: number, maxHp: number, mp: number, maxMp: number): void {
+    let self = this.members.find(m => m.id === 'player_self' || m.name.includes('Você'));
+    if (self) {
+      self.name = name ? `Você (${name})` : self.name;
+      self.classType = classType || self.classType;
+      self.level = level;
+      self.hp = hp;
+      self.maxHp = maxHp;
+      self.mp = mp;
+      self.maxMp = maxMp;
+    }
+  }
+
+  public addMember(member: PartyMember): void {
+    if (!this.members.some(m => m.id === member.id)) {
+      this.members.push(member);
+    }
+  }
+
+  public removeMember(id: string): void {
+    this.members = this.members.filter(m => m.id !== id);
+  }
+
+  public updateMemberHp(id: string, hp: number): void {
+    const member = this.members.find(m => m.id === id);
+    if (member) {
+      member.hp = Math.max(0, Math.min(member.maxHp, hp));
+    }
   }
 
   public getMembers(): PartyMember[] {

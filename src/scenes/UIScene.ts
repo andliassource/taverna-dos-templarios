@@ -1021,6 +1021,17 @@ export class UIScene extends Phaser.Scene {
   }
 
   update(): void {
+    // Sincroniza atributos do jogador ativo com o Sistema de Grupo
+    PartySystem.getInstance().syncActivePlayer(
+      this.playerData.name,
+      this.playerData.class,
+      this.playerData.level,
+      this.playerData.hp,
+      this.playerData.maxHp,
+      this.playerData.mp,
+      this.playerData.maxMp
+    );
+
     // Atualiza FPS
     if (this.fpsText) {
       this.fpsText.setText(`FPS: ${Math.round(this.game.loop.actualFps)}`);

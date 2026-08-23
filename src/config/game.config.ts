@@ -23,7 +23,7 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   width: 1280,
   height: 720,
   pixelArt: false,
-  roundPixels: false,
+  roundPixels: true,
   antialias: true,
   backgroundColor: '#0a0612',
   scale: {

@@ -522,7 +522,7 @@ export class UIScene extends Phaser.Scene {
 
   private createPartyHUD(): void {
     const x = 20;
-    let startY = 110;
+    let startY = 138;
     const members = PartySystem.getInstance().getMembers();
 
     members.forEach((m, idx) => {
@@ -654,7 +654,7 @@ export class UIScene extends Phaser.Scene {
     const gap = 8;
     const totalWidth = slotCount * (slotSize + gap) - gap;
     const startX = (width - totalWidth) / 2;
-    const y = height - slotSize - 16;
+    const y = height - slotSize - 32;
 
     // Fundo da Hotbar Medieval Esculpida em Metal e Ouro
     const hotbarBg = this.add.graphics();
@@ -983,9 +983,9 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createMapInfo(width: number): void {
-    this.mapNameText = this.add.text(width / 2, 10, `📍 ${this.playerData.map}`, {
-      fontFamily: 'MedievalSharp', fontSize: '14px',
-      color: '#d4a843', stroke: '#000', strokeThickness: 3,
+    this.mapNameText = this.add.text(width / 2, 52, `📍 ${this.playerData.map}`, {
+      fontFamily: 'MedievalSharp', fontSize: '12px',
+      color: '#ffd700', stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5, 0);
   }
 
@@ -2587,13 +2587,13 @@ export class UIScene extends Phaser.Scene {
 
     const barW = 580;
     const startX = width / 2 - barW / 2;
-    const barY = height - 16;
+    const barY = height - 10;
 
     const bg = this.add.graphics();
     bg.fillStyle(0x0a0614, 0.85);
-    bg.fillRoundedRect(startX, barY - 10, barW, 22, 6);
+    bg.fillRoundedRect(startX, barY - 8, barW, 16, 4);
     bg.lineStyle(1, 0xd4a843, 0.6);
-    bg.strokeRoundedRect(startX, barY - 10, barW, 22, 6);
+    bg.strokeRoundedRect(startX, barY - 8, barW, 16, 4);
 
     shortcuts.forEach((sc, idx) => {
       const btnX = startX + 8 + idx * 81;

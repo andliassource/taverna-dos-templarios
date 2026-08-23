@@ -318,6 +318,19 @@ export class PreloadScene extends Phaser.Scene {
             frameRate: 10,
             repeat: 0,
           });
+
+          // Animação HD de Morte e Colapso Templário
+          this.anims.create({
+            key: `${nameKey}-death`,
+            frames: [
+              { key: sheetKey, frame: 0 },
+              { key: sheetKey, frame: 1 },
+              { key: sheetKey, frame: 2 },
+              { key: sheetKey, frame: 3 }
+            ],
+            frameRate: 6,
+            repeat: 0,
+          });
         }
       });
     });

@@ -1,0 +1,83 @@
+/* 
+ * Sistema de Design Global AAA — Obsidian & Gold Glassmorphism
+ * Taverna dos Templários MMORPG
+ */
+
+:root {
+  --color-obsidian-bg: rgba(10, 6, 20, 0.95);
+  --color-obsidian-panel: rgba(18, 11, 32, 0.92);
+  --color-gold-main: #ffd700;
+  --color-gold-border: #d4af37;
+  --color-gold-dim: #8b7500;
+  --color-ruby-hp: #ff3344;
+  --color-sapphire-mp: #3399ff;
+  --color-emerald-green: #00ffcc;
+  --color-purple-epic: #bf00ff;
+  --color-orange-legendary: #ff8800;
+
+  --font-title: 'Cinzel', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-fantasy: 'MedievalSharp', cursive;
+}
+
+/* Modal Overlay Base com Glassmorphism */
+.ui-glass-panel {
+  background: linear-gradient(135deg, rgba(20, 12, 36, 0.96) 0%, rgba(10, 6, 20, 0.96) 100%);
+  border: 2px solid var(--color-gold-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(255, 215, 0, 0.15);
+  backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-family: var(--font-body);
+}
+
+/* Cabeçalho de Janela Medieval */
+.ui-panel-header {
+  font-family: var(--font-title);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-gold-main);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.4);
+  padding-bottom: 8px;
+}
+
+/* Botões Estilizados em Ouro Metálico */
+.ui-button-gold {
+  background: linear-gradient(180deg, #d4af37 0%, #8b7500 100%);
+  border: 1px solid #ffe680;
+  border-radius: 6px;
+  color: #0d0614;
+  font-family: var(--font-title);
+  font-weight: bold;
+  font-size: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.ui-button-gold:hover {
+  background: linear-gradient(180deg, #ffe680 0%, #d4af37 100%);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Inputs de Texto HTML (Chat Global) */
+input[type="text"].ui-input-glass {
+  background: rgba(8, 4, 16, 0.85);
+  border: 1.5px solid var(--color-gold-border);
+  border-radius: 6px;
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+input[type="text"].ui-input-glass:focus {
+  border-color: var(--color-gold-main);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}

@@ -165,9 +165,14 @@ export class PreloadScene extends Phaser.Scene {
     classes.forEach(c => {
       this.generateHDSpritesheet(c.key, c.primary, c.secondary, c.accent, c.skin, c.type);
       const lowerKey = c.key.toLowerCase();
-      if (lowerKey !== c.key) {
-        this.generateHDSpritesheet(lowerKey, c.primary, c.secondary, c.accent, c.skin, c.type);
-      }
+      const upperKey = c.key.toUpperCase();
+      const baseKey = c.key.replace('-sheet', '').replace('-SHEET', '');
+      
+      [lowerKey, upperKey, baseKey, baseKey.toLowerCase(), baseKey.toUpperCase()].forEach(k => {
+        if (!this.textures.exists(k)) {
+          this.generateHDSpritesheet(k, c.primary, c.secondary, c.accent, c.skin, c.type);
+        }
+      });
     });
 
     // NPCs

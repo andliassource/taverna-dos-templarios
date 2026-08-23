@@ -24,6 +24,11 @@
         }
       });
     }
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        for (let name of names) caches.delete(name);
+      });
+    }
   </script>
 
   <link rel="stylesheet" href="/src/styles/main.css" />

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SoundSynth } from '../../utils/SoundSynth';
 
 export interface ChatMessage {
   sender: string;
@@ -129,10 +130,63 @@ export class GlobalChatModal {
   }
 
   private promptMessageInput(): void {
-    const userInput = prompt(`[Chat MMORPG - ${this.activeChannel}] Digite sua mensagem:`);
-    if (userInput) {
-      this.sendMessage(userInput);
-    }
+    const existing = document.getElementById('chat-input-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'chat-input-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.bottom = '80px';
+    overlay.style.left = '20px';
+    overlay.style.zIndex = '10000';
+    overlay.style.display = 'flex';
+    overlay.style.gap = '8px';
+    overlay.style.backgroundColor = 'rgba(10, 6, 20, 0.95)';
+    overlay.style.padding = '8px 12px';
+    overlay.style.borderRadius = '8px';
+    overlay.style.border = '1px solid #ffd700';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = `Mensagem para [${this.activeChannel}]...`;
+    input.style.backgroundColor = '#1a0e2e';
+    input.style.color = '#ffffff';
+    input.style.border = '1px solid #5a3e10';
+    input.style.padding = '6px 10px';
+    input.style.borderRadius = '4px';
+    input.style.fontFamily = 'Inter, sans-serif';
+    input.style.fontSize = '12px';
+    input.style.width = '240px';
+
+    const sendBtn = document.createElement('button');
+    sendBtn.innerText = 'ENVIAR';
+    sendBtn.style.backgroundColor = '#ffd700';
+    sendBtn.style.color = '#000000';
+    sendBtn.style.border = 'none';
+    sendBtn.style.padding = '6px 12px';
+    sendBtn.style.borderRadius = '4px';
+    sendBtn.style.fontFamily = 'Cinzel, serif';
+    sendBtn.style.fontWeight = 'bold';
+    sendBtn.style.cursor = 'pointer';
+
+    const doSend = () => {
+      if (input.value.trim()) {
+        this.sendMessage(input.value.trim());
+        SoundSynth.playUpgrade();
+      }
+      overlay.remove();
+    };
+
+    sendBtn.onclick = doSend;
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') doSend();
+      if (e.key === 'Escape') overlay.remove();
+    };
+
+    overlay.appendChild(input);
+    overlay.appendChild(sendBtn);
+    document.body.appendChild(overlay);
+    setTimeout(() => input.focus(), 50);
   }
 
   private updateChatDisplay(): void {

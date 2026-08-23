@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { SoundSynth } from '../../utils/SoundSynth';
 
 export class DirectTradeModal {
   private scene: Phaser.Scene;
@@ -68,7 +69,8 @@ export class DirectTradeModal {
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     acceptBtn.on('pointerdown', () => {
-      alert('🤝 Troca concluída com sucesso entre os jogadores!');
+      SoundSynth.playUpgrade();
+      this.scene.events.emit('show-notification', '🤝 Troca concluída com sucesso entre os jogadores!');
       this.toggle();
     });
     this.container.add(acceptBtn);

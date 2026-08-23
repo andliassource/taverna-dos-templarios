@@ -249,9 +249,9 @@ export class WorldScene extends BaseGameScene {
     this.merchantElise = this.createNPC(16 * TILE_SIZE, 20 * TILE_SIZE, 'merchant', 'Mercadora Elise', '🛒', () => this.openEliseDialogue());
     this.masterAldric = this.createNPC(25 * TILE_SIZE, 22 * TILE_SIZE, 'master', 'Mestre Aldric', '📜', () => this.openAldricDialogue());
 
-    // Guardas Templários na Entrada da Cidade
-    this.guards.push(this.createNPC(16 * TILE_SIZE, 26 * TILE_SIZE, 'master', 'Guarda Templário Cedric', '🛡️'));
-    this.guards.push(this.createNPC(34 * TILE_SIZE, 26 * TILE_SIZE, 'master', 'Guarda Templário Gareth', '🛡️'));
+    // Guardas Templários na Entrada da Cidade (Usam a spritesheet HD de Paladino Templário)
+    this.guards.push(this.createNPC(16 * TILE_SIZE, 26 * TILE_SIZE, 'PALADIN-sheet', 'Guarda Templário Cedric', '🛡️'));
+    this.guards.push(this.createNPC(34 * TILE_SIZE, 26 * TILE_SIZE, 'PALADIN-sheet', 'Guarda Templário Gareth', '🛡️'));
 
     this.createAmbientFireflies();
     WeatherSystem.getInstance().setWeather(this, 'PETALS');

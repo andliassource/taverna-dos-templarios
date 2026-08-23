@@ -63,7 +63,7 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   render: {
     pixelArt: false,
     antialias: true,
-    roundPixels: false,
+    roundPixels: true,
   },
   pipeline: {
     UnrealPostFX: UnrealPostFX,

@@ -230,6 +230,94 @@ export class PreloadScene extends Phaser.Scene {
             frames: [{ key: sheetKey, frame: 12 }],
             frameRate: 1,
           });
+
+          // Animações HD de Ataque e Golpe Físico com balanço de lâmina
+          this.anims.create({
+            key: `${nameKey}-attack-down`,
+            frames: [
+              { key: sheetKey, frame: 0 },
+              { key: sheetKey, frame: 1 },
+              { key: sheetKey, frame: 2 },
+              { key: sheetKey, frame: 0 }
+            ],
+            frameRate: 14,
+            repeat: 0,
+          });
+          this.anims.create({
+            key: `${nameKey}-attack-left`,
+            frames: [
+              { key: sheetKey, frame: 4 },
+              { key: sheetKey, frame: 5 },
+              { key: sheetKey, frame: 6 },
+              { key: sheetKey, frame: 4 }
+            ],
+            frameRate: 14,
+            repeat: 0,
+          });
+          this.anims.create({
+            key: `${nameKey}-attack-right`,
+            frames: [
+              { key: sheetKey, frame: 8 },
+              { key: sheetKey, frame: 9 },
+              { key: sheetKey, frame: 10 },
+              { key: sheetKey, frame: 8 }
+            ],
+            frameRate: 14,
+            repeat: 0,
+          });
+          this.anims.create({
+            key: `${nameKey}-attack-up`,
+            frames: [
+              { key: sheetKey, frame: 12 },
+              { key: sheetKey, frame: 13 },
+              { key: sheetKey, frame: 14 },
+              { key: sheetKey, frame: 12 }
+            ],
+            frameRate: 14,
+            repeat: 0,
+          });
+
+          // Animações HD de Conjuração Mágica e Feitiçaria
+          this.anims.create({
+            key: `${nameKey}-cast-down`,
+            frames: [
+              { key: sheetKey, frame: 1 },
+              { key: sheetKey, frame: 3 },
+              { key: sheetKey, frame: 1 }
+            ],
+            frameRate: 10,
+            repeat: 0,
+          });
+          this.anims.create({
+            key: `${nameKey}-cast-left`,
+            frames: [
+              { key: sheetKey, frame: 5 },
+              { key: sheetKey, frame: 7 },
+              { key: sheetKey, frame: 5 }
+            ],
+            frameRate: 10,
+            repeat: 0,
+          });
+          this.anims.create({
+            key: `${nameKey}-cast-right`,
+            frames: [
+              { key: sheetKey, frame: 9 },
+              { key: sheetKey, frame: 11 },
+              { key: sheetKey, frame: 9 }
+            ],
+            frameRate: 10,
+            repeat: 0,
+          });
+          this.anims.create({
+            key: `${nameKey}-cast-up`,
+            frames: [
+              { key: sheetKey, frame: 13 },
+              { key: sheetKey, frame: 15 },
+              { key: sheetKey, frame: 13 }
+            ],
+            frameRate: 10,
+            repeat: 0,
+          });
         }
       });
     });

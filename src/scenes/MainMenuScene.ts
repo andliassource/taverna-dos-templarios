@@ -247,10 +247,12 @@ export class MainMenuScene extends Phaser.Scene {
 
     // === PAINEL ESQUERDO: LISTA DE CLASSES ===
     const leftBg = this.add.graphics();
-    leftBg.fillStyle(0x0a0614, 0.9);
-    leftBg.fillRoundedRect(leftX, startY, leftW, panelH, 8);
-    leftBg.lineStyle(1.5, 0xd4a843, 0.7);
-    leftBg.strokeRoundedRect(leftX, startY, leftW, panelH, 8);
+    leftBg.fillStyle(0x0a0614, 0.94);
+    leftBg.fillRoundedRect(leftX, startY, leftW, panelH, 10);
+    leftBg.lineStyle(2, 0xffd700, 0.95);
+    leftBg.strokeRoundedRect(leftX, startY, leftW, panelH, 10);
+    leftBg.lineStyle(1, 0x5a3e10, 0.6);
+    leftBg.strokeRoundedRect(leftX + 2, startY + 2, leftW - 4, panelH - 4, 8);
     this.classSelectContainer.add(leftBg);
 
     const leftTitle = this.add.text(leftX + leftW / 2, startY + 20, 'ESCOLHA SUA CLASSE', {
@@ -285,10 +287,12 @@ export class MainMenuScene extends Phaser.Scene {
     const rightW = width * 0.42;
 
     const rightBg = this.add.graphics();
-    rightBg.fillStyle(0x0a0614, 0.9);
-    rightBg.fillRoundedRect(rightX, startY, rightW, panelH, 8);
-    rightBg.lineStyle(1.5, 0xd4a843, 0.7);
-    rightBg.strokeRoundedRect(rightX, startY, rightW, panelH, 8);
+    rightBg.fillStyle(0x0a0614, 0.94);
+    rightBg.fillRoundedRect(rightX, startY, rightW, panelH, 10);
+    rightBg.lineStyle(2, 0xffd700, 0.95);
+    rightBg.strokeRoundedRect(rightX, startY, rightW, panelH, 10);
+    rightBg.lineStyle(1, 0x5a3e10, 0.6);
+    rightBg.strokeRoundedRect(rightX + 2, startY + 2, rightW - 4, panelH - 4, 8);
     this.classSelectContainer.add(rightBg);
 
     // Botão Voltar [◀ VOLTAR]

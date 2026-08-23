@@ -186,14 +186,24 @@ export class PreloadScene extends Phaser.Scene {
     ];
 
     classes.forEach(c => {
-      this.generateHDSpritesheet(c.key, c.primary, c.secondary, c.accent, c.skin, c.type);
+      // SÓ gera via código procedural se a textura da imagem real NÃO existir!
+      if (!this.textures.exists(c.key)) {
+        this.generateHDSpritesheet(c.key, c.primary, c.secondary, c.accent, c.skin, c.type);
+      }
+      
       const lowerKey = c.key.toLowerCase();
       const upperKey = c.key.toUpperCase();
       const baseKey = c.key.replace('-sheet', '').replace('-SHEET', '');
       
       [lowerKey, upperKey, baseKey, baseKey.toLowerCase(), baseKey.toUpperCase()].forEach(k => {
         if (!this.textures.exists(k)) {
-          this.generateHDSpritesheet(k, c.primary, c.secondary, c.accent, c.skin, c.type);
+          // Se já existe a textura real c.key, duplica para a chave alias k
+          if (this.textures.exists(c.key)) {
+            const realTex = this.textures.get(c.key);
+            this.textures.addImage(k, realTex.getSourceImage() as HTMLImageElement);
+          } else {
+            this.generateHDSpritesheet(k, c.primary, c.secondary, c.accent, c.skin, c.type);
+          }
         }
       });
     });

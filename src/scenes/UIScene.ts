@@ -136,28 +136,40 @@ export class UIScene extends Phaser.Scene {
     // Mini-mapa — Canto superior direito
     this.createMiniMap(width);
 
-    // Botões de Ações Rápidas no Topo Direito (⚙️ Configurações | 🏪 Leilão | 🛡️ Clã | 🌐 Canais | ⚔️ Grupo | 🐲 Boss)
-    const settingsBtn = this.add.text(width - 45, 12, '⚙️', { fontSize: '22px' })
+    // Dock de Ações Rápidas no Canto Superior Direito (Abaixo do Minimapa - Sem sobreposição!)
+    const dockW = 230;
+    const dockH = 38;
+    const dockX = width - dockW - 15;
+    const dockY = 148;
+
+    const dockBg = this.add.graphics();
+    dockBg.fillStyle(0x0a0614, 0.9);
+    dockBg.fillRoundedRect(dockX, dockY, dockW, dockH, 10);
+    dockBg.lineStyle(1.5, 0xffd700, 0.8);
+    dockBg.strokeRoundedRect(dockX, dockY, dockW, dockH, 10);
+
+    const btnY = dockY + 8;
+    const settingsBtn = this.add.text(dockX + 16, btnY, '⚙️', { fontSize: '18px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     settingsBtn.on('pointerdown', () => this.settingsModal.toggle());
 
-    const auctionBtn = this.add.text(width - 80, 12, '🏪', { fontSize: '22px' })
+    const auctionBtn = this.add.text(dockX + 52, btnY, '🏪', { fontSize: '18px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     auctionBtn.on('pointerdown', () => this.auctionHouseModal.toggle());
 
-    const guildBtn = this.add.text(width - 115, 12, '🛡️', { fontSize: '22px' })
+    const guildBtn = this.add.text(dockX + 88, btnY, '🛡️', { fontSize: '18px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     guildBtn.on('pointerdown', () => this.guildModal.toggle());
 
-    const channelBtn = this.add.text(width - 150, 12, '🌐', { fontSize: '22px' })
+    const channelBtn = this.add.text(dockX + 124, btnY, '🌐', { fontSize: '18px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     channelBtn.on('pointerdown', () => this.serverChannelModal.toggle());
 
-    const partyBtn = this.add.text(width - 185, 12, '⚔️', { fontSize: '22px' })
+    const partyBtn = this.add.text(dockX + 160, btnY, '⚔️', { fontSize: '18px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     partyBtn.on('pointerdown', () => this.playerInteractionModal.openForPlayer('Mestre_SirLancelot'));
 
-    const bossBtn = this.add.text(width - 220, 12, '🐲', { fontSize: '22px' })
+    const bossBtn = this.add.text(dockX + 196, btnY, '🐲', { fontSize: '18px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
     bossBtn.on('pointerdown', () => this.worldBossModal.toggle());
 

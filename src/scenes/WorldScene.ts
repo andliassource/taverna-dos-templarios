@@ -434,17 +434,17 @@ export class WorldScene extends BaseGameScene {
         if (x >= 40 && x <= 46 && y >= 36 && y <= 42) continue;
 
         const rand = Phaser.Math.Between(0, 1000);
-        if (rand < 25) { // 2.5% chance de árvore
+        if (rand < 25) { // 2.5% chance de árvore HD
           const tree = this.add.sprite(x * TILE_SIZE + 16, y * TILE_SIZE + 16, 'deco-tree');
-          tree.setScale(0.12).setOrigin(0.5, 0.85).setDepth(y + 2);
+          tree.setScale(0.65).setOrigin(0.5, 0.85).setDepth(y * TILE_SIZE + 2);
           
           this.physics.add.existing(tree, true);
-          (tree.body as Phaser.Physics.Arcade.StaticBody).setSize(30, 20).setOffset(30, 70);
+          (tree.body as Phaser.Physics.Arcade.StaticBody).setSize(36, 24).setOffset(110, 190);
           this.wallBodies!.add(tree);
           
-        } else if (rand < 60) { // 3.5% chance
+        } else if (rand < 60) { // 3.5% chance de arbusto HD
           this.add.sprite(x * TILE_SIZE + 16, y * TILE_SIZE + 16, 'deco-bush')
-            .setScale(0.08).setDepth(y + 1);
+            .setScale(0.5).setDepth(y * TILE_SIZE + 1);
         } else if (rand < 100) { // 4% chance
           this.add.sprite(x * TILE_SIZE + 16, y * TILE_SIZE + 16, 'deco-flower')
             .setScale(1.0).setDepth(y);

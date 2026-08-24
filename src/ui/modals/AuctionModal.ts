@@ -4,13 +4,14 @@ import { AuctionSystem } from '../../systems/AuctionSystem';
 import { SoundSynth } from '../../utils/SoundSynth';
 
 export class AuctionModal extends Phaser.GameObjects.Container {
-  private onClose: () => void;
+  private onClose?: () => void;
 
-  constructor(scene: Phaser.Scene, onClose: () => void) {
+  constructor(scene: Phaser.Scene, onClose?: () => void) {
     const { width, height } = scene.scale;
     super(scene, width / 2, height / 2);
     this.onClose = onClose;
     this.setDepth(210);
+    this.setVisible(false);
 
     const pw = 580;
     const ph = 420;
@@ -32,13 +33,17 @@ export class AuctionModal extends Phaser.GameObjects.Container {
     const closeBtn = scene.add.text(px + pw - 24, py + 20, '❌', { fontSize: '14px' })
       .setInteractive({ useHandCursor: true }).setOrigin(0.5);
     closeBtn.on('pointerdown', () => {
-      onClose();
-      this.destroy();
+      if (this.onClose) this.onClose();
+      this.setVisible(false);
     });
     this.add(closeBtn);
 
     scene.add.existing(this);
     this.createAuctionContent(px, py);
+  }
+
+  public toggle(): void {
+    this.setVisible(!this.visible);
   }
 
   private createAuctionContent(px: number, py: number): void {

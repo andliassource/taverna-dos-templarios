@@ -63,7 +63,20 @@ export class TalentModal extends Phaser.GameObjects.Container {
       itemBg.strokeRoundedRect(px + 20, sy, pw - 40, itemH, 6);
       this.add(itemBg);
 
-      const icon = scene.add.text(px + 45, sy + itemH / 2, t.icon, { fontSize: '22px' }).setOrigin(0.5);
+      let icon: Phaser.GameObjects.GameObject;
+      const iconMap: Record<string, string> = {
+        '⚔️': 'icon-sword', '🔮': 'icon-staff', '🏹': 'icon-bow', '🪓': 'icon-axe', '🛡️': 'icon-shield',
+        '🧪': 'icon-potion_hp', '🔵': 'icon-potion_mp', '💰': 'icon-gold', '🔥': 'icon-fireball', '✨': 'icon-heal', '🛡': 'icon-barrier', '⚡': 'icon-slash'
+      };
+      const spriteKey = iconMap[t.icon];
+      if (spriteKey && scene.textures.exists(spriteKey)) {
+        const spr = scene.add.sprite(px + 45, sy + itemH / 2, spriteKey);
+        spr.setDisplaySize(32, 32);
+        icon = spr;
+      } else {
+        icon = scene.add.text(px + 45, sy + itemH / 2, t.icon, { fontSize: '22px' }).setOrigin(0.5);
+      }
+
       const tName = scene.add.text(px + 75, sy + 10, `${t.name} (${t.points}/${t.maxPoints})`, {
         fontFamily: UI_THEME.fonts.title, fontSize: '12px', fontStyle: 'bold',
         color: t.points > 0 ? UI_THEME.colors.textGold : '#ffffff',

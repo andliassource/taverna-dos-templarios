@@ -57,7 +57,19 @@ export class QuestModal extends Phaser.GameObjects.Container {
       itemBg.strokeRoundedRect(px + 20, sy, pw - 40, itemH, 6);
       this.add(itemBg);
 
-      const icon = scene.add.text(px + 45, sy + itemH / 2, q.icon || '📜', { fontSize: '20px' }).setOrigin(0.5);
+      let icon: Phaser.GameObjects.GameObject;
+      const iconMap: Record<string, string> = {
+        '🗡️': 'icon-sword', '🔮': 'icon-staff', '🏹': 'icon-bow', '🪓': 'icon-axe', '🛡️': 'icon-shield',
+        '🧪': 'icon-potion_hp', '🔵': 'icon-potion_mp', '💰': 'icon-gold', '📜': 'icon-slash', '👑': 'icon-barrier'
+      };
+      const spriteKey = iconMap[q.icon || '📜'];
+      if (spriteKey && scene.textures.exists(spriteKey)) {
+        const spr = scene.add.sprite(px + 45, sy + itemH / 2, spriteKey);
+        spr.setDisplaySize(30, 30);
+        icon = spr;
+      } else {
+        icon = scene.add.text(px + 45, sy + itemH / 2, q.icon || '📜', { fontSize: '20px' }).setOrigin(0.5);
+      }
       const qTitle = scene.add.text(px + 70, sy + 10, q.title, {
         fontFamily: UI_THEME.fonts.title, fontSize: '12px', fontStyle: 'bold',
         color: q.completed ? UI_THEME.colors.textGold : '#ffffff',
@@ -77,7 +89,7 @@ export class QuestModal extends Phaser.GameObjects.Container {
           backgroundColor: '#008844', padding: { x: 10, y: 6 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
         claimBtn.on('pointerdown', () => {
-          qs.completeQuest(q.id);
+          (qs as any).claimReward ? (qs as any).claimReward(q.id) : (qs as any).completeQuest?.(q.id);
           SoundSynth.playClick();
           onRefresh();
         });

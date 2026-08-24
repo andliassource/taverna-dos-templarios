@@ -2754,146 +2754,22 @@ export class UIScene extends Phaser.Scene {
     if (this.isProfileOpen) { this.toggleProfileUI(); }
   }
 
-  private questUIModal: Phaser.GameObjects.Container | null = null;
+  private questUIModal: QuestModal | null = null;
 
   public toggleQuestUI(): void {
-    if (this.questUIModal) {
-      this.questUIModal.destroy();
-      this.questUIModal = null;
-      return;
+    if (!this.questUIModal) {
+      this.questUIModal = new QuestModal(this, () => this.toggleQuestUI());
     }
-
-    const { width, height } = this.scale;
-    const modal = this.add.container(width / 2, height / 2).setDepth(200);
-
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0e0818, 0.95);
-    bg.fillRoundedRect(-240, -190, 480, 380, 10);
-    bg.lineStyle(2, 0xd4a843, 1);
-    bg.strokeRoundedRect(-240, -190, 480, 380, 10);
-    modal.add(bg);
-
-    const title = this.add.text(0, -165, '📜 DIÁRIO DE MISSÕES DIÁRIAS', {
-      fontFamily: 'Cinzel', fontSize: '18px', fontStyle: 'bold', color: '#ffd700'
-    }).setOrigin(0.5);
-    modal.add(title);
-
-    const quests = QuestSystem.getInstance().getQuests();
-    const cs = this.getActiveCombatSystem();
-
-    quests.forEach((q, idx) => {
-      const cardY = -110 + idx * 85;
-      const cardBg = this.add.graphics();
-      cardBg.fillStyle(0x1a1228, 0.9);
-      cardBg.fillRoundedRect(-210, cardY, 420, 75, 6);
-      cardBg.lineStyle(1, q.completed ? 0x00ff44 : 0xd4a843, 0.6);
-      cardBg.strokeRoundedRect(-210, cardY, 420, 75, 6);
-      modal.add(cardBg);
-
-      const questTitle = this.add.text(-195, cardY + 10, `${q.icon} ${q.title} (${q.currentCount}/${q.targetCount})`, {
-        fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: q.completed ? '#00ff44' : '#ffd700'
-      });
-      modal.add(questTitle);
-
-      const desc = this.add.text(-195, cardY + 32, `${q.description}\nRecompensa: +${q.goldReward} Ouro | +${q.gemsReward} Gemas`, {
-        fontFamily: 'MedievalSharp', fontSize: '11px', color: '#ffffff'
-      });
-      modal.add(desc);
-
-      const claimText = q.claimed ? '✅ RESGATADO' : (q.completed ? '🎁 RESGATAR' : '⏳ EM PROGRESSO');
-      const claimBtn = this.add.text(145, cardY + 25, claimText, {
-        fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold',
-        color: q.claimed ? '#888888' : (q.completed ? '#00ff44' : '#aaaaaa'),
-        backgroundColor: q.completed && !q.claimed ? '#004411' : '#222222',
-        padding: { x: 8, y: 4 }
-      }).setOrigin(0.5).setInteractive({ useHandCursor: q.completed && !q.claimed });
-
-      if (q.completed && !q.claimed) {
-        claimBtn.on('pointerdown', () => {
-          if (cs && QuestSystem.getInstance().claim(q.id, cs)) {
-            SoundSynth.playLoot();
-            this.events.emit('show-notification', `🎉 Missão Concluída! +${q.goldReward} Ouro e +${q.gemsReward} Gemas!`);
-            this.toggleQuestUI();
-            this.toggleQuestUI();
-          }
-        });
-      }
-      modal.add(claimBtn);
-    });
-
-    const closeBtn = this.add.text(215, -175, '✖', {
-      fontFamily: 'Cinzel', fontSize: '16px', color: '#ff4444'
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    closeBtn.on('pointerdown', () => this.toggleQuestUI());
-    modal.add(closeBtn);
-
-    this.questUIModal = modal;
+    this.questUIModal.toggle();
   }
 
-  private craftingUIModal: Phaser.GameObjects.Container | null = null;
+  private craftingUIModal: CraftingModal | null = null;
 
   public toggleCraftingUI(): void {
-    if (this.craftingUIModal) {
-      this.craftingUIModal.destroy();
-      this.craftingUIModal = null;
-      return;
+    if (!this.craftingUIModal) {
+      this.craftingUIModal = new CraftingModal(this, () => this.toggleCraftingUI());
     }
-
-    const { width, height } = this.scale;
-    const modal = this.add.container(width / 2, height / 2).setDepth(200);
-
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0e0818, 0.95);
-    bg.fillRoundedRect(-240, -190, 480, 380, 10);
-    bg.lineStyle(2, 0xd4a843, 1);
-    bg.strokeRoundedRect(-240, -190, 480, 380, 10);
-    modal.add(bg);
-
-    const title = this.add.text(0, -165, '🔨 FORJA & CRAFTING DO FERREIRO', {
-      fontFamily: 'Cinzel', fontSize: '18px', fontStyle: 'bold', color: '#ffd700'
-    }).setOrigin(0.5);
-    modal.add(title);
-
-    const recipes = CraftingSystem.getInstance().getRecipes();
-    recipes.forEach((r, idx) => {
-      const cardY = -110 + idx * 85;
-      const cardBg = this.add.graphics();
-      cardBg.fillStyle(0x1a1228, 0.9);
-      cardBg.fillRoundedRect(-210, cardY, 420, 75, 6);
-      cardBg.lineStyle(1, 0x00ffcc, 0.6);
-      cardBg.strokeRoundedRect(-210, cardY, 420, 75, 6);
-      modal.add(cardBg);
-
-      const itemText = this.add.text(-195, cardY + 10, `${r.icon} ${r.name} (${r.resultItem.rarity})`, {
-        fontFamily: 'Cinzel', fontSize: '13px', fontStyle: 'bold', color: '#00ffcc'
-      });
-      modal.add(itemText);
-
-      const statsText = this.add.text(-195, cardY + 30, `Bônus: ${r.resultItem.statBonus}\nMateriais: ${r.materials.map(m => `${m.item} x${m.amount}`).join(', ')}`, {
-        fontFamily: 'MedievalSharp', fontSize: '11px', color: '#ffffff'
-      });
-      modal.add(statsText);
-
-      const craftBtn = this.add.text(145, cardY + 25, '🔨 FORJAR', {
-        fontFamily: 'Cinzel', fontSize: '11px', fontStyle: 'bold', color: '#ffd700',
-        backgroundColor: '#4a2c00', padding: { x: 8, y: 4 }
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-      craftBtn.on('pointerdown', () => {
-        const res = CraftingSystem.getInstance().craftItem(r.id);
-        SoundSynth.playUpgrade();
-        this.events.emit('show-notification', res.message);
-      });
-      modal.add(craftBtn);
-    });
-
-    const closeBtn = this.add.text(215, -175, '✖', {
-      fontFamily: 'Cinzel', fontSize: '16px', color: '#ff4444'
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    closeBtn.on('pointerdown', () => this.toggleCraftingUI());
-    modal.add(closeBtn);
-
-    this.craftingUIModal = modal;
+    this.craftingUIModal.toggle();
   }
 
   private guildUIModal: GuildModal | null = null;

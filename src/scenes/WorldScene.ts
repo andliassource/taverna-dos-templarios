@@ -11,6 +11,7 @@ import { BaseGameScene } from './BaseGameScene';
 import { PetEntity } from '../entities/PetEntity';
 import { RaidBossEntity } from '../entities/RaidBossEntity';
 import { WeatherSystem } from '../systems/WeatherSystem';
+import { DayNightSystem } from '../systems/DayNightSystem';
 
 /**
  * WorldScene — Cenário principal do vilarejo com gráficos HD.
@@ -103,6 +104,7 @@ export class WorldScene extends BaseGameScene {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setZoom(1.0);
     this.cameras.main.setBackgroundColor('#0d1a0d');
+    DayNightSystem.getInstance().init(this, worldW, worldH);
 
     // Ativa Shaders PostFX Unreal Engine 5 (Bloom, Depth of Field, Color Grading)
     if (this.cameras.main.postFX) {

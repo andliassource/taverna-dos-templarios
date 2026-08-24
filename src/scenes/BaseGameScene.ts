@@ -345,7 +345,8 @@ export abstract class BaseGameScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
       if (this.input.mousePointer.locked || pointer.isDown || pointer.x > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
-      this.spawnSpellProjectile('icon-slash', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0xffd700);
+      const weaponKey = this.playerClass === 'MAGE' ? 'icon-staff' : (this.playerClass === 'ARCHER' ? 'icon-bow' : (this.playerClass === 'WARRIOR' ? 'icon-axe' : 'icon-sword'));
+      EntityAnimator.playWeaponOverlaySwing(this, this.player, pointer.worldX, pointer.worldY, weaponKey);
       this.combatSystem.performMeleeAttack(this.player, this.currentDirection, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key1)) {

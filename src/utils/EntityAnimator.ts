@@ -139,6 +139,40 @@ export class EntityAnimator {
   }
 
   /**
+   * Renderiza a arma equipada HD (Espada, Arco, Cajado ou Machado) em arco de ataque de 120° na frente do herói
+   */
+  public static playWeaponOverlaySwing(scene: Phaser.Scene, player: Phaser.GameObjects.Sprite, targetX: number, targetY: number, weaponSpriteKey = 'icon-sword'): void {
+    if (!scene || !player) return;
+
+    const angle = Phaser.Math.Angle.Between(player.x, player.y, targetX, targetY);
+    const startAngle = angle - Math.PI / 3;
+    const endAngle = angle + Math.PI / 3;
+
+    const dist = 32;
+    const wx = player.x + Math.cos(startAngle) * dist;
+    const wy = player.y + Math.sin(startAngle) * dist;
+
+    const keyToUse = scene.textures.exists(weaponSpriteKey) ? weaponSpriteKey : 'icon-sword';
+    const weapon = scene.add.sprite(wx, wy, keyToUse);
+    weapon.setDisplaySize(36, 36);
+    weapon.setRotation(startAngle + Math.PI / 4);
+    weapon.setDepth(player.depth + 10);
+    weapon.setTint(0xffea99);
+
+    scene.tweens.add({
+      targets: weapon,
+      x: player.x + Math.cos(endAngle) * dist,
+      y: player.y + Math.sin(endAngle) * dist,
+      rotation: endAngle + Math.PI / 4,
+      duration: 160,
+      ease: 'Cubic.out',
+      onComplete: () => weapon.destroy()
+    });
+
+    this.createWeaponSlashArc(scene, player.x, player.y, targetX, targetY);
+  }
+
+  /**
    * Animação elástica de estocada (Squash & Stretch) do herói durante o golpe
    */
   public static playAttackLungeAndStretch(scene: Phaser.Scene, target: Phaser.GameObjects.Sprite, direction: string): void {

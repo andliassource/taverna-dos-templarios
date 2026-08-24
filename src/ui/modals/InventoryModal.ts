@@ -69,7 +69,20 @@ export class InventoryModal extends Phaser.GameObjects.Container {
 
       const item = equipped[slot.key];
       if (item) {
-        const icon = scene.add.text(eqX + 20, sy + 24, item.icon, { fontSize: '18px' }).setOrigin(0.5);
+        let icon: Phaser.GameObjects.GameObject;
+        const iconMap: Record<string, string> = {
+          '🗡️': 'icon-sword', '🔮': 'icon-staff', '🏹': 'icon-bow', '🪓': 'icon-axe', '🛡️': 'icon-shield',
+          '🧪': 'icon-potion_hp', '🔵': 'icon-potion_mp', '💰': 'icon-gold'
+        };
+        const spriteKey = iconMap[item.icon];
+        if (spriteKey && scene.textures.exists(spriteKey)) {
+          const spr = scene.add.sprite(eqX + 20, sy + 24, spriteKey);
+          spr.setDisplaySize(28, 28);
+          icon = spr;
+        } else {
+          icon = scene.add.text(eqX + 20, sy + 24, item.icon, { fontSize: '18px' }).setOrigin(0.5);
+        }
+
         let rarityColor = UI_THEME.rarity.COMMON.hex;
         if (item.rarity === 'RARE') rarityColor = UI_THEME.rarity.RARE.hex;
         if (item.rarity === 'EPIC') rarityColor = UI_THEME.rarity.EPIC.hex;
@@ -97,9 +110,22 @@ export class InventoryModal extends Phaser.GameObjects.Container {
         });
         this.add(zone);
       } else {
-        const placeholderIcon = scene.add.text(eqX + 20, sy + 24, slot.iconPlaceholder, { fontSize: '16px' }).setOrigin(0.5).setAlpha(0.25);
-        const placeholderName = scene.add.text(eqX + 44, sy + 18, `[ Vazio ]`, {
-          fontFamily: UI_THEME.fonts.title, fontSize: '10px', color: '#555555',
+        const placeholderMap: Record<string, string> = {
+          WEAPON: 'icon-sword', SHIELD: 'icon-shield', HELMET: 'icon-shield', ARMOR: 'icon-shield'
+        };
+        const pKey = placeholderMap[slot.key];
+        let placeholderIcon: Phaser.GameObjects.GameObject;
+        if (pKey && scene.textures.exists(pKey)) {
+          const spr = scene.add.sprite(eqX + 20, sy + 24, pKey);
+          spr.setDisplaySize(22, 22);
+          spr.setAlpha(0.25);
+          placeholderIcon = spr;
+        } else {
+          placeholderIcon = scene.add.text(eqX + 20, sy + 24, slot.iconPlaceholder, { fontSize: '16px' }).setOrigin(0.5).setAlpha(0.25);
+        }
+
+        const placeholderName = scene.add.text(eqX + 44, sy + 18, `[ ${slot.label} VAZIO ]`, {
+          fontFamily: UI_THEME.fonts.title, fontSize: '9px', color: '#555555',
         });
         this.add([placeholderIcon, placeholderName]);
       }

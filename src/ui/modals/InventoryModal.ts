@@ -133,9 +133,21 @@ export class InventoryModal extends Phaser.GameObjects.Container {
           slotBg.strokeRoundedRect(sx, sy, slotSize, slotSize, 4);
           this.add(slotBg);
 
-          const itemIcon = scene.add.text(sx + slotSize / 2, sy + slotSize / 2, item.icon, {
-            fontSize: '18px',
-          }).setOrigin(0.5);
+          let itemIcon: Phaser.GameObjects.GameObject;
+          const iconMap: Record<string, string> = {
+            '🗡️': 'icon-sword', '🔮': 'icon-staff', '🏹': 'icon-bow', '🪓': 'icon-axe', '🛡️': 'icon-shield',
+            '🧪': 'icon-potion_hp', '🔵': 'icon-potion_mp', '💰': 'icon-gold'
+          };
+          const spriteKey = iconMap[item.icon];
+          if (spriteKey && scene.textures.exists(spriteKey)) {
+            const spr = scene.add.sprite(sx + slotSize / 2, sy + slotSize / 2, spriteKey);
+            spr.setDisplaySize(28, 28);
+            itemIcon = spr;
+          } else {
+            itemIcon = scene.add.text(sx + slotSize / 2, sy + slotSize / 2, item.icon, {
+              fontSize: '18px',
+            }).setOrigin(0.5);
+          }
           this.add(itemIcon);
 
           if (item.quantity && item.quantity > 1) {

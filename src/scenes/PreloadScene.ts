@@ -104,6 +104,23 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('monster-shadow_wolf', monsterWolfImg);
     this.load.image('monster-demon_imp', monsterImpImg);
     this.load.image('monster-imp', monsterImpImg);
+
+    // Pacote de UI Kenney & Ícones de Itens / Habilidades (Game-Icons)
+    this.load.image('ui-frame-gold', 'src/assets/ui/ui_frame_gold.png');
+    this.load.image('ui-bar-hp', 'src/assets/ui/ui_bar_hp.png');
+    this.load.image('ui-bar-mp', 'src/assets/ui/ui_bar_mp.png');
+    this.load.image('icon-sword', 'src/assets/icons/items/sword.png');
+    this.load.image('icon-staff', 'src/assets/icons/items/staff.png');
+    this.load.image('icon-bow', 'src/assets/icons/items/bow.png');
+    this.load.image('icon-axe', 'src/assets/icons/items/axe.png');
+    this.load.image('icon-shield', 'src/assets/icons/items/shield.png');
+    this.load.image('icon-potion_hp', 'src/assets/icons/items/potion_hp.png');
+    this.load.image('icon-potion_mp', 'src/assets/icons/items/potion_mp.png');
+    this.load.image('icon-gold', 'src/assets/icons/items/gold.png');
+    this.load.image('icon-fireball', 'src/assets/icons/skills/fireball.png');
+    this.load.image('icon-heal', 'src/assets/icons/skills/heal.png');
+    this.load.image('icon-barrier', 'src/assets/icons/skills/barrier.png');
+    this.load.image('icon-slash', 'src/assets/icons/skills/slash.png');
   }
 
   create(): void {

@@ -141,20 +141,19 @@ export class PreloadScene extends Phaser.Scene {
     // 4. Partículas e Atmosfera (Ouro, Folhas, Vagalumes)
     this.createParticleTextures();
 
-    // 4. Sprites HD de monstros (64x64 com anti-aliasing)
+    // 5. Sprites HD de monstros (64x64 com anti-aliasing)
     this.createHDMonsterSprites();
 
-    // 5. Decorações HD (árvores, arbustos em alta resolução)
+    // 6. Decorações HD (árvores, arbustos em alta resolução)
     this.createHDDecorations();
 
-    // 6. Sprites de edifícios extras procedimentais
+    // 7. Sprites de edifícios extras procedimentais
     this.createBuildingSprites();
 
-    // 7. Partículas e atmosfera
-    this.createParticleTextures();
+    // 8. Atmosfera e Vignette
     this.createAtmosphericTextures();
 
-    // 8. Solos Procedurais HD
+    // 9. Solos Procedurais HD
     this.createProceduralGrounds();
 
     // 9. Animações
@@ -1636,6 +1635,8 @@ export class PreloadScene extends Phaser.Scene {
   // =====================================================
 
   private createParticleTextures(): void {
+    if (this.textures.exists('particle-gold')) return;
+
     const goldPart = this.textures.createCanvas('particle-gold', 12, 12);
     const gCtx = goldPart!.getContext();
     const gradient = gCtx.createRadialGradient(6, 6, 0, 6, 6, 6);

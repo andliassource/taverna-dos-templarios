@@ -44,6 +44,7 @@ import iconSlashImg from '../assets/icons/skills/slash.png';
 import decoWellImg from '../assets/sprites/deco_well.png';
 import decoTorchImg from '../assets/sprites/deco_torch.png';
 import villageGroundHdImg from '../assets/sprites/village_ground_hd.png';
+import arrowProjImg from '../assets/sprites/arrow_proj.png';
 
 /**
  * PreloadScene — Carrega assets HD e gera sprites de alta resolução.
@@ -71,6 +72,7 @@ export class PreloadScene extends Phaser.Scene {
     });
 
     console.log('[PreloadScene] Initializing clean assets...');
+    this.load.image('arrow-proj', arrowProjImg);
     this.load.image('procedural-village', villageGroundHdImg);
     this.load.image('tileset-raw', tilesetImg);
     this.load.image('deco-tree', treeImg);

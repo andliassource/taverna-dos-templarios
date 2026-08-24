@@ -2671,31 +2671,58 @@ export class UIScene extends Phaser.Scene {
   private createShortcutBar(width: number, height: number): void {
     const shortcuts = [
       { key: 'I', label: '🎒 [I] Inventário', action: () => this.toggleInventory() },
-      { key: 'C', label: '📜 [C] Perfil', action: () => this.toggleProfileUI() },
+      { key: 'C', label: '🛡️ [C] Perfil', action: () => this.toggleProfileUI() },
       { key: 'Q', label: '📜 [Q] Missões', action: () => this.toggleQuestUI() },
       { key: 'T', label: '🌟 [T] Talentos', action: () => this.toggleTalentTree() },
       { key: 'G', label: '🏰 [G] Guilda', action: () => this.toggleGuildUI() },
+      { key: 'L', label: '🏪 [L] Leilão', action: () => this.toggleAuctionUI() },
       { key: 'K', label: '🔨 [K] Forja', action: () => this.toggleCraftingUI() },
-      { key: 'L', label: '🏆 [L] Ranking', action: () => this.toggleLeaderboardUI() },
+      { key: 'P', label: '🐾 [P] Mascotes', action: () => this.togglePetMountUI() },
+      { key: 'ESC', label: '⚙️ [ESC] Opções', action: () => this.toggleSettingsUI() },
     ];
 
-    const barW = 580;
-    const startX = width / 2 - barW / 2;
-    const barY = height - 10;
+    const barW = 740;
+    const barH = 30;
+    const startX = (width - barW) / 2;
+    const barY = height - barH - 8;
 
+    // Fundo da Barra de Atalhos em Vidro Obsidiana Translúcido
     const bg = this.add.graphics();
-    bg.fillStyle(0x0a0614, 0.85);
-    bg.fillRoundedRect(startX, barY - 8, barW, 16, 4);
-    bg.lineStyle(1, 0xd4a843, 0.6);
-    bg.strokeRoundedRect(startX, barY - 8, barW, 16, 4);
+    bg.fillStyle(0x0a0614, 0.94);
+    bg.fillRoundedRect(startX, barY, barW, barH, 8);
+    bg.lineStyle(2, 0xffd700, 0.9);
+    bg.strokeRoundedRect(startX, barY, barW, barH, 8);
+    bg.lineStyle(1, 0x5a3e10, 0.6);
+    bg.strokeRoundedRect(startX + 2, barY + 2, barW - 4, barH - 4, 6);
+
+    const slotW = barW / shortcuts.length;
 
     shortcuts.forEach((sc, idx) => {
-      const btnX = startX + 8 + idx * 81;
-      const txt = this.add.text(btnX, barY + 1, sc.label, {
-        fontFamily: 'Cinzel', fontSize: '8.5px', fontStyle: 'bold', color: '#ffd700'
-      }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+      const btnX = startX + idx * slotW + slotW / 2;
+      const btnY = barY + barH / 2;
 
-      txt.on('pointerdown', sc.action);
+      const txt = this.add.text(btnX, btnY, sc.label, {
+        fontFamily: 'Cinzel',
+        fontSize: '10px',
+        fontStyle: 'bold',
+        color: '#ffd700',
+        stroke: '#000000',
+        strokeThickness: 2,
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+      txt.on('pointerover', () => {
+        txt.setColor('#ffffff');
+        this.tweens.add({ targets: txt, scaleX: 1.1, scaleY: 1.1, duration: 100, ease: 'Quad.out' });
+      });
+
+      txt.on('pointerout', () => {
+        txt.setColor('#ffd700');
+        this.tweens.add({ targets: txt, scaleX: 1.0, scaleY: 1.0, duration: 100, ease: 'Quad.out' });
+      });
+
+      txt.on('pointerdown', () => {
+        sc.action();
+      });
     });
 
     if (this.input.keyboard) {

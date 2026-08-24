@@ -138,6 +138,9 @@ export class PreloadScene extends Phaser.Scene {
     // 3. Retratos HD para diálogos (128x128 com gradientes e iluminação)
     this.createHDPortraits();
 
+    // 4. Partículas e Atmosfera (Ouro, Folhas, Vagalumes)
+    this.createParticleTextures();
+
     // 4. Sprites HD de monstros (64x64 com anti-aliasing)
     this.createHDMonsterSprites();
 

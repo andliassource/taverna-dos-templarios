@@ -474,9 +474,13 @@ export class UIScene extends Phaser.Scene {
     panelBg.strokeCircle(badgeX, badgeY, 22);
 
     const classStr = (this.playerClassStr || 'PALADIN').toLowerCase();
-    const heroSpriteKey = `hero-${classStr}-img`;
+    const heroSpriteKey = `hero-${classStr}-src`;
+    const sheetKey = `${classStr.toUpperCase()}-sheet`;
     if (this.textures.exists(heroSpriteKey)) {
-      const avatar = this.add.sprite(badgeX, badgeY, heroSpriteKey, 0);
+      const avatar = this.add.sprite(badgeX, badgeY, heroSpriteKey);
+      avatar.setDisplaySize(38, 38);
+    } else if (this.textures.exists(sheetKey)) {
+      const avatar = this.add.sprite(badgeX, badgeY, sheetKey, 0);
       avatar.setDisplaySize(38, 38);
     } else {
       this.add.text(badgeX, badgeY, '🛡️', { fontSize: '20px' }).setOrigin(0.5);
@@ -611,8 +615,10 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
+  private minimapGraphics!: Phaser.GameObjects.Graphics;
+
   private createMiniMap(width: number): void {
-    const mapSize = 64;
+    const mapSize = 72;
     const x = width - mapSize - 20;
     const y = 44;
 
@@ -635,20 +641,53 @@ export class UIScene extends Phaser.Scene {
       mmBg.fillCircle(cx, cy, 2);
     });
 
-    // Mapa de Terreno com Borda Interna
-    mmBg.fillStyle(0x1a3a1a, 0.75);
-    mmBg.fillRoundedRect(x, y, mapSize, mapSize, 4);
-    mmBg.lineStyle(1, 0xd4af37, 0.5);
-    mmBg.strokeRoundedRect(x, y, mapSize, mapSize, 4);
-
-    // Ponto do jogador reluzente
-    mmBg.fillStyle(0xffd700, 1);
-    mmBg.fillCircle(x + mapSize / 2, y + mapSize / 2, 3);
+    this.minimapGraphics = this.add.graphics();
 
     // Rótulo Medieval do Minimapa
     this.add.text(x + mapSize / 2, y + mapSize + 6, 'MINIMAPA', {
       fontFamily: 'Cinzel', fontSize: '8px', fontStyle: 'bold', color: '#ffd700',
     }).setOrigin(0.5);
+
+    this.time.addEvent({
+      delay: 200,
+      loop: true,
+      callback: () => this.updateMiniMap(x, y, mapSize)
+    });
+    this.updateMiniMap(x, y, mapSize);
+  }
+
+  private updateMiniMap(x: number, y: number, size: number): void {
+    if (!this.minimapGraphics) return;
+    this.minimapGraphics.clear();
+
+    // Terreno Miniatura
+    this.minimapGraphics.fillStyle(0x1e3a1e, 0.95);
+    this.minimapGraphics.fillRoundedRect(x, y, size, size, 4);
+
+    // Rio Miniatura
+    this.minimapGraphics.fillStyle(0x1f4e79, 0.9);
+    this.minimapGraphics.fillRect(x + size * 0.4, y, size * 0.2, size);
+
+    // Taverna e Edifícios (Retângulos Dourados)
+    this.minimapGraphics.fillStyle(0xd4af37, 0.9);
+    this.minimapGraphics.fillRect(x + size * 0.2, y + size * 0.2, 10, 8);
+    this.minimapGraphics.fillRect(x + size * 0.6, y + size * 0.3, 8, 6);
+
+    // Borda Interna
+    this.minimapGraphics.lineStyle(1, 0xd4af37, 0.5);
+    this.minimapGraphics.strokeRoundedRect(x, y, size, size, 4);
+
+    const worldScene = this.scene.get('WorldScene') as any;
+    if (worldScene && worldScene.player) {
+      const px = Math.min(x + size - 4, Math.max(x + 4, x + (worldScene.player.x / (160 * 32)) * size));
+      const py = Math.min(y + size - 4, Math.max(y + 4, y + (worldScene.player.y / (120 * 32)) * size));
+
+      // Ponto do Jogador Pulsante Dourado
+      this.minimapGraphics.fillStyle(0xffd700, 1);
+      this.minimapGraphics.fillCircle(px, py, 3);
+      this.minimapGraphics.lineStyle(1.5, 0xffffff, 1);
+      this.minimapGraphics.strokeCircle(px, py, 4.5);
+    }
   }
 
   private createHotbar(width: number, height: number): void {

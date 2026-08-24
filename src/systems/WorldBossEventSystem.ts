@@ -28,7 +28,7 @@ export class WorldBossEventSystem {
       id: 'boss_evt_01',
       name: '🐲 Dragão Ancião de Magma',
       location: 'Deserto de Cristal (Canal 1)',
-      isActive: true,
+      isActive: false,
       hpPercent: 78,
       timeRemainingMinutes: 14,
       topDamager: 'Mestre_SirLancelot (48.500 Dano)',

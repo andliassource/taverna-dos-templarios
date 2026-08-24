@@ -23,7 +23,7 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   width: 1280,
   height: 720,
   pixelArt: false,
-  roundPixels: true,
+  roundPixels: false,
   antialias: true,
   backgroundColor: '#0a0612',
   scale: {
@@ -63,7 +63,7 @@ export const GAME_CONFIG: Phaser.Types.Core.GameConfig = {
   render: {
     pixelArt: false,
     antialias: true,
-    roundPixels: true,
+    roundPixels: false,
   },
   pipeline: {
     UnrealPostFX: UnrealPostFX,

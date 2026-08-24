@@ -80,38 +80,15 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('tavern-building', tavernBuildingImg);
     this.load.image('forge-building', forgeBuildingImg);
 
-    // Carrega Heróis HD como Spritesheets Nativos 64x64 (4 cols x 4 rows)
-    this.load.spritesheet('PALADIN-sheet', heroPaladinImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('paladin-sheet', heroPaladinImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('hero-paladin-img', heroPaladinImg, { frameWidth: 64, frameHeight: 64 });
-
-    this.load.spritesheet('MAGE-sheet', heroMageImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('mage-sheet', heroMageImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('hero-mage-img', heroMageImg, { frameWidth: 64, frameHeight: 64 });
-
-    this.load.spritesheet('ARCHER-sheet', heroArcherImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('archer-sheet', heroArcherImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('hero-archer-img', heroArcherImg, { frameWidth: 64, frameHeight: 64 });
-
-    this.load.spritesheet('WARRIOR-sheet', heroWarriorImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('warrior-sheet', heroWarriorImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('hero-warrior-img', heroWarriorImg, { frameWidth: 64, frameHeight: 64 });
-
-    this.load.spritesheet('CLERIC-sheet', heroClericImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('cleric-sheet', heroClericImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('hero-cleric-img', heroClericImg, { frameWidth: 64, frameHeight: 64 });
-
-    this.load.spritesheet('NECROMANCER-sheet', heroNecromancerImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('necromancer-sheet', heroNecromancerImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('hero-necromancer-img', heroNecromancerImg, { frameWidth: 64, frameHeight: 64 });
-
-    this.load.spritesheet('ASSASSIN-sheet', heroAssassinImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('assassin-sheet', heroAssassinImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('hero-assassin-img', heroAssassinImg, { frameWidth: 64, frameHeight: 64 });
-
-    this.load.spritesheet('GUARDIAN-sheet', heroGuardianImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('guardian-sheet', heroGuardianImg, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet('hero-guardian-img', heroGuardianImg, { frameWidth: 64, frameHeight: 64 });
+    // Carrega Heróis HD como Imagens Base para geração dinâmica de Spritesheet Animado
+    this.load.image('hero-paladin-src', heroPaladinImg);
+    this.load.image('hero-mage-src', heroMageImg);
+    this.load.image('hero-archer-src', heroArcherImg);
+    this.load.image('hero-warrior-src', heroWarriorImg);
+    this.load.image('hero-cleric-src', heroClericImg);
+    this.load.image('hero-necromancer-src', heroNecromancerImg);
+    this.load.image('hero-assassin-src', heroAssassinImg);
+    this.load.image('hero-guardian-src', heroGuardianImg);
 
     this.load.image('menu-bg-hd', menuBgHdImg);
     this.load.image('npc-blacksmith-img', npcBlacksmithImg);
@@ -459,14 +436,14 @@ export class PreloadScene extends Phaser.Scene {
     // Checa se existe imagem HD personalizada para este personagem/NPC
     const upperKey = key.toUpperCase();
     let customImgKey = '';
-    if (upperKey.includes('PALADIN')) customImgKey = 'hero-paladin-img';
-    else if (upperKey.includes('MAGE')) customImgKey = 'hero-mage-img';
-    else if (upperKey.includes('ARCHER')) customImgKey = 'hero-archer-img';
-    else if (upperKey.includes('WARRIOR')) customImgKey = 'hero-warrior-img';
-    else if (upperKey.includes('CLERIC')) customImgKey = 'hero-cleric-img';
-    else if (upperKey.includes('NECROMANCER')) customImgKey = 'hero-necromancer-img';
-    else if (upperKey.includes('ASSASSIN')) customImgKey = 'hero-assassin-img';
-    else if (upperKey.includes('GUARDIAN')) customImgKey = 'hero-guardian-img';
+    if (upperKey.includes('PALADIN')) customImgKey = 'hero-paladin-src';
+    else if (upperKey.includes('MAGE')) customImgKey = 'hero-mage-src';
+    else if (upperKey.includes('ARCHER')) customImgKey = 'hero-archer-src';
+    else if (upperKey.includes('WARRIOR')) customImgKey = 'hero-warrior-src';
+    else if (upperKey.includes('CLERIC')) customImgKey = 'hero-cleric-src';
+    else if (upperKey.includes('NECROMANCER')) customImgKey = 'hero-necromancer-src';
+    else if (upperKey.includes('ASSASSIN')) customImgKey = 'hero-assassin-src';
+    else if (upperKey.includes('GUARDIAN')) customImgKey = 'hero-guardian-src';
     else if (upperKey.includes('BLACKSMITH')) customImgKey = 'npc-blacksmith-img';
     else if (upperKey.includes('MERCHANT')) customImgKey = 'npc-merchant-img';
     else if (upperKey.includes('MASTER')) customImgKey = 'npc-master-img';

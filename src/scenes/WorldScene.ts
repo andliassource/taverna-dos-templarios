@@ -359,9 +359,10 @@ export class WorldScene extends BaseGameScene {
     const container = this.add.container(x, y);
     container.setDepth(y / TILE_SIZE + 2);
 
-    const npcSprite = this.add.sprite(0, 0, `npc-${frameKey}`, 0);
-    npcSprite.setScale(1.2).setOrigin(0.5, 0.85).setPipeline('Light2D');
-    npcSprite.setDepth(y); // Dinâmico com Y para iso fake
+    const textureKey = frameKey.endsWith('-sheet') ? frameKey : `npc-${frameKey}-img`;
+    const npcSprite = this.add.sprite(0, 0, textureKey, 0);
+    npcSprite.setDisplaySize(48, 64).setOrigin(0.5, 0.85);
+    npcSprite.setDepth(y);
     npcSprite.setInteractive({ useHandCursor: true });
 
     // Sombra suave

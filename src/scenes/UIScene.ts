@@ -20,7 +20,7 @@ import { PetModal } from '../ui/modals/PetModal';
 import { GuildModal } from '../ui/modals/GuildModal';
 import { TalentModal } from '../ui/modals/TalentModal';
 import { GlobalChatModal } from '../ui/modals/GlobalChatModal';
-import { AuctionHouseModal } from '../ui/modals/AuctionHouseModal';
+import { AuctionModal } from '../ui/modals/AuctionModal';
 import { ServerChannelModal } from '../ui/modals/ServerChannelModal';
 import { PlayerInteractionModal } from '../ui/modals/PlayerInteractionModal';
 import { WorldBossModal } from '../ui/modals/WorldBossModal';
@@ -106,7 +106,7 @@ export class UIScene extends Phaser.Scene {
 
   private settingsModal!: SettingsModal;
   private globalChatModal!: GlobalChatModal;
-  private auctionHouseModal!: AuctionHouseModal;
+  private auctionHouseModal!: AuctionModal;
   private guildModal!: GuildModal;
   private serverChannelModal!: ServerChannelModal;
   private playerInteractionModal!: PlayerInteractionModal;
@@ -122,7 +122,7 @@ export class UIScene extends Phaser.Scene {
     // Instancia os Modais MMORPG
     this.settingsModal = new SettingsModal(this);
     this.globalChatModal = new GlobalChatModal(this);
-    this.auctionHouseModal = new AuctionHouseModal(this);
+    this.auctionHouseModal = new AuctionModal(this);
     this.guildModal = new GuildModal(this);
     this.serverChannelModal = new ServerChannelModal(this);
     this.playerInteractionModal = new PlayerInteractionModal(this);
@@ -2711,6 +2711,9 @@ export class UIScene extends Phaser.Scene {
       const pKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
       pKey.on('down', () => this.togglePetMountUI());
 
+      const lKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.L);
+      lKey.on('down', () => this.toggleAuctionUI());
+
       const escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
       escKey.on('down', () => this.closeAllModals());
     }
@@ -2866,16 +2869,21 @@ export class UIScene extends Phaser.Scene {
     this.craftingUIModal = modal;
   }
 
-  private guildUIModal: Phaser.GameObjects.Container | null = null;
+  private guildUIModal: GuildModal | null = null;
+  private auctionUIModal: AuctionModal | null = null;
 
   public toggleGuildUI(): void {
-    if (this.guildUIModal) {
-      this.guildUIModal.destroy();
-      this.guildUIModal = null;
-      return;
+    if (!this.guildUIModal) {
+      this.guildUIModal = new GuildModal(this, () => this.toggleGuildUI());
     }
+    this.guildUIModal.toggle();
+  }
 
-    this.guildUIModal = new GuildModal(this, () => this.toggleGuildUI()) as any;
+  public toggleAuctionUI(): void {
+    if (!this.auctionUIModal) {
+      this.auctionUIModal = new AuctionModal(this, () => this.toggleAuctionUI());
+    }
+    this.auctionUIModal.toggle();
   }
 
   private settingsUIModal: SettingsModal | null = null;

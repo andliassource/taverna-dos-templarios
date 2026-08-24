@@ -4,10 +4,16 @@ import { CraftingSystem } from '../../systems/CraftingSystem';
 import { SoundSynth } from '../../utils/SoundSynth';
 
 export class CraftingModal extends Phaser.GameObjects.Container {
-  constructor(scene: Phaser.Scene, onClose: () => void, onRefresh: () => void) {
+  private onClose?: () => void;
+  private onRefresh?: () => void;
+
+  constructor(scene: Phaser.Scene, onClose?: () => void, onRefresh?: () => void) {
     const { width, height } = scene.scale;
     super(scene, width / 2, height / 2);
+    this.onClose = onClose;
+    this.onRefresh = onRefresh;
     this.setDepth(210);
+    this.setVisible(false);
 
     const cs = CraftingSystem.getInstance();
     const recipes = cs.getRecipes();
@@ -16,12 +22,6 @@ export class CraftingModal extends Phaser.GameObjects.Container {
     const ph = 410;
     const px = -pw / 2;
     const py = -ph / 2;
-
-    this.setScale(0.85);
-    this.setAlpha(0);
-    scene.tweens.add({
-      targets: this, scaleX: 1, scaleY: 1, alpha: 1, duration: 200, ease: 'Back.out',
-    });
 
     const bg = scene.add.graphics();
     bg.fillStyle(UI_THEME.colors.bgDark, 0.96);
@@ -41,7 +41,10 @@ export class CraftingModal extends Phaser.GameObjects.Container {
     const closeBtn = scene.add.text(px + pw - 26, py + 14, '✖', {
       fontFamily: UI_THEME.fonts.title, fontSize: '16px', color: UI_THEME.colors.textRed
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    closeBtn.on('pointerdown', onClose);
+    closeBtn.on('pointerdown', () => {
+      if (this.onClose) this.onClose();
+      this.setVisible(false);
+    });
     this.add(closeBtn);
 
     const listY = py + 58;
@@ -92,11 +95,15 @@ export class CraftingModal extends Phaser.GameObjects.Container {
       craftBtn.on('pointerdown', () => {
         cs.craftItem(rec.id);
         SoundSynth.playClick();
-        onRefresh();
+        if (this.onRefresh) this.onRefresh();
       });
       this.add(craftBtn);
     });
 
     scene.add.existing(this);
+  }
+
+  public toggle(): void {
+    this.setVisible(!this.visible);
   }
 }

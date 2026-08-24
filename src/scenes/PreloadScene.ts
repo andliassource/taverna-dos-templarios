@@ -121,6 +121,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('icon-heal', iconHealImg);
     this.load.image('icon-barrier', iconBarrierImg);
     this.load.image('icon-slash', iconSlashImg);
+    this.load.image('pet-dragon-img', petDragonImg);
 
     // Adereços de Cenário HD (Importados via Vite)
     this.load.image('deco-well', decoWellImg);

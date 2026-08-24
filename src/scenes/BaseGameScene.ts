@@ -8,6 +8,8 @@ import { AchievementSystem } from '../systems/AchievementSystem';
 import { EntityAnimator } from '../utils/EntityAnimator';
 import { MountSystem } from '../systems/MountSystem';
 import { NetworkSystem } from '../systems/NetworkSystem';
+import { PetSystem } from '../systems/PetSystem';
+import { SoundManager } from '../audio/SoundManager';
 
 /**
  * BaseGameScene — Classe base compartilhada entre WorldScene e BattleScene.
@@ -347,30 +349,43 @@ export abstract class BaseGameScene extends Phaser.Scene {
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
       const weaponKey = this.playerClass === 'MAGE' ? 'icon-staff' : (this.playerClass === 'ARCHER' ? 'icon-bow' : (this.playerClass === 'WARRIOR' ? 'icon-axe' : 'icon-sword'));
       EntityAnimator.playWeaponOverlaySwing(this, this.player, pointer.worldX, pointer.worldY, weaponKey);
+      
+      if (this.playerClass === 'ARCHER') {
+        SoundManager.getInstance().playArrowShoot();
+      } else if (this.playerClass === 'MAGE') {
+        SoundManager.getInstance().playFireballCast();
+      } else {
+        SoundManager.getInstance().playSwordSlash();
+      }
+
       this.combatSystem.performMeleeAttack(this.player, this.currentDirection, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key1)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
       this.spawnSpellProjectile('icon-fireball', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0xff4400);
+      SoundManager.getInstance().playFireballCast();
       this.combatSystem.castActiveSkill(0, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key2)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
       this.spawnSpellProjectile('icon-barrier', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0x00ffff);
+      SoundManager.getInstance().playFireballCast();
       this.combatSystem.castActiveSkill(1, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key3)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
       this.spawnSpellProjectile('icon-heal', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0x00ff88);
+      SoundManager.getInstance().playLevelUp();
       this.combatSystem.castActiveSkill(2, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key4)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
       this.spawnSpellProjectile('icon-slash', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0xffaa00);
+      SoundManager.getInstance().playSwordSlash();
       this.combatSystem.castActiveSkill(3, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.shiftKey)) {
@@ -435,6 +450,42 @@ export abstract class BaseGameScene extends Phaser.Scene {
     }
 
     NetworkSystem.getInstance().update(time);
+    this.updatePetCompanion();
+  }
+
+  protected petSprite?: Phaser.GameObjects.Sprite;
+
+  protected updatePetCompanion(): void {
+    if (!this.player) return;
+    const activePet = PetSystem.getInstance().getActivePet();
+    if (!activePet) {
+      if (this.petSprite) { this.petSprite.destroy(); this.petSprite = undefined; }
+      return;
+    }
+
+    const petId = activePet.id;
+
+    if (!this.petSprite) {
+      const texKey = petId === 'dragon' ? 'pet-dragon-img' : 'monster_wolf';
+      this.petSprite = this.add.sprite(this.player.x - 24, this.player.y - 24, texKey);
+      this.petSprite.setDisplaySize(32, 32);
+      this.petSprite.setDepth(this.player.depth - 1);
+
+      this.tweens.add({
+        targets: this.petSprite,
+        y: '+=4',
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+    } else {
+      const targetX = this.player.x - (this.currentDirection === 'right' ? 28 : -28);
+      const targetY = this.player.y - 12;
+      this.petSprite.x = Phaser.Math.Linear(this.petSprite.x, targetX, 0.08);
+      this.petSprite.y = Phaser.Math.Linear(this.petSprite.y, targetY, 0.08);
+      this.petSprite.setDepth(this.player.depth - 1);
+    }
   }
 
   protected spawnFootstepDust(): void {

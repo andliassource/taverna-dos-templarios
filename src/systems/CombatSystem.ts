@@ -297,13 +297,20 @@ export class CombatSystem {
 
     // Brilho sob o item
     const glow = this.scene.add.graphics();
-    glow.fillStyle(0xffd700, 0.3);
+    glow.fillStyle(0xffd700, 0.4);
     glow.fillCircle(0, 0, 10);
 
-    // Ícone da moeda de ouro
-    const coin = this.scene.add.text(0, 0, '🪙', { fontSize: '12px' }).setOrigin(0.5);
+    // Ícone da moeda de ouro HD
+    let coinIcon: Phaser.GameObjects.GameObject;
+    if (this.scene.textures.exists('icon-gold')) {
+      const spr = this.scene.add.sprite(0, 0, 'icon-gold');
+      spr.setDisplaySize(20, 20);
+      coinIcon = spr;
+    } else {
+      coinIcon = this.scene.add.text(0, 0, '🪙', { fontSize: '12px' }).setOrigin(0.5);
+    }
 
-    container.add([glow, coin]);
+    container.add([glow, coinIcon]);
 
     // Animação de flutuação
     this.scene.tweens.add({
@@ -361,8 +368,21 @@ export class CombatSystem {
       });
     }
 
-    const box = this.scene.add.text(0, 0, '🎁', { fontSize: '13px' }).setOrigin(0.5);
-    container.add([glow, box]);
+    const iconMap: Record<string, string> = {
+      '🗡️': 'icon-sword', '🔮': 'icon-staff', '🏹': 'icon-bow', '🪓': 'icon-axe', '🛡️': 'icon-shield',
+      '🧪': 'icon-potion_hp', '🔵': 'icon-potion_mp', '💰': 'icon-gold'
+    };
+    const sKey = iconMap[item.icon] ?? 'icon-sword';
+    let itemIcon: Phaser.GameObjects.GameObject;
+    if (this.scene.textures.exists(sKey)) {
+      const spr = this.scene.add.sprite(0, 0, sKey);
+      spr.setDisplaySize(22, 22);
+      itemIcon = spr;
+    } else {
+      itemIcon = this.scene.add.text(0, 0, '🎁', { fontSize: '13px' }).setOrigin(0.5);
+    }
+
+    container.add([glow, itemIcon]);
 
     // Animação flutuante
     this.scene.tweens.add({

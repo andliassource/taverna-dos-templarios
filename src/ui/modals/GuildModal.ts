@@ -1,125 +1,118 @@
 import Phaser from 'phaser';
+import { UI_THEME } from '../../config/theme.config';
 import { GuildSystem } from '../../systems/GuildSystem';
 import { SoundSynth } from '../../utils/SoundSynth';
 
-export class GuildModal {
-  private scene: Phaser.Scene;
-  private container!: Phaser.GameObjects.Container;
-  private isVisible = false;
+export class GuildModal extends Phaser.GameObjects.Container {
+  private onClose: () => void;
 
-  constructor(scene: Phaser.Scene) {
-    this.scene = scene;
-    this.createGuildUI();
+  constructor(scene: Phaser.Scene, onClose: () => void) {
+    const { width, height } = scene.scale;
+    super(scene, width / 2, height / 2);
+    this.onClose = onClose;
+    this.setDepth(210);
+
+    const pw = 560;
+    const ph = 420;
+    const px = -pw / 2;
+    const py = -ph / 2;
+
+    const bg = scene.add.graphics();
+    bg.fillStyle(0x0a0618, 0.95);
+    bg.fillRoundedRect(px, py, pw, ph, 12);
+    bg.lineStyle(2, 0xffd700, 0.9);
+    bg.strokeRoundedRect(px, py, pw, ph, 12);
+    this.add(bg);
+
+    const title = scene.add.text(0, py + 24, '🏰 GUILDA & CLÃ TEMPLÁRIO', {
+      fontFamily: UI_THEME.fonts.title, fontSize: '16px', color: '#ffd700', fontStyle: 'bold'
+    }).setOrigin(0.5);
+    this.add(title);
+
+    const closeBtn = scene.add.text(px + pw - 24, py + 20, '❌', { fontSize: '14px' })
+      .setInteractive({ useHandCursor: true }).setOrigin(0.5);
+    closeBtn.on('pointerdown', () => {
+      onClose();
+      this.destroy();
+    });
+    this.add(closeBtn);
+
+    scene.add.existing(this);
+    this.createGuildContent(px, py);
   }
 
-  private createGuildUI(): void {
-    const width = 500;
-    const height = 360;
-    const x = (this.scene.scale.width - width) / 2;
-    const y = (this.scene.scale.height - height) / 2;
+  private createGuildContent(px: number, py: number): void {
 
-    this.container = this.scene.add.container(x, y).setDepth(2100).setScrollFactor(0).setVisible(false);
+    const guild = GuildSystem.getInstance().getGuild();
 
-    // Fundo de Vidro Obsidiana Translúcido com Moldura Dourada
-    const bg = this.scene.add.graphics();
-    bg.fillStyle(0x0a0614, 0.95);
-    bg.fillRoundedRect(0, 0, width, height, 14);
-    bg.lineStyle(2, 0xffd700, 1);
-    bg.strokeRoundedRect(0, 0, width, height, 14);
-    this.container.add(bg);
+    if (!guild) {
+      const text = this.scene.add.text(0, -30, 'Você não possui uma Guilda!', {
+        fontFamily: UI_THEME.fonts.title, fontSize: '14px', color: '#ffffff'
+      }).setOrigin(0.5);
+      this.add(text);
+      return;
+    }
 
-    const system = GuildSystem.getInstance();
-    const guild = system.getCurrentGuild();
-
-    if (!guild) return;
-
-    // Título do Clã
-    const title = this.scene.add.text(width / 2, 24, `${guild.emblem} [${guild.tag}] ${guild.name} (Lv.${guild.level})`, {
-      fontFamily: 'Cinzel',
-      fontSize: '16px',
-      fontStyle: 'bold',
-      color: '#ffd700',
-    }).setOrigin(0.5);
-    this.container.add(title);
-
-    // Mensagem do Dia (MOTD) & Tesouro
-    const infoText = this.scene.add.text(24, 50, `📢 MOTD: "${guild.motd}"\n💰 Tesouro do Clã: ${guild.goldTreasury} Ouro`, {
-      fontFamily: 'Inter',
-      fontSize: '11px',
-      color: '#cccccc',
+    // Header da Guilda
+    const titleText = this.scene.add.text(px + 40, py + 55, `[${guild.tag}] ${guild.name}`, {
+      fontFamily: UI_THEME.fonts.title, fontSize: '15px', color: '#ffd700', fontStyle: 'bold'
     });
-    this.container.add(infoText);
 
-    // Botão de Doação
-    const donateBtn = this.scene.add.text(width - 140, 52, '💰 DOAR 500 OURO', {
-      fontFamily: 'Cinzel',
-      fontSize: '10px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      backgroundColor: '#1b5e20',
-      padding: { x: 8, y: 5 },
-    }).setInteractive({ useHandCursor: true });
-
-    donateBtn.on('pointerdown', () => {
-      const activeScene = (this.scene as any).getActiveGameScene?.();
-      const cs = (this.scene as any).getActiveCombatSystem?.();
-      if (cs && cs.getGold() >= 500) {
-        cs.addGold(-500);
-        system.depositGold(500);
-        SoundSynth.playUpgrade();
-        this.scene.events.emit('show-notification', '🎉 Você doou 500 Ouro para o Tesouro do Clã!');
-        infoText.setText(`📢 MOTD: "${guild.motd}"\n💰 Tesouro do Clã: ${guild.goldTreasury} Ouro`);
-      } else {
-        SoundSynth.playUpgrade();
-        this.scene.events.emit('show-notification', '⚠️ Ouro insuficiente para doar ao Clã!');
-      }
+    const infoText = this.scene.add.text(px + 40, py + 78, `Nível ${guild.level}  |  Membros: ${guild.members.length}/${guild.maxMembers}  |  EXP: ${guild.exp}`, {
+      fontFamily: UI_THEME.fonts.body, fontSize: '11px', color: '#aaaaaa'
     });
-    this.container.add(donateBtn);
 
-    // Linha Divisória
-    const line = this.scene.add.graphics();
-    line.lineStyle(1, 0xffd700, 0.5);
-    line.lineBetween(20, 90, width - 20, 90);
-    this.container.add(line);
-
-    // Título da Lista de Membros
-    const memTitle = this.scene.add.text(24, 98, 'MEMBROS DA GUILDA', {
-      fontFamily: 'Cinzel', fontSize: '12px', fontStyle: 'bold', color: '#ffd700',
+    const motdText = this.scene.add.text(px + 40, py + 98, `💬 "${guild.motd}"`, {
+      fontFamily: UI_THEME.fonts.body, fontSize: '11px', color: '#87ceeb', fontStyle: 'italic'
     });
-    this.container.add(memTitle);
+
+    this.add([titleText, infoText, motdText]);
 
     // Lista de Membros
+    const memberY = py + 130;
     guild.members.forEach((m, idx) => {
-      const rowY = 120 + idx * 55;
+      const yPos = memberY + idx * 36;
+      const bg = this.scene.add.graphics();
+      bg.fillStyle(0x1a0d33, 0.85);
+      bg.fillRoundedRect(px + 40, yPos, 480, 30, 4);
+      bg.lineStyle(1, 0x4a2d6e, 0.6);
+      bg.strokeRoundedRect(px + 40, yPos, 480, 30, 4);
 
-      const rowBg = this.scene.add.graphics();
-      rowBg.fillStyle(0x160c28, 0.8);
-      rowBg.fillRoundedRect(20, rowY, width - 40, 48, 6);
-      rowBg.lineStyle(1, 0x5a3e10, 0.5);
-      rowBg.strokeRoundedRect(20, rowY, width - 40, 48, 6);
-      this.container.add(rowBg);
-
-      let roleColor = '#ffffff';
-      if (m.role === 'MASTER') roleColor = '#ffd700';
-      if (m.role === 'OFFICER') roleColor = '#33ccff';
-
-      const memberTxt = this.scene.add.text(32, rowY + 14, `⚔️ ${m.name} (Lv.${m.level} ${m.classType}) — [${m.role}]`, {
-        fontFamily: 'Inter', fontSize: '11.5px', fontStyle: 'bold', color: roleColor,
+      const name = this.scene.add.text(px + 55, yPos + 7, m.name, {
+        fontFamily: UI_THEME.fonts.body, fontSize: '12px', color: m.role === 'Mestre' ? '#ffd700' : '#ffffff'
       });
-      this.container.add(memberTxt);
+
+      const role = this.scene.add.text(px + 280, yPos + 7, `[${m.role}]`, {
+        fontFamily: UI_THEME.fonts.hud, fontSize: '11px', color: '#9b59b6'
+      });
+
+      const contrib = this.scene.add.text(px + 410, yPos + 7, `+${m.contribution} EXP`, {
+        fontFamily: UI_THEME.fonts.hud, fontSize: '11px', color: '#2ecc71'
+      });
+
+      this.add([bg, name, role, contrib]);
     });
 
-    // Botão Fechar
-    const closeBtn = this.scene.add.text(width / 2, height - 25, '✖️ FECHAR', {
-      fontFamily: 'Cinzel', fontSize: '12px', fontStyle: 'bold', color: '#ff4444',
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    // Botão Doar Ouro para a Guilda
+    const btnY = py + 360;
+    const btnBg = this.scene.add.graphics();
+    btnBg.fillStyle(0xd4a843, 1);
+    btnBg.fillRoundedRect(-100, btnY, 200, 36, 6);
+    btnBg.lineStyle(2, 0xffffd0, 1);
+    btnBg.strokeRoundedRect(-100, btnY, 200, 36, 6);
 
-    closeBtn.on('pointerdown', () => this.toggle());
-    this.container.add(closeBtn);
-  }
+    const btnText = this.scene.add.text(0, btnY + 18, '💰 DOAR 100 OURO', {
+      fontFamily: UI_THEME.fonts.title, fontSize: '12px', color: '#0a0612', fontStyle: 'bold'
+    }).setOrigin(0.5);
 
-  public toggle(): void {
-    this.isVisible = !this.isVisible;
-    this.container.setVisible(this.isVisible);
+    const btnZone = this.scene.add.zone(0, btnY + 18, 200, 36).setInteractive({ useHandCursor: true });
+    btnZone.on('pointerdown', () => {
+      GuildSystem.getInstance().contribute(100);
+      SoundSynth.playBuy();
+      this.destroy();
+      new GuildModal(this.scene, this.onClose);
+    });
+
+    this.add([btnBg, btnText, btnZone]);
   }
 }

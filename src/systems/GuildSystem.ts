@@ -1,30 +1,43 @@
+/**
+ * GuildSystem — Gerenciador de Guildas e Clãs do MMORPG
+ */
 export interface GuildMember {
-  uid: string;
+  id: string;
   name: string;
-  classType: string;
+  role: 'Mestre' | 'Oficial' | 'Membro';
   level: number;
-  role: 'MASTER' | 'OFFICER' | 'MEMBER';
-  joinedAt: string;
+  contribution: number;
 }
 
 export interface GuildData {
   id: string;
   name: string;
   tag: string;
-  emblem: string;
   level: number;
-  goldTreasury: number;
+  exp: number;
+  maxMembers: number;
+  motd: string;
   members: GuildMember[];
-  motd: string; // Message of the Day
 }
 
 export class GuildSystem {
   private static instance: GuildSystem;
-  private currentGuild: GuildData | null = null;
+  private currentGuild: GuildData | null = {
+    id: 'templars_order',
+    name: 'Ordem dos Templários',
+    tag: 'TPL',
+    level: 5,
+    exp: 4200,
+    maxMembers: 30,
+    motd: 'Unidos pela Luz Sagrada! Batalhas e Glória nos aguardam!',
+    members: [
+      { id: '1', name: 'Mestre Sir Arthur', role: 'Mestre', level: 85, contribution: 12500 },
+      { id: '2', name: 'Lady Eleanor', role: 'Oficial', level: 78, contribution: 8400 },
+      { id: '3', name: 'Templário (Você)', role: 'Membro', level: 42, contribution: 3200 },
+    ],
+  };
 
-  private constructor() {
-    this.initDefaultGuild();
-  }
+  private constructor() {}
 
   public static getInstance(): GuildSystem {
     if (!GuildSystem.instance) {
@@ -33,32 +46,36 @@ export class GuildSystem {
     return GuildSystem.instance;
   }
 
-  private initDefaultGuild(): void {
-    this.currentGuild = {
-      id: 'guild_001',
-      name: 'Ordem dos Templários',
-      tag: 'TEMPLAR',
-      emblem: '🛡️',
-      level: 5,
-      goldTreasury: 25000,
-      motd: 'Unidos pela Luz Templária! Evento de Raid às 20h!',
-      members: [
-        { uid: 'm1', name: 'Mestre_SirLancelot', classType: 'PALADIN', level: 60, role: 'MASTER', joinedAt: '2026-01-01' },
-        { uid: 'm2', name: 'Lady_Merlin', classType: 'MAGE', level: 58, role: 'OFFICER', joinedAt: '2026-01-05' },
-        { uid: 'm3', name: 'Você (Templário)', classType: 'PALADIN', level: 12, role: 'MEMBER', joinedAt: '2026-08-20' },
-      ],
-    };
-  }
-
-  public getCurrentGuild(): GuildData | null {
+  public getGuild(): GuildData | null {
     return this.currentGuild;
   }
 
-  public depositGold(amount: number): boolean {
-    if (this.currentGuild) {
-      this.currentGuild.goldTreasury += amount;
-      return true;
+  public createGuild(name: string, tag: string): boolean {
+    if (this.currentGuild) return false;
+    this.currentGuild = {
+      id: `guild_${Date.now()}`,
+      name,
+      tag: tag.toUpperCase(),
+      level: 1,
+      exp: 0,
+      maxMembers: 20,
+      motd: 'Bem-vindos à nova guilda!',
+      members: [
+        { id: '3', name: 'Templário (Você)', role: 'Mestre', level: 42, contribution: 0 }
+      ],
+    };
+    return true;
+  }
+
+  public contribute(gold: number): void {
+    if (!this.currentGuild) return;
+    this.currentGuild.exp += gold;
+    const userMember = this.currentGuild.members.find(m => m.id === '3');
+    if (userMember) userMember.contribution += gold;
+
+    if (this.currentGuild.exp >= this.currentGuild.level * 2000) {
+      this.currentGuild.level++;
+      this.currentGuild.maxMembers += 5;
     }
-    return false;
   }
 }

@@ -243,6 +243,24 @@ export class WorldScene extends BaseGameScene {
 
     const shopWall = this.add.rectangle(16 * TILE_SIZE, 17 * TILE_SIZE, 5 * TILE_SIZE, 2.5 * TILE_SIZE, 0, 0);
     this.wallBodies!.add(shopWall);
+
+    // --- POÇO DA PRAÇA CENTRAL DO VILAREJO ---
+    const well = this.add.image(25 * TILE_SIZE, 18.5 * TILE_SIZE, 'deco-well');
+    well.setDisplaySize(64, 64);
+    well.setDepth(18.5 * TILE_SIZE);
+    well.setOrigin(0.5, 0.5);
+
+    // --- TOCHAS COM CHAMAS ANIMADAS NA ENTRADA DA TAVERNA E DA PRAÇA ---
+    [
+      { x: 22 * TILE_SIZE, y: 15 * TILE_SIZE },
+      { x: 28 * TILE_SIZE, y: 15 * TILE_SIZE },
+      { x: 15 * TILE_SIZE, y: 24 * TILE_SIZE },
+      { x: 35 * TILE_SIZE, y: 24 * TILE_SIZE },
+    ].forEach((t) => {
+      const torch = this.add.sprite(t.x, t.y, 'deco-torch');
+      torch.play('torch-flame');
+      torch.setDepth(t.y / TILE_SIZE + 1);
+    });
   }
 
   private createWorldNPCs(): void {

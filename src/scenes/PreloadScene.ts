@@ -121,6 +121,10 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('icon-heal', 'src/assets/icons/skills/heal.png');
     this.load.image('icon-barrier', 'src/assets/icons/skills/barrier.png');
     this.load.image('icon-slash', 'src/assets/icons/skills/slash.png');
+
+    // Adereços de Cenário HD (Tochas com Chamas Animadas e Poço Artesiano)
+    this.load.image('deco-well', 'src/assets/sprites/deco_well.png');
+    this.load.spritesheet('deco-torch', 'src/assets/sprites/deco_torch.png', { frameWidth: 32, frameHeight: 32 });
   }
 
   create(): void {
@@ -400,6 +404,16 @@ export class PreloadScene extends Phaser.Scene {
         }
       });
     });
+
+    // Animação de Fogo para Tochas do Cenário
+    if (!this.anims.exists('torch-flame')) {
+      this.anims.create({
+        key: 'torch-flame',
+        frames: this.anims.generateFrameNumbers('deco-torch', { start: 0, end: 3 }),
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
   }
 
   private generateHDSpritesheet(

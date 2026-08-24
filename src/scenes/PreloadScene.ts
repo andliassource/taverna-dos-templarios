@@ -25,6 +25,25 @@ import monsterWolfImg from '../assets/sprites/monster_wolf.png';
 import bossMalakorImg from '../assets/sprites/boss_malakor.png';
 import petDragonImg from '../assets/sprites/pet_dragon.png';
 
+// Novos Assets Kenney UI, Game-Icons e Adereços Importados
+import uiFrameGoldImg from '../assets/ui/ui_frame_gold.png';
+import uiBarHpImg from '../assets/ui/ui_bar_hp.png';
+import uiBarMpImg from '../assets/ui/ui_bar_mp.png';
+import iconSwordImg from '../assets/icons/items/sword.png';
+import iconStaffImg from '../assets/icons/items/staff.png';
+import iconBowImg from '../assets/icons/items/bow.png';
+import iconAxeImg from '../assets/icons/items/axe.png';
+import iconShieldImg from '../assets/icons/items/shield.png';
+import iconPotionHpImg from '../assets/icons/items/potion_hp.png';
+import iconPotionMpImg from '../assets/icons/items/potion_mp.png';
+import iconGoldImg from '../assets/icons/items/gold.png';
+import iconFireballImg from '../assets/icons/skills/fireball.png';
+import iconHealImg from '../assets/icons/skills/heal.png';
+import iconBarrierImg from '../assets/icons/skills/barrier.png';
+import iconSlashImg from '../assets/icons/skills/slash.png';
+import decoWellImg from '../assets/sprites/deco_well.png';
+import decoTorchImg from '../assets/sprites/deco_torch.png';
+
 /**
  * PreloadScene — Carrega assets HD e gera sprites de alta resolução.
  * NENHUM pixel art de 16-bit. Tudo é renderizado com anti-aliasing e gradientes suaves.
@@ -105,26 +124,26 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('monster-demon_imp', monsterImpImg);
     this.load.image('monster-imp', monsterImpImg);
 
-    // Pacote de UI Kenney & Ícones de Itens / Habilidades (Game-Icons)
-    this.load.image('ui-frame-gold', 'src/assets/ui/ui_frame_gold.png');
-    this.load.image('ui-bar-hp', 'src/assets/ui/ui_bar_hp.png');
-    this.load.image('ui-bar-mp', 'src/assets/ui/ui_bar_mp.png');
-    this.load.image('icon-sword', 'src/assets/icons/items/sword.png');
-    this.load.image('icon-staff', 'src/assets/icons/items/staff.png');
-    this.load.image('icon-bow', 'src/assets/icons/items/bow.png');
-    this.load.image('icon-axe', 'src/assets/icons/items/axe.png');
-    this.load.image('icon-shield', 'src/assets/icons/items/shield.png');
-    this.load.image('icon-potion_hp', 'src/assets/icons/items/potion_hp.png');
-    this.load.image('icon-potion_mp', 'src/assets/icons/items/potion_mp.png');
-    this.load.image('icon-gold', 'src/assets/icons/items/gold.png');
-    this.load.image('icon-fireball', 'src/assets/icons/skills/fireball.png');
-    this.load.image('icon-heal', 'src/assets/icons/skills/heal.png');
-    this.load.image('icon-barrier', 'src/assets/icons/skills/barrier.png');
-    this.load.image('icon-slash', 'src/assets/icons/skills/slash.png');
+    // Pacote de UI Kenney & Ícones de Itens / Habilidades (Importados via Vite)
+    this.load.image('ui-frame-gold', uiFrameGoldImg);
+    this.load.image('ui-bar-hp', uiBarHpImg);
+    this.load.image('ui-bar-mp', uiBarMpImg);
+    this.load.image('icon-sword', iconSwordImg);
+    this.load.image('icon-staff', iconStaffImg);
+    this.load.image('icon-bow', iconBowImg);
+    this.load.image('icon-axe', iconAxeImg);
+    this.load.image('icon-shield', iconShieldImg);
+    this.load.image('icon-potion_hp', iconPotionHpImg);
+    this.load.image('icon-potion_mp', iconPotionMpImg);
+    this.load.image('icon-gold', iconGoldImg);
+    this.load.image('icon-fireball', iconFireballImg);
+    this.load.image('icon-heal', iconHealImg);
+    this.load.image('icon-barrier', iconBarrierImg);
+    this.load.image('icon-slash', iconSlashImg);
 
-    // Adereços de Cenário HD (Tochas com Chamas Animadas e Poço Artesiano)
-    this.load.image('deco-well', 'src/assets/sprites/deco_well.png');
-    this.load.spritesheet('deco-torch', 'src/assets/sprites/deco_torch.png', { frameWidth: 32, frameHeight: 32 });
+    // Adereços de Cenário HD (Importados via Vite)
+    this.load.image('deco-well', decoWellImg);
+    this.load.spritesheet('deco-torch', decoTorchImg, { frameWidth: 32, frameHeight: 32 });
   }
 
   create(): void {

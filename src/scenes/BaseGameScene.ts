@@ -312,6 +312,31 @@ export abstract class BaseGameScene extends Phaser.Scene {
     else this.currentDirection = 'left';
   }
 
+  protected spawnSpellProjectile(iconKey: string, startX: number, startY: number, targetX: number, targetY: number, color: number): void {
+    if (this.textures.exists(iconKey)) {
+      const proj = this.add.sprite(startX, startY, iconKey);
+      proj.setDisplaySize(32, 32);
+      proj.setDepth(startY / 16 + 50);
+
+      const angle = Phaser.Math.Angle.Between(startX, startY, targetX, targetY);
+      proj.setRotation(angle);
+
+      this.tweens.add({
+        targets: proj,
+        x: targetX,
+        y: targetY,
+        duration: 350,
+        ease: 'Cubic.out',
+        onComplete: () => {
+          EntityAnimator.playMagicalShockwaveEffect(this, targetX, targetY, color);
+          proj.destroy();
+        }
+      });
+    } else {
+      EntityAnimator.playMagicalShockwaveEffect(this, startX, startY, color);
+    }
+  }
+
   protected handleMovementInput(time: number): void {
     if (!this.cursors || !this.player || this.combatSystem.getHP() <= 0) return;
 
@@ -320,30 +345,31 @@ export abstract class BaseGameScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
       if (this.input.mousePointer.locked || pointer.isDown || pointer.x > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
+      this.spawnSpellProjectile('icon-slash', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0xffd700);
       this.combatSystem.performMeleeAttack(this.player, this.currentDirection, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key1)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
-      EntityAnimator.playMagicalShockwaveEffect(this, this.player.x, this.player.y, 0x00ffff);
+      this.spawnSpellProjectile('icon-fireball', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0xff4400);
       this.combatSystem.castActiveSkill(0, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key2)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
-      EntityAnimator.playMagicalShockwaveEffect(this, this.player.x, this.player.y, 0xff8800);
+      this.spawnSpellProjectile('icon-barrier', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0x00ffff);
       this.combatSystem.castActiveSkill(1, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key3)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
-      EntityAnimator.playMagicalShockwaveEffect(this, this.player.x, this.player.y, 0xaa00ff);
+      this.spawnSpellProjectile('icon-heal', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0x00ff88);
       this.combatSystem.castActiveSkill(2, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.key4)) {
       if (pointer.x > 0 || pointer.y > 0) this.aimAtPointer(pointer.worldX, pointer.worldY);
       EntityAnimator.playAttackLungeAndStretch(this, this.player, this.currentDirection);
-      EntityAnimator.playMagicalShockwaveEffect(this, this.player.x, this.player.y, 0xffd700);
+      this.spawnSpellProjectile('icon-slash', this.player.x, this.player.y, pointer.worldX, pointer.worldY, 0xffaa00);
       this.combatSystem.castActiveSkill(3, this.player, pointer.worldX, pointer.worldY, time);
     }
     if (Phaser.Input.Keyboard.JustDown(this.shiftKey)) {

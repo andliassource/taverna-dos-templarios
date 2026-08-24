@@ -473,7 +473,14 @@ export class UIScene extends Phaser.Scene {
     panelBg.lineStyle(2, 0xffd700, 1);
     panelBg.strokeCircle(badgeX, badgeY, 22);
 
-    this.add.text(badgeX, badgeY, '🛡️', { fontSize: '20px' }).setOrigin(0.5);
+    const classStr = (this.playerClassStr || 'PALADIN').toLowerCase();
+    const heroSpriteKey = `hero-${classStr}-img`;
+    if (this.textures.exists(heroSpriteKey)) {
+      const avatar = this.add.sprite(badgeX, badgeY, heroSpriteKey, 0);
+      avatar.setDisplaySize(38, 38);
+    } else {
+      this.add.text(badgeX, badgeY, '🛡️', { fontSize: '20px' }).setOrigin(0.5);
+    }
 
     // Nome e Nível do Jogador
     const displayName = FirebaseService.currentUser?.displayName ?? 'Templário';
@@ -759,45 +766,74 @@ export class UIScene extends Phaser.Scene {
   }
 
   private updateHotbarSkills(): void {
-    const activeScene = this.getActiveGameScene();
-    const cs = activeScene?.combatSystem;
-    if (!cs) return;
-
-    const activeSkills = cs.getActiveSkills();
-
     // Slot 0 (Ataque Básico) - Fixo por classe
-    if (this.skillSlots[0]) {
-      const basicIcons: Record<string, string> = {
-        PALADIN: '⚔️', MAGE: '🔮', ARCHER: '🏹', ASSASSIN: '🗡️'
-      };
-      this.skillSlots[0].iconText.setText(basicIcons[this.playerClassStr] || '⚔️');
-      this.skillSlots[0].nameText.setText('Ataque');
-      this.skillSlots[0].keyText.setText('Esp');
-    }
+    const basicIconMap: Record<string, string> = {
+      PALADIN: 'icon-sword', MAGE: 'icon-staff', ARCHER: 'icon-bow', ASSASSIN: 'icon-sword',
+      WARRIOR: 'icon-axe', CLERIC: 'icon-staff', NECROMANCER: 'icon-staff', GUARDIAN: 'icon-shield'
+    };
+    const basicKey = basicIconMap[this.playerClassStr] || 'icon-sword';
+    this.setSlotSprite(0, basicKey, 'Ataque', 'Esp');
 
-    // Slots 1 a 4
+    // Default HD Skill Mapping per Class
+    const classSkillsMap: Record<string, Array<{ icon: string; name: string }>> = {
+      MAGE: [
+        { icon: 'icon-fireball', name: 'Bola de Fogo' },
+        { icon: 'icon-barrier', name: 'Barreira Arcana' },
+        { icon: 'icon-heal', name: 'Regeneração' },
+        { icon: 'icon-slash', name: 'Explosão' }
+      ],
+      PALADIN: [
+        { icon: 'icon-slash', name: 'Golpe Divino' },
+        { icon: 'icon-barrier', name: 'Escudo Sagrado' },
+        { icon: 'icon-heal', name: 'Luz Divina' },
+        { icon: 'icon-fireball', name: 'Julgamento' }
+      ],
+      ARCHER: [
+        { icon: 'icon-slash', name: 'Tiro Certeiro' },
+        { icon: 'icon-barrier', name: 'Esquiva' },
+        { icon: 'icon-fireball', name: 'Flecha Incendiária' },
+        { icon: 'icon-heal', name: 'Curativo' }
+      ]
+    };
+
+    const fallbackSkills = [
+      { icon: 'icon-slash', name: 'Golpe' },
+      { icon: 'icon-fireball', name: 'Magia' },
+      { icon: 'icon-barrier', name: 'Escudo' },
+      { icon: 'icon-heal', name: 'Cura' }
+    ];
+
+    const skills = classSkillsMap[this.playerClassStr] || fallbackSkills;
+
     for (let i = 0; i < 4; i++) {
-      const slot = this.skillSlots[i + 1];
-      if (!slot) continue;
-
-      const skill = activeSkills[i];
-      if (skill) {
-        slot.iconText.setText(skill.icon);
-        slot.nameText.setText(skill.name);
-        slot.keyText.setText((i + 1).toString());
-        if (!skill.unlocked) {
-          slot.iconText.setAlpha(0.2);
-          slot.overlay.clear();
-          slot.overlay.fillStyle(0x000000, 0.8);
-          slot.overlay.fillRect(-21, -21, 42, 42); // Assumindo tamanho 42 do slot
-        } else {
-          slot.iconText.setAlpha(1);
-        }
-      } else {
-        slot.iconText.setText('');
-        slot.nameText.setText('');
+      const sk = skills[i];
+      if (sk) {
+        this.setSlotSprite(i + 1, sk.icon, sk.name, (i + 1).toString());
       }
     }
+  }
+
+  private setSlotSprite(slotIdx: number, spriteKey: string, name: string, keyBindStr: string): void {
+    const slot = this.skillSlots[slotIdx];
+    if (!slot) return;
+
+    if ((slot as any).iconSprite) {
+      (slot as any).iconSprite.destroy();
+      (slot as any).iconSprite = undefined;
+    }
+
+    if (this.textures.exists(spriteKey)) {
+      slot.iconText.setVisible(false);
+      const spr = this.add.sprite(21, 18, spriteKey);
+      spr.setDisplaySize(26, 26);
+      slot.container.add(spr);
+      (slot as any).iconSprite = spr;
+    } else {
+      slot.iconText.setVisible(true);
+    }
+
+    slot.nameText.setText(name);
+    slot.keyText.setText(keyBindStr);
   }
 
   private showDialogueBox(data: { portrait: string; title: string; text: string; hasConfirm?: boolean; onConfirm?: () => void }): void {

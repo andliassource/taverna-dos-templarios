@@ -167,7 +167,12 @@ export class UIScene extends Phaser.Scene {
 
     const partyBtn = this.add.text(dockX + 160, btnY, '⚔️', { fontSize: '18px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);
-    partyBtn.on('pointerdown', () => this.playerInteractionModal.openForPlayer('Mestre_SirLancelot'));
+    partyBtn.on('pointerdown', () => {
+      const targetName = window.prompt('Digite o nome do jogador para interagir (Grupo/Troca/Whisper):');
+      if (targetName && targetName.trim()) {
+        this.playerInteractionModal.openForPlayer(targetName.trim());
+      }
+    });
 
     const bossBtn = this.add.text(dockX + 196, btnY, '🐲', { fontSize: '18px' })
       .setInteractive({ useHandCursor: true }).setScrollFactor(0).setDepth(300);

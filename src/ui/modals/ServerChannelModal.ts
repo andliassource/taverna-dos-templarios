@@ -38,9 +38,9 @@ export class ServerChannelModal {
     this.container.add(title);
 
     const channels = [
-      { name: 'Canal 1 - Servidor Principal (PVE)', status: '🟢 Normal (42 Players)' },
-      { name: 'Canal 2 - Servidor PvP Liberto', status: '🟠 Movimentado (88 Players)' },
-      { name: 'Canal 3 - Servidor de Raids & Instâncias', status: '🟢 Normal (25 Players)' },
+      { name: 'Canal 1 - Servidor Principal (PVE)', status: '🟢 Ativo (Você Conectado)' },
+      { name: 'Canal 2 - Servidor PvP Liberto', status: '⚪ Disponível (0 Jogadores)' },
+      { name: 'Canal 3 - Servidor de Raids & Instâncias', status: '⚪ Disponível (0 Jogadores)' },
     ];
 
     channels.forEach((ch, idx) => {

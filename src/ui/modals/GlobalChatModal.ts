@@ -119,22 +119,6 @@ export class GlobalChatModal {
       sender: 'Sistema', classType: 'SYSTEM', channel: 'GERAL',
       text: '⚔️ Bem-vindo ao MMORPG Taverna dos Templários!', timestamp: now,
     });
-    this.messages.push({
-      sender: 'Guardião_Eldrin', classType: 'GUARDIAN', channel: 'GERAL',
-      text: 'Alguém para raidar a Masmorra de Malakor?', timestamp: now,
-    });
-    this.messages.push({
-      sender: 'Mestre Sir Arthur', classType: 'LEADER', channel: 'GUILDA',
-      text: '🛡️ [GUILDA] Irmãos Templários, unidos pela Luz Sagrada!', timestamp: now,
-    });
-    this.messages.push({
-      sender: 'Lady Eleanor', classType: 'CLERIC', channel: 'GRUPO',
-      text: '⚔️ [GRUPO] Pronta para curar a party na Masmorra!', timestamp: now,
-    });
-    this.messages.push({
-      sender: 'Mercadora Elise', classType: 'NPC', channel: 'PRIVADO',
-      text: '📜 [PRIVADO] Tenho ofertas secretas de porções para você na vila.', timestamp: now,
-    });
 
     this.updateTabColors();
     this.updateChatDisplay();

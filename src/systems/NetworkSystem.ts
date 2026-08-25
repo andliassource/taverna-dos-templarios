@@ -33,47 +33,7 @@ export class NetworkSystem {
   }
 
   private initSimulatedPlayers(): void {
-    this.simulatedOtherPlayers = [
-      {
-        id: 'p_001',
-        name: 'Mestre_SirLancelot',
-        classType: PlayerClass.WARRIOR,
-        x: 16 * 32,
-        y: 18 * 32,
-        direction: 'down',
-        isMoving: false,
-        hp: 1200,
-        maxHp: 1200,
-        level: 60,
-        guildTag: 'TEMPLAR',
-      },
-      {
-        id: 'p_002',
-        name: 'Lady_Merlin',
-        classType: PlayerClass.MAGE,
-        x: 18 * 32,
-        y: 21 * 32,
-        direction: 'left',
-        isMoving: false,
-        hp: 850,
-        maxHp: 850,
-        level: 58,
-        guildTag: 'TEMPLAR',
-      },
-      {
-        id: 'p_003',
-        name: 'Gavião_Arqueiro',
-        classType: PlayerClass.ARCHER,
-        x: 14 * 32,
-        y: 22 * 32,
-        direction: 'right',
-        isMoving: false,
-        hp: 920,
-        maxHp: 920,
-        level: 45,
-        guildTag: 'HUNTERS',
-      },
-    ];
+    this.simulatedOtherPlayers = [];
   }
 
   public bindScene(scene: Phaser.Scene): void {

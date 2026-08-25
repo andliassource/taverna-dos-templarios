@@ -80,15 +80,26 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('tavern-building', tavernBuildingImg);
     this.load.image('forge-building', forgeBuildingImg);
 
-    // Carrega Heróis HD como Imagens Base para geração dinâmica de Spritesheet Animado
-    this.load.image('hero-paladin-src', heroPaladinImg);
-    this.load.image('hero-mage-src', heroMageImg);
-    this.load.image('hero-archer-src', heroArcherImg);
-    this.load.image('hero-warrior-src', heroWarriorImg);
-    this.load.image('hero-cleric-src', heroClericImg);
-    this.load.image('hero-necromancer-src', heroNecromancerImg);
-    this.load.image('hero-assassin-src', heroAssassinImg);
-    this.load.image('hero-guardian-src', heroGuardianImg);
+    // Carrega Spritesheets HD (512x512, quadros 128x128) diretamente via Phaser 3
+    const heroSheets = [
+      { key: 'PALADIN-sheet', img: heroPaladinImg },
+      { key: 'MAGE-sheet', img: heroMageImg },
+      { key: 'ARCHER-sheet', img: heroArcherImg },
+      { key: 'WARRIOR-sheet', img: heroWarriorImg },
+      { key: 'CLERIC-sheet', img: heroClericImg },
+      { key: 'NECROMANCER-sheet', img: heroNecromancerImg },
+      { key: 'ASSASSIN-sheet', img: heroAssassinImg },
+      { key: 'GUARDIAN-sheet', img: heroGuardianImg },
+    ];
+
+    heroSheets.forEach(h => {
+      const opts = { frameWidth: 128, frameHeight: 128 };
+      this.load.spritesheet(h.key, h.img, opts);
+      this.load.spritesheet(h.key.toLowerCase(), h.img, opts);
+      const base = h.key.replace('-sheet', '');
+      this.load.spritesheet(base, h.img, opts);
+      this.load.spritesheet(base.toLowerCase(), h.img, opts);
+    });
 
     this.load.image('menu-bg-hd', menuBgHdImg);
     this.load.image('npc-blacksmith-img', npcBlacksmithImg);
@@ -210,24 +221,18 @@ export class PreloadScene extends Phaser.Scene {
     ];
 
     classes.forEach(c => {
-      // SÓ gera via código procedural se a textura da imagem real NÃO existir!
-      if (!this.textures.exists(c.key)) {
-        this.generateHDSpritesheet(c.key, c.primary, c.secondary, c.accent, c.skin, c.type);
-      }
-      
+      // Garante que todas as chaves e variações apontem para a textura HD carregada
+      const realKey = this.textures.exists(c.key) ? c.key : 'PALADIN-sheet';
+      const realTex = this.textures.get(realKey);
+      const srcImg = realTex.getSourceImage() as HTMLImageElement;
+
       const lowerKey = c.key.toLowerCase();
       const upperKey = c.key.toUpperCase();
       const baseKey = c.key.replace('-sheet', '').replace('-SHEET', '');
-      
-      [lowerKey, upperKey, baseKey, baseKey.toLowerCase(), baseKey.toUpperCase()].forEach(k => {
-        if (!this.textures.exists(k)) {
-          // Se já existe a textura real c.key, duplica para a chave alias k
-          if (this.textures.exists(c.key)) {
-            const realTex = this.textures.get(c.key);
-            this.textures.addImage(k, realTex.getSourceImage() as HTMLImageElement);
-          } else {
-            this.generateHDSpritesheet(k, c.primary, c.secondary, c.accent, c.skin, c.type);
-          }
+
+      [c.key, lowerKey, upperKey, baseKey, baseKey.toLowerCase(), baseKey.toUpperCase()].forEach(k => {
+        if (!this.textures.exists(k) && srcImg) {
+          this.textures.addImage(k, srcImg);
         }
       });
     });

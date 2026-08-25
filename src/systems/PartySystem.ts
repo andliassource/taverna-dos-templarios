@@ -26,11 +26,11 @@ export class PartySystem {
   }
 
   private initDefaultParty(): void {
-    this.members = [
-      { id: 'p1', name: 'Mestre_SirLancelot', classType: 'WARRIOR', level: 60, hp: 1200, maxHp: 1200, mp: 300, maxMp: 300, isLeader: true },
-      { id: 'player_self', name: 'Você (Templário)', classType: 'PALADIN', level: 12, hp: 100, maxHp: 100, mp: 50, maxMp: 50, isLeader: false },
-      { id: 'p3', name: 'Lady_Merlin', classType: 'MAGE', level: 58, hp: 850, maxHp: 850, mp: 900, maxMp: 900, isLeader: false },
-    ];
+    this.members = [];
+  }
+
+  public hasActiveParty(): boolean {
+    return this.members.length > 0;
   }
 
   public syncActivePlayer(name: string, classType: string, level: number, hp: number, maxHp: number, mp: number, maxMp: number): void {

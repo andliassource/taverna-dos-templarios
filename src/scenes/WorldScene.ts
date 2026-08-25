@@ -425,7 +425,6 @@ export class WorldScene extends BaseGameScene {
     container.add([shadow, npcSprite, nameText, iconText, bubble]);
 
     this.tweens.add({ targets: iconText, y: -68, duration: 1200, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
-    this.tweens.add({ targets: npcSprite, scaleY: 1.25, duration: 1800, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
     this.tweens.add({ targets: bubble, y: -86, duration: 1000, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
 
     if (onInteract) {

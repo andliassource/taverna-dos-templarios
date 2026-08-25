@@ -532,6 +532,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createPartyHUD(): void {
+    if (!PartySystem.getInstance().hasActiveParty()) return;
     const x = 20;
     let startY = 138;
     const members = PartySystem.getInstance().getMembers();
@@ -561,7 +562,7 @@ export class UIScene extends Phaser.Scene {
 
   private createWorldBossHUD(width: number): void {
     const evt = WorldBossEventSystem.getInstance().getCurrentEvent();
-    if (!evt) return;
+    if (!evt || !evt.isActive) return;
 
     const barWidth = 380;
     const barX = (width - barWidth) / 2;
@@ -700,7 +701,7 @@ export class UIScene extends Phaser.Scene {
     const gap = 8;
     const totalWidth = slotCount * (slotSize + gap) - gap;
     const startX = (width - totalWidth) / 2;
-    const y = height - slotSize - 32;
+    const y = height - slotSize - 54;
 
     // Fundo da Hotbar Medieval Esculpida em Metal e Ouro
     const hotbarBg = this.add.graphics();
@@ -2681,7 +2682,7 @@ export class UIScene extends Phaser.Scene {
       { key: 'ESC', label: '⚙️ [ESC] Opções', action: () => this.toggleSettingsUI() },
     ];
 
-    const barW = 740;
+    const barW = 820;
     const barH = 30;
     const startX = (width - barW) / 2;
     const barY = height - barH - 8;
@@ -2703,7 +2704,7 @@ export class UIScene extends Phaser.Scene {
 
       const txt = this.add.text(btnX, btnY, sc.label, {
         fontFamily: 'Cinzel',
-        fontSize: '10px',
+        fontSize: '9.5px',
         fontStyle: 'bold',
         color: '#ffd700',
         stroke: '#000000',

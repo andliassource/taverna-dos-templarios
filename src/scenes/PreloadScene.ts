@@ -454,56 +454,19 @@ export class PreloadScene extends Phaser.Scene {
     if (customImgKey && this.textures.exists(customImgKey)) {
       const imgObj = this.textures.get(customImgKey).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
       if (imgObj) {
-        // 4 Rows: 0=Down, 1=Left, 2=Right, 3=Up
-        // 4 Cols: 0=Idle1, 1=StepLeft, 2=Idle2, 3=StepRight
-        for (let row = 0; row < 4; row++) {
-          for (let col = 0; col < 4; col++) {
-            const isIdle = col % 2 === 0;
-            // Deslocamento de pernas e corpo estilo JRPG (Square Enix 2D Walk Cycle)
-            const yOffset = isIdle ? (col === 0 ? 0 : -3) : (col === 1 ? -6 : -4);
-            const xStride = isIdle ? 0 : (col === 1 ? -5 : 5);
-            const bodyTilt = isIdle ? 0 : (col === 1 ? -0.12 : 0.12);
+        const sheetCanvas = this.textures.createCanvas(key, 512, 512);
+        const sCtx = sheetCanvas!.getContext();
+        sCtx.imageSmoothingEnabled = true;
+        sCtx.imageSmoothingQuality = 'high';
+        sCtx.drawImage(imgObj, 0, 0, 512, 512);
+        sheetCanvas!.refresh();
 
-            const cx = col * frameW + 32;
-            const cy = row * frameH + 32 + yOffset;
-
-            // 1. Sombra dinâmica sob os pés (encolhe no salto da passada)
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-            ctx.beginPath();
-            const shadowRadius = isIdle ? 16 : 12;
-            ctx.ellipse(col * frameW + 32, row * frameH + 58, shadowRadius, 5, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // 2. Desenha o sprite com passada expressiva, inclinação de tronco e balanço
-            ctx.save();
-            ctx.translate(cx + xStride, cy);
-
-            // Perfil Esquerda (row 1)
-            if (row === 1) {
-              ctx.scale(-1, 1);
-            }
-
-            ctx.rotate(bodyTilt);
-            // Renderiza o corpo com deslocamento anatômico cristalino sem overlays
-            ctx.drawImage(imgObj, -22, -26 + (isIdle ? 0 : 2), 44, 52);
-            ctx.restore();
-
-            // 3. Efeito visual de rastro de passo / poeira sutil na base do frame ativo
-            if (!isIdle) {
-              ctx.fillStyle = 'rgba(200, 190, 160, 0.35)';
-              ctx.beginPath();
-              ctx.arc(cx - xStride * 1.2, row * frameH + 54, 4, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-        }
-
-        canvas!.refresh();
         const tex = this.textures.get(key);
+        const frameSize = 128;
         for (let r = 0; r < 4; r++) {
           for (let c = 0; c < 4; c++) {
             const idx = r * 4 + c;
-            tex.add(idx, 0, c * frameW, r * frameH, frameW, frameH);
+            tex.add(idx, 0, c * frameSize, r * frameSize, frameSize, frameSize);
           }
         }
         return;

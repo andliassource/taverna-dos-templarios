@@ -429,13 +429,6 @@ export class PreloadScene extends Phaser.Scene {
   ): void {
     if (this.textures.exists(key)) return;
 
-    const frameW = 64;
-    const frameH = 64;
-    const canvas = this.textures.createCanvas(key, 256, 256);
-    const ctx = canvas!.getContext();
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-
     // Checa se existe imagem HD personalizada para este personagem/NPC
     const upperKey = key.toUpperCase();
     let customImgKey = '';
@@ -472,6 +465,13 @@ export class PreloadScene extends Phaser.Scene {
         return;
       }
     }
+
+    const frameW = 64;
+    const frameH = 64;
+    const canvas = this.textures.createCanvas(key, 256, 256);
+    const ctx = canvas!.getContext();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     const shadeColor = (hex: string, pct: number): string => {
       const n = parseInt(hex.replace('#', ''), 16);

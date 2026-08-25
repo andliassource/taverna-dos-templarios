@@ -18,3 +18,9 @@
 - **WebGL & Anti-Aliasing**: Configuração `render.roundPixels = true` e `FilterMode.NEAREST` para solos e sprites, eliminando linhas de costura/seams subpixel.
 - **UI Obsidian & Gold Glassmorphism**: Interface limpa em alta definição com tipografia *Cinzel* e *MedievalSharp*, botões táteis, painéis com fundo translúcido e resposta sonora instantânea.
 - **Performabilidade & 60 FPS**: Gerenciamento de memória de texturas, reutilização de pools de objetos e física Arcade otimizada sem bloqueios na thread principal.
+
+## 4. 🚫 Regra Estrita de Proibição de Conteúdo & Dados Fictícios (Strict Real Data Only)
+
+- **PROIBIDO de forma alguma utilizar dados fictícios, preenchimentos de teste (mock data), nomes fakes de jogadores, contadores simulados ou mensagens de chat simuladas**.
+- Todos os sistemas do jogo (Chat, Leilão, Guilda, Ranking, Canais de Servidor, Party e Eventos de Boss Mundial) DEVEM ser **100% funcionais, autênticos e conectados em tempo real** aos dados reais do jogador e do servidor.
+- Se uma funcionalidade ainda não possuir integração de dados ao vivo, ela DEVE iniciar em estado neutro/vazio autêntico (ex: 0 membros no grupo solo, placar com registros reais obtidos) em vez de exibir dados ou nomes simulados.

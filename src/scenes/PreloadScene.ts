@@ -1372,10 +1372,118 @@ export class PreloadScene extends Phaser.Scene {
         );
         ctx.fill();
       }
-      ctx.fillStyle = '#ffdd00';
+      canvas!.refresh();
+    }
+
+    // 6. Estátua do Cavaleiro Templário HD (48x64)
+    if (!this.textures.exists('deco-statue')) {
+      const canvas = this.textures.createCanvas('deco-statue', 48, 64);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
+
+      // Sombra
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(24, 60, 18, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Pedestal de Mármore
+      ctx.fillStyle = '#7f8c8d';
+      this.drawRoundedRect(ctx, 12, 44, 24, 16, 3);
+      ctx.fillStyle = '#95a5a6';
+      this.drawRoundedRect(ctx, 10, 42, 28, 6, 2);
+
+      // Estátua de Pedra/Bronze
+      ctx.fillStyle = '#bdc3c7';
+      this.drawRoundedRect(ctx, 18, 20, 12, 24, 4); // Tronco
+      ctx.beginPath(); ctx.arc(24, 14, 8, 0, Math.PI * 2); ctx.fill(); // Elmo
+      ctx.fillStyle = '#d4af37';
+      ctx.fillRect(23, 10, 2, 8); // Cruz no elmo
+
+      // Espada Sagrada Cravada
+      ctx.fillStyle = '#ecf0f1';
+      ctx.fillRect(23, 16, 2, 32);
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(18, 22, 12, 3);
+
+      canvas!.refresh();
+    }
+
+    // 7. Fonte de Mana Sagrada HD (64x64)
+    if (!this.textures.exists('deco-fountain')) {
+      const canvas = this.textures.createCanvas('deco-fountain', 64, 64);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
+
+      // Bacia de Pedra
+      ctx.fillStyle = '#7f8c8d';
+      ctx.beginPath(); ctx.ellipse(32, 44, 28, 16, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#95a5a6';
+      ctx.beginPath(); ctx.ellipse(32, 40, 26, 14, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Água de Mana Mística Azul
+      ctx.fillStyle = '#00d2ff';
+      ctx.beginPath(); ctx.ellipse(32, 40, 22, 10, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(32, 38, 4, 0, Math.PI * 2); ctx.fill();
+
+      // Pilar Central com Gotejador
+      ctx.fillStyle = '#bdc3c7';
+      this.drawRoundedRect(ctx, 28, 16, 8, 26, 3);
+      ctx.fillStyle = '#3498db';
+      ctx.beginPath(); ctx.arc(32, 14, 6, 0, Math.PI * 2); ctx.fill();
+
+      canvas!.refresh();
+    }
+
+    // 8. Baú de Tesouro Real HD (32x32)
+    if (!this.textures.exists('deco-chest')) {
+      const canvas = this.textures.createCanvas('deco-chest', 32, 32);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
+
+      // Sombra
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(16, 30, 14, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+      // Corpo de Madeira do Baú
+      ctx.fillStyle = '#8e44ad';
+      this.drawRoundedRect(ctx, 4, 12, 24, 16, 4);
+
+      // Moldura e Tranca de Ouro
+      ctx.strokeStyle = '#f1c40f';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(4, 12, 24, 16);
+      ctx.fillStyle = '#f39c12';
+      ctx.fillRect(13, 17, 6, 6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(15, 19, 2, 2);
+
+      canvas!.refresh();
+    }
+
+    // 9. Estandarte da Guilda Templária HD (32x64)
+    if (!this.textures.exists('deco-banner')) {
+      const canvas = this.textures.createCanvas('deco-banner', 32, 64);
+      const ctx = canvas!.getContext();
+      ctx.imageSmoothingEnabled = true;
+
+      // Mastro de Madeira
+      ctx.fillStyle = '#5d4037';
+      ctx.fillRect(14, 4, 4, 56);
+
+      // Bandeira Vermelha e Dourada Sagrada
+      ctx.fillStyle = '#c0392b';
       ctx.beginPath();
-      ctx.arc(8, 8, 2.5, 0, Math.PI * 2);
+      ctx.moveTo(18, 10);
+      ctx.lineTo(30, 16);
+      ctx.lineTo(30, 44);
+      ctx.lineTo(18, 50);
+      ctx.closePath();
       ctx.fill();
+
+      // Cruz Templária em Ouro na Bandeira
+      ctx.fillStyle = '#f1c40f';
+      ctx.fillRect(22, 20, 4, 18);
+      ctx.fillRect(19, 27, 10, 4);
 
       canvas!.refresh();
     }

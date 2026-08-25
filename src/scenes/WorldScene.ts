@@ -263,6 +263,38 @@ export class WorldScene extends BaseGameScene {
       torch.play('torch-flame');
       torch.setDepth(t.y / TILE_SIZE + 1);
     });
+
+    // --- ESTÁTUA DO CAVALEIRO TEMPLÁRIO (Praça Central) ---
+    if (this.textures.exists('deco-statue')) {
+      const statue = this.add.image(25 * TILE_SIZE, 24 * TILE_SIZE, 'deco-statue');
+      statue.setDepth(24);
+      const statueWall = this.add.rectangle(25 * TILE_SIZE, 24 * TILE_SIZE, 40, 40, 0, 0);
+      this.wallBodies!.add(statueWall);
+    }
+
+    // --- FONTE DE MANA SAGRADA (Praça do Mestre) ---
+    if (this.textures.exists('deco-fountain')) {
+      const fountain = this.add.image(21 * TILE_SIZE, 18.5 * TILE_SIZE, 'deco-fountain');
+      fountain.setDepth(18.5);
+      const fountainWall = this.add.rectangle(21 * TILE_SIZE, 18.5 * TILE_SIZE, 48, 48, 0, 0);
+      this.wallBodies!.add(fountainWall);
+    }
+
+    // --- BAÚS DE TESOURO DA VILA ---
+    if (this.textures.exists('deco-chest')) {
+      const chest1 = this.add.image(36 * TILE_SIZE, 18 * TILE_SIZE, 'deco-chest');
+      chest1.setDepth(18);
+      const chest2 = this.add.image(14 * TILE_SIZE, 18 * TILE_SIZE, 'deco-chest');
+      chest2.setDepth(18);
+    }
+
+    // --- ESTANDARTES DA GUILDA NAS PORTAS ---
+    if (this.textures.exists('deco-banner')) {
+      const banner1 = this.add.image(21 * TILE_SIZE, 11 * TILE_SIZE, 'deco-banner');
+      banner1.setDepth(11);
+      const banner2 = this.add.image(29 * TILE_SIZE, 11 * TILE_SIZE, 'deco-banner');
+      banner2.setDepth(11);
+    }
   }
 
   private createWorldNPCs(): void {

@@ -85,54 +85,29 @@ export abstract class BaseGameScene extends Phaser.Scene {
     EntityAnimator.addIdleBreathing(this, this.player);
 
     const shadow = this.add.ellipse(0, 8, 26, 10, 0x000000, 0.45);
-    shadow.setDepth(24);
-
-    // Orbitas de Cristais Rúnicos Mágicos em torno da cabeça do Herói
-    const runeOrbit1 = this.add.graphics();
-    runeOrbit1.fillStyle(0xffd700, 0.9);
-    runeOrbit1.fillCircle(0, 0, 3.5);
-    runeOrbit1.lineStyle(1, 0xffffff, 1);
-    runeOrbit1.strokeCircle(0, 0, 3.5);
-
-    const runeOrbit2 = this.add.graphics();
-    runeOrbit2.fillStyle(0x00ffff, 0.9);
-    runeOrbit2.fillCircle(0, 0, 3);
-    runeOrbit2.lineStyle(1, 0xffffff, 1);
-    runeOrbit2.strokeCircle(0, 0, 3);
-
-    this.events.on('postupdate', () => {
-      const t = this.time.now * 0.003;
-      const r = 22;
-      const px = this.player.x;
-      const py = this.player.y - 18;
-
-      auraRing.setPosition(this.player.x, this.player.y);
-      auraRing.setDepth(this.player.depth - 1);
-
-      runeOrbit1.setPosition(px + Math.cos(t) * r, py + Math.sin(t) * (r * 0.4));
-      runeOrbit1.setDepth(this.player.depth + (Math.sin(t) > 0 ? 2 : -1));
-
-      runeOrbit2.setPosition(px + Math.cos(t + Math.PI) * r, py + Math.sin(t + Math.PI) * (r * 0.4));
-      runeOrbit2.setDepth(this.player.depth + (Math.sin(t + Math.PI) > 0 ? 2 : -1));
-    });
-
     const title = AchievementSystem.getInstance().getEquippedTitle();
     const pName = (this.scene.settings.data as any)?.name || (this as any).customPlayerName || 'Templário';
     const tagLabel = title ? `[${title}] ${pName}` : pName;
 
-    const nameTag = this.add.text(0, -32, tagLabel, {
+    const nameBadge = this.add.graphics();
+    const nameTag = this.add.text(0, 0, tagLabel, {
       fontFamily: 'Cinzel',
       fontSize: '11px',
       fontStyle: 'bold',
       color: title ? '#ffd700' : '#ffffff',
       stroke: '#000000',
-      strokeThickness: 3,
+      strokeThickness: 2.5,
     }).setOrigin(0.5);
 
     this.events.on('postupdate', () => {
-      shadow.setPosition(this.player.x, this.player.y + 4);
-      nameTag.setPosition(this.player.x, this.player.y - 34);
-      nameTag.setDepth(this.player.depth + 1);
+      const px = this.player.x;
+      const py = this.player.y;
+
+      shadow.setPosition(px, py + 12);
+      shadow.setDepth(this.player.depth - 2);
+
+      auraRing.setPosition(px, py + 12);
+      auraRing.setDepth(this.player.depth - 1);
 
       const curTitle = AchievementSystem.getInstance().getEquippedTitle();
       const updatedTag = curTitle ? `[${curTitle}] ${pName}` : pName;
@@ -141,7 +116,18 @@ export abstract class BaseGameScene extends Phaser.Scene {
         nameTag.setColor(curTitle ? '#ffd700' : '#ffffff');
       }
 
-      this.player.setDepth(this.player.y / TILE_SIZE + 2);
+      nameTag.setPosition(px, py - 38);
+      nameTag.setDepth(this.player.depth + 10);
+
+      const badgeW = nameTag.width + 16;
+      nameBadge.clear();
+      nameBadge.fillStyle(0x0a0614, 0.88);
+      nameBadge.fillRoundedRect(px - badgeW / 2, py - 47, badgeW, 18, 4);
+      nameBadge.lineStyle(1.5, title ? 0xffd700 : 0xd4af37, 0.9);
+      nameBadge.strokeRoundedRect(px - badgeW / 2, py - 47, badgeW, 18, 4);
+      nameBadge.setDepth(this.player.depth + 9);
+
+      this.player.setDepth(py / TILE_SIZE + 2);
     });
 
     this.events.on('player-died', () => this.handlePlayerDeathRespawn());

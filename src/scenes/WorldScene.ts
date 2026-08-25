@@ -155,11 +155,33 @@ export class WorldScene extends BaseGameScene {
     const worldW = 160 * TILE_SIZE;
     const worldH = 120 * TILE_SIZE;
 
-    // 1. Fundo do Vilarejo HD Procedural (1024x1024 tilável sem emendas)
+    // 1. Fundo do Vilarejo HD Procedural com filtragem LINEAR suave para eliminar emendas de grade
     const ground = this.add.tileSprite(worldW / 2, worldH / 2, worldW, worldH, 'procedural-village');
     ground.setOrigin(0.5, 0.5);
     ground.setDepth(0);
-    ground.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    ground.texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+
+    // 2. Praça Central de Paralelepípedos e Caminhos de Pedra do Vilarejo
+    const plazaPaths = this.add.graphics();
+    plazaPaths.setDepth(1);
+
+    // Calçada da Praça Central (Ao redor do Poço e Entradas da Taverna, Forja e Mercado)
+    plazaPaths.fillStyle(0x4a443b, 0.75);
+    plazaPaths.fillRoundedRect(14 * TILE_SIZE, 10 * TILE_SIZE, 24 * TILE_SIZE, 14 * TILE_SIZE, 16);
+    plazaPaths.lineStyle(2, 0x7c7365, 0.8);
+    plazaPaths.strokeRoundedRect(14 * TILE_SIZE, 10 * TILE_SIZE, 24 * TILE_SIZE, 14 * TILE_SIZE, 16);
+
+    // Pátio de Entrada da Taverna
+    plazaPaths.fillStyle(0x3d362c, 0.85);
+    plazaPaths.fillRoundedRect(20 * TILE_SIZE, 13 * TILE_SIZE, 10 * TILE_SIZE, 8 * TILE_SIZE, 12);
+    plazaPaths.strokeRoundedRect(20 * TILE_SIZE, 13 * TILE_SIZE, 10 * TILE_SIZE, 8 * TILE_SIZE, 12);
+
+    // Caminho da Estrada de Pedra (Norte-Sul)
+    plazaPaths.fillStyle(0x544c42, 0.65);
+    plazaPaths.fillRect(23 * TILE_SIZE, 2 * TILE_SIZE, 4 * TILE_SIZE, 36 * TILE_SIZE);
+
+    // Caminho da Estrada de Pedra (Leste-Oeste)
+    plazaPaths.fillRect(10 * TILE_SIZE, 18 * TILE_SIZE, 32 * TILE_SIZE, 4 * TILE_SIZE);
 
     // 3. Bordas do mundo (muros de pedra e colisões naturais)
     this.wallBodies = this.physics.add.staticGroup();
@@ -399,21 +421,28 @@ export class WorldScene extends BaseGameScene {
     npcSprite.setDepth(y);
     npcSprite.setInteractive({ useHandCursor: true });
 
-    // Sombra suave
-    const shadow = this.add.ellipse(0, 8, 28, 10, 0x000000, 0.35);
+    // Sombra suave sob os pés do NPC
+    const shadow = this.add.ellipse(0, 8, 28, 10, 0x000000, 0.45);
+
+    // Insígnia de Nomeplate em Vidro Obsidiana com Moldura Dourada
+    const badgeW = Math.max(96, name.length * 7.5 + 16);
+    const badgeBg = this.add.graphics();
+    badgeBg.fillStyle(0x0a0614, 0.92);
+    badgeBg.fillRoundedRect(-badgeW / 2, -58, badgeW, 20, 5);
+    badgeBg.lineStyle(1.5, 0xd4af37, 0.95);
+    badgeBg.strokeRoundedRect(-badgeW / 2, -58, badgeW, 20, 5);
 
     const nameText = this.add.text(0, -48, name, {
-      fontFamily: 'MedievalSharp', fontSize: '12px', color: '#ffd700',
-      stroke: '#000000', strokeThickness: 3,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)', padding: { x: 6, y: 3 }
+      fontFamily: 'Cinzel', fontSize: '10.5px', fontStyle: 'bold', color: '#ffd700',
+      stroke: '#000000', strokeThickness: 2.5
     }).setOrigin(0.5);
 
-    const iconText = this.add.text(0, -64, icon, { fontSize: '18px' }).setOrigin(0.5);
+    const iconText = this.add.text(0, -68, icon, { fontSize: '18px' }).setOrigin(0.5);
 
     // Balão flutuante de conversa
-    const bubble = this.add.container(0, -82).setVisible(false);
+    const bubble = this.add.container(0, -88).setVisible(false);
     const bubbleBg = this.add.graphics();
-    bubbleBg.fillStyle(0x0a0618, 0.92);
+    bubbleBg.fillStyle(0x0a0618, 0.94);
     bubbleBg.fillRoundedRect(-55, -14, 110, 28, 6);
     bubbleBg.lineStyle(1.5, 0xffd700, 1);
     bubbleBg.strokeRoundedRect(-55, -14, 110, 28, 6);
@@ -422,7 +451,7 @@ export class WorldScene extends BaseGameScene {
     }).setOrigin(0.5);
     bubble.add([bubbleBg, bubbleText]);
 
-    container.add([shadow, npcSprite, nameText, iconText, bubble]);
+    container.add([shadow, npcSprite, badgeBg, nameText, iconText, bubble]);
 
     this.tweens.add({ targets: iconText, y: -68, duration: 1200, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
     this.tweens.add({ targets: bubble, y: -86, duration: 1000, ease: 'Sine.easeInOut', yoyo: true, repeat: -1 });
